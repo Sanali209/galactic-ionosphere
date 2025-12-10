@@ -6,6 +6,8 @@ import asyncio
 from loguru import logger
 from src.core.locator import sl
 from src.core.database.models.image import ImageRecord
+from src.core.database.models.tag import TagManager
+from src.core.files.images import FileHandlerFactory
 
 class BackendBridge(QObject):
     """
@@ -17,6 +19,8 @@ class BackendBridge(QObject):
     logMessage = Signal(str)
     # id, path, dimensions, size, meta
     imageSelected = Signal(str, str, str, str, str)
+    # id, key, value, success
+    metaUpdateResult = Signal(str, str, str, bool)
     # Property for AI result limit
     aiResultLimitChanged = Signal(int)
     _aiResultLimit = 20
@@ -136,6 +140,102 @@ class BackendBridge(QObject):
             self.imageSelected.emit(str(record.id), path, dims, size_mb, meta)
         else:
             self.imageSelected.emit(image_id, "Unknown", "-", "-", "{}")
+
+    @Slot(str, str, str)
+    def updateImageMetadata(self, image_id: str, key: str, value: str):
+        """
+        Updates metadata for a specific image.
+        key: 'rating', 'label', 'description', 'tags' (comma sep)
+        value: string representation
+        """
+        loop = asyncio.get_event_loop()
+        loop.create_task(self._do_update_metadata(image_id, key, value))
+
+    async def _do_update_metadata(self, image_id: str, key: str, value: str):
+        logger.info(f"Updating metadata {image_id}: {key}={value}")
+        record = await ImageRecord.get(image_id)
+        if not record:
+            logger.error("Image not found")
+            self.metaUpdateResult.emit(image_id, key, value, False)
+            return
+
+        # Prepare update payload
+        # Convert value based on key
+        payload = {}
+        if key == "rating":
+            try:
+                payload["rating"] = int(value)
+            except:
+                logger.error("Invalid rating value")
+                return
+        elif key == "tags":
+            # Assume comma separated paths or names
+            # Logic: If user provides "A|B, C", we parse two tags.
+            payload["tags"] = [t.strip() for t in value.split(",") if t.strip()]
+        else:
+            payload[key] = value
+
+        # 1. Update File
+        ext = record.ext
+        handler = FileHandlerFactory.get_handler(ext)
+        if handler:
+            try:
+                await handler.write_metadata(record.full_path, payload)
+            except Exception as e:
+                logger.error(f"Failed to write metadata to file: {e}")
+                self.metaUpdateResult.emit(image_id, key, value, False)
+                return
+        else:
+             logger.warning(f"No handler for {ext}")
+
+        # 2. Update DB
+        # Re-read file or just update DB field?
+        # Updating DB field mirrors the change.
+        # But ideally we re-extract to be sure.
+        # For responsiveness, update DB blindly, then maybe queue a re-read.
+
+        # Mapping to DB fields
+        if key == "rating":
+            record.rating = int(value)
+        elif key == "label":
+            record.label = value
+        elif key == "description":
+            record.description = value
+        # For tags, we sync with Tag entities immediately to keep DB graph correct
+        if key == "tags" and "tags" in payload:
+            tag_ids = []
+            for tag_path in payload["tags"]:
+                try:
+                    # Treat input as hierarchical paths (User UI should likely provide paths)
+                    leaf = await TagManager.ensure_from_path(tag_path, separator="|")
+                    tag_ids.append(leaf.id)
+                except Exception as e:
+                    logger.error(f"Failed to reconcile tag {tag_path}: {e}")
+            record.tag_ids = tag_ids
+
+        # Update xmp_data cache in record
+        if not record.xmp_data: record.xmp_data = {}
+        # Merge changes
+        # This is rough, as xmp_data structure varies.
+        # Ideally we re-run extract_metadata
+
+        try:
+            new_meta = await handler.extract_metadata(record.full_path)
+            record.xmp_data = new_meta
+            # Sync root fields
+            if "rating" in new_meta: record.rating = new_meta["rating"]
+            if "label" in new_meta: record.label = new_meta["label"]
+            if "description" in new_meta: record.description = new_meta["description"]
+
+            await record.save()
+            self.metaUpdateResult.emit(image_id, key, value, True)
+
+            # Notify UI of change via selection update if selected?
+            # Or just let the signal handle it.
+
+        except Exception as e:
+            logger.error(f"Failed to refresh DB record: {e}")
+            self.metaUpdateResult.emit(image_id, key, value, False)
 
     @Slot(str, bool)
     def filterByFolder(self, folder_url: str, recursive: bool):
