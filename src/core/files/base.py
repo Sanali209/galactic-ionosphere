@@ -16,6 +16,11 @@ class FileHandler(ABC):
     async def extract_metadata(self, path: str) -> Dict[str, Any]:
         """Extracts XMP/Exif or other metadata."""
         pass
+
+    @abstractmethod
+    async def write_metadata(self, path: str, metadata: Dict[str, Any]) -> None:
+        """Writes metadata to the file."""
+        pass
         
     @abstractmethod
     async def generate_thumbnail(self, source_path: str, target_path: str, size: tuple = (256, 256)):

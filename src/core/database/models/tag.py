@@ -35,6 +35,36 @@ class TagManager:
         return t
 
     @staticmethod
+    async def ensure_from_path(path_str: str, separator: str = "|") -> Tag:
+        """
+        Ensures a hierarchy of tags exists given a path string (e.g., 'Animals|Mammals|Cats').
+        Returns the leaf tag.
+        """
+        parts = [p.strip() for p in path_str.split(separator) if p.strip()]
+        if not parts:
+            raise ValueError("Empty tag path")
+
+        current_parent = None
+
+        for name in parts:
+            # Find existing child of current_parent with this name
+            query = {"name": name}
+            if current_parent:
+                query["parent_id"] = current_parent.id
+            else:
+                # Root tag
+                query["parent_id"] = None
+
+            found = await Tag.find(query)
+            if found:
+                current_parent = found[0]
+            else:
+                # Create
+                current_parent = await TagManager.create_tag(name, current_parent)
+
+        return current_parent
+
+    @staticmethod
     async def move_tag(tag: Tag, new_parent: Optional[Tag]):
         """
         Moves a tag to a new parent and updates paths of ALL descendants.
@@ -57,41 +87,6 @@ class TagManager:
         await tag.save()
         
         # Update all children (Recursive update of paths)
-        # Old prefix: "Root|A"
-        # New prefix: "Root|B"
-        # Child was: "Root|A|Child" -> "Root|B|Child"
-        
-        # We find all tags that start with the OLD prefix + divider
-        # divider is "|"
-        
-        from src.core.database.manager import db_manager
-        coll = Tag.get_collection()
-        
-        # Construct Regex for finding descendants
-        # Ancestors path is stored in 'path'.
-        # If I am tag A (id=123), my path was "P".
-        # My children have path "P|123".
-        # Now my path is "N".
-        # Children need path "N|123".
-        
-        # We need to replace the START of the path string for all descendants.
-        # The part to replace is `old_path_prefix`.
-        # The replacement is `new_path` + "|" + `str(tag.id)`  Wait.
-        
-        # tag.id remains same.
-        # tag.path changed from P to N.
-        # Children typically append tag.id to tag.path.
-        # So children had: "P|tag.id|..."
-        # Now need:        "N|tag.id|..."
-        
-        # We can enable multi-update with aggregation pipeline or simple iteration.
-        # Iteration is safer for correctness, let's do find and update.
-        
-        # Find all tags where path starts with "old_path_prefix"
-        # old_path_prefix was calculated above as `tag.path|tag.id` BEFORE the save?
-        # Oops, we modified `tag.path` above. We lost the old path!
-        # We actually calculated `old_path_prefix` at the start of method:
-        # `old_path_prefix = f"{tag.path}|{str(tag.id)}"` <-- This used the OLD path. correct.
         
         new_prefix = f"{tag.path}|{str(tag.id)}" if tag.path else str(tag.id)
         

@@ -5,3 +5,4 @@ loguru>=0.7.0
 diskcache>=5.6.0
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
+pyexiv2>=2.13.0

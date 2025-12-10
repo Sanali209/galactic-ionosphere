@@ -7,6 +7,7 @@ from loguru import logger
 from src.core.locator import sl
 from src.core.files.images import FileHandlerFactory
 from src.core.database.models.image import ImageRecord
+from src.core.database.models.tag import TagManager
 
 class ImportService:
     """
@@ -57,6 +58,18 @@ class ImportService:
         record.xmp_data = meta
         record.dimensions = dims
         
+        # 3b. Process Tags (Hierarchical)
+        if "tags" in meta and meta["tags"]:
+            tag_ids = []
+            for tag_path in meta["tags"]:
+                try:
+                    # ensure_from_path handles creation and finding
+                    leaf_tag = await TagManager.ensure_from_path(tag_path, separator="|")
+                    tag_ids.append(leaf_tag.id)
+                except Exception as e:
+                    logger.error(f"Failed to process tag path '{tag_path}': {e}")
+            record.tag_ids = tag_ids
+
         await record.save()
         logger.info(f"Imported image: {record.id}")
         
