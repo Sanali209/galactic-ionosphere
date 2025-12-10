@@ -11,25 +11,25 @@ This document outlines the discrepancies between the initial "Gallery Desktop" p
 | **Vector DB** | `qdrant` | `vector_driver.py` exists but `qdrant-client` is missing from `requirements.txt`. | **Add Dependency** to `requirements.txt`. |
 | **UI Framework** | PySide6 + QML | PySide6 is used. | Maintain. |
 
-## 2. UI Components (Major Gaps)
+## 2. UI Components
 
-The plan describes a rich, IDE-like interface (like Visual Studio). The current implementation is a basic viewer.
+The plan describes a rich, IDE-like interface (like Visual Studio). The current implementation is a mix of complete panels and simplified views.
 
 *   **Directory View (Tree)**:
     *   *Plan*: Hierarchical tree of folders on physical disk, reactive updates.
-    *   *Current*: **Missing**. Only a flat `GalleryView` exists.
+    *   *Current*: **Partially Implemented**. A `FileExplorer.qml` exists using `FolderListModel` (Flat List), not a recursive Tree View. It allows navigation but lacks the hierarchical "Overview" of a tree.
 *   **Tag View (Tree)**:
     *   *Plan*: Hierarchical tree of database tags, reactive updates.
-    *   *Current*: **Missing**.
+    *   *Current*: **Partially Implemented**. `TagTreeModel` (Python) implements the hierarchy logic, but the UI (`SidebarPanel.qml`) uses a simple `ListView`, flattening the visualization.
 *   **Search Panel**:
     *   *Plan*: Advanced mode with tree view for query building (AND/OR/NOT logic).
-    *   *Current*: **Missing**. Basic search might exist in backend but no UI.
+    *   *Current*: **Missing**. Only a basic text-based `SearchBox` exists.
 *   **Centralized Settings Window**:
     *   *Plan*: "Like Visual Studio", left side vertical tabs, pages for settings.
-    *   *Current*: **Missing**. `config.json` exists, but no UI to edit it.
+    *   *Current*: **Implemented**. `SettingsPanel.qml` follows the requested design (Vertical tabs, StackLayout pages) and binds to config.
 *   **Image Grid View**:
     *   *Plan*: Virtualization for large amounts of images, reactive.
-    *   *Current*: `GalleryView.qml` exists but needs verification of virtualization capabilities.
+    *   *Current*: **Implemented**. `GalleryView.qml` uses `GridView` which supports UI virtualization by default. Performance on 10k+ items needs verification.
 
 ## 3. Systems & Features
 
@@ -42,9 +42,9 @@ The plan describes a rich, IDE-like interface (like Visual Studio). The current 
 *   **XMP Write Back**:
     *   *Plan*: Possibility to write XMP data on user request.
     *   *Current*: **Missing**. Only extraction stubs exist.
-*   **Initial Import Pipeline**:
+*   **Import Pipeline**:
     *   *Plan*: "Choose folder and immediate process files in folder and subfolders".
-    *   *Current*: `importer.py` handles single file. `FileMonitor` handles new files. **Missing** "Scan Folder" command/logic to walk existing directories.
+    *   *Current*: **Implemented**. `backendBridge.importFolder` (and `_do_import_folder`) performs a recursive walk and processing.
 
 ## 4. Data Entities
 
@@ -57,6 +57,6 @@ The plan describes a rich, IDE-like interface (like Visual Studio). The current 
 
 ## Recommendations
 
-1.  **Prioritize UI Construction**: The backend foundation is decent (aside from the Motor migration), but the UI is significantly behind the "Visual Studio-like" vision.
+1.  **Refine UI Views**: The `FileExplorer` and `TagView` need to be upgraded from Lists to Trees (`TreeView` in QML is complex; consider `QTreeView` widget wrapped or `TreeView` from QtQuick Controls 1/Lab).
 2.  **Dependency Fix**: Add `pyexiv2` and `qdrant-client` immediately.
-3.  **Migration**: Schedule the Motor -> PyMongo Async migration early to avoid building more on a deprecated driver.
+3.  **Migration**: Schedule the Motor -> PyMongo Async migration early.

@@ -1,7 +1,7 @@
 # Phased Implementation Roadmap
 
 **Goal**: Build the "Local Gallery & AI Manager" desktop application.
-**Status**: Phases 1-3 Complete. Phases 4-6 Partially Complete (Refactoring Required).
+**Status**: Phases 1-3 Complete. Phase 5 (UI) partially complete.
 
 ## Phase 1: Domain Modeling & Data Layer (✅ Complete)
 - [x] **1.1. Entity Models**: `ImageRecord`, `Tag`, `Detection`.
@@ -25,36 +25,31 @@
 *Focus: Aligning codebase with original plan and modernizing stack.*
 
 - [ ] **4.1. Dependency Updates**:
-    -   Replace `motor` with `pymongo` (AsyncMongoClient) as `motor` is deprecated.
-    -   Add `qdrant-client` to requirements.
-    -   Add `pyexiv2` and implement real metadata extraction.
+    -   Replace `motor` with `pymongo` (AsyncMongoClient).
+    -   Add `qdrant-client` and `pyexiv2` to requirements.
 - [ ] **4.2. System Gaps**:
-    -   Implement "Folder Scan" logic (recursive walk for existing files).
     -   Implement XMP Write-back capability.
     -   Implement Mongo-based Journal/Log system.
 
 ## Phase 5: User Interface Construction (🚧 Partially Complete)
 *Focus: Building the IDE-like "Visual Studio" interface defined in the plan.*
 
-- [x] **5.1. Main Layout**: Sidebar, Grid, Inspector (Basic).
-- [ ] **5.2. Directory Tree View**:
-    -   Hierarchical file system view.
+- [x] **5.1. Main Layout**: Sidebar, Grid, Inspector.
+- [x] **5.2. Settings Window**: Vertical tabs, Config binding.
+- [ ] **5.3. Directory Tree View**:
+    -   Upgrade `FileExplorer.qml` from List to Tree.
     -   Reactive updates from `FileMonitor`.
-- [ ] **5.3. Tag Tree View**:
-    -   Hierarchical view of `Tag` entities.
-    -   Drag-and-drop support for tagging.
-- [ ] **5.4. Advanced Search Panel**:
+- [ ] **5.4. Tag Tree View**:
+    -   Upgrade Sidebar Tag view to support nested visualization.
+- [ ] **5.5. Advanced Search Panel**:
     -   Tree-based query builder (AND/OR groups).
-- [ ] **5.5. Centralized Settings Window**:
-    -   Vertical tabs (Visual Studio style).
-    -   UI for `config.yaml` modification.
 
 ## Phase 6: Advanced UI & Interaction (🚧 Partially Complete)
 - [x] **6.1. Docking System**: `DockPanel`, `LayoutManager`.
 - [ ] **6.2. Relation UI**:
     -   Visual tool to view/edit `Reference` links between entities.
-- [ ] **6.3. Image Grid Virtualization**:
-    -   Ensure grid handles 10k+ images smoothly.
+- [x] **6.3. Image Grid Virtualization**:
+    -   Implemented via QML `GridView`.
 
 ## Phase 7: Deep Intelligence (Object Detection) (Next)
 **Objective**: Implement Granular Object Detection (YOLO/DINO).
