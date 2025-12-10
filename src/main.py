@@ -12,7 +12,8 @@ from src.core.engine.importer import ImportService
 from src.core.engine.tasks import TaskDispatcher
 from src.core.engine.monitor import FileMonitor
 from src.core.ai.vector_driver import VectorDriver
-from src.core.ai.embeddings import EmbeddingService
+from src.core.ai.vector_driver import VectorDriver
+from src.core.ai.service import EmbeddingService
 from src.core.ai.detection import ObjectDetectionService
 from src.core.ai.search import SearchService
 from src.core.ai.handlers import AITaskHandlers
@@ -23,7 +24,7 @@ from src.ui.bridge import BackendBridge
 
 async def main():
     # 0. Initialize Service Locator
-    sl.init("config.yaml")
+    sl.init("config.json")
 
     # 1. Initialize DB
     # init() is synchronous but ensures connection client is ready
@@ -31,20 +32,19 @@ async def main():
     
     # 2. Initialize Core Services
     # (In a real DI container this would be cleaner)
+    # 2. Initialize Core Services
     tasks = TaskDispatcher()
     await tasks.start()
     
-    importer = ImportService(dispatcher=tasks)
-    
     vector_driver = VectorDriver("localhost", 6333)
-    # Check connection (non-blocking in UI? For now await)
     try:
         vector_driver.connect()
     except Exception:
         logger.warning("Vector DB not connected")
 
     embed_service = EmbeddingService()
-    # Lazy load embed service usually
+    
+    importer = ImportService(dispatcher=tasks, embed_service=embed_service, vector_driver=vector_driver)
     
     search_service = SearchService(vector_driver, embed_service)
     

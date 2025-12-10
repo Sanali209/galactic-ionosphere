@@ -1,7 +1,7 @@
 import asyncio
 import sys
 from src.core.locator import sl
-from src.ui.bridge import QtBridge
+
 from src.ui.main_window import MainWindow
 from src.core.capabilities.base import IDriver
 from src.core.database.manager import db_manager

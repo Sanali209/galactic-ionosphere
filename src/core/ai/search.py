@@ -4,7 +4,7 @@ from bson import ObjectId
 
 from src.core.database.models.image import ImageRecord
 from src.core.ai.vector_driver import VectorDriver
-from src.core.ai.embeddings import EmbeddingService
+from src.core.ai.service import EmbeddingService
 
 class SearchService:
     """
@@ -20,7 +20,8 @@ class SearchService:
         """
         # 1. Encode text
         vector = await self.embedding_service.encode_text(query)
-        if not vector:
+        # Ensure we have a valid non-empty vector
+        if vector is None or getattr(vector, 'size', 0) == 0:
             logger.warning("Empty vector generated for query.")
             return []
 

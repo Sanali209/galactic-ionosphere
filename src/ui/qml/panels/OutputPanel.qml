@@ -6,22 +6,31 @@ import "../components"
 Item {
     // title handled by parent DockablePanel
 
-    TextArea {
-        id: logArea
+    ScrollView {
+        id: scrollView
         anchors.fill: parent
-        readOnly: true
-        font.family: "Consolas"
-        font.pixelSize: 11
-        background: Rectangle {
-            color: "#1e1e1e"
-        }
-        color: "#d4d4d4"
-        text: "System Initialized.\n"
+        
+        TextArea {
+            id: logArea
+            readOnly: true
+            font.family: "Consolas"
+            font.pixelSize: 11
+            background: Rectangle {
+                color: "#1e1e1e"
+            }
+            color: "#d4d4d4"
+            text: "System Initialized.\n"
+            
+            // Auto-scroll
+            onTextChanged: {
+                logArea.cursorPosition = logArea.length
+            }
 
-        Connections {
-            target: backendBridge
-            function onLogMessage(msg) {
-                logArea.append(msg);
+            Connections {
+                target: backendBridge
+                function onLogMessage(msg) {
+                    logArea.append(msg);
+                }
             }
         }
     }

@@ -13,6 +13,11 @@ class ImportService:
     Coordinates file ingestion: Hash -> DB -> Background Tasks.
     """
     
+    def __init__(self, dispatcher=None, embed_service=None, vector_driver=None):
+        self.dispatcher = dispatcher
+        self.embed_service = embed_service
+        self.vector_driver = vector_driver
+
     async def process_file(self, file_path: str):
         if not os.path.exists(file_path):
             logger.warning(f"File not found: {file_path}")
@@ -27,21 +32,13 @@ class ImportService:
 
         logger.info(f"Processing file: {file_path}")
         
-        # 1. Hashing (Async wrapper if strictly needed, but fast IO is usually OK-ish for small batches. 
-        # For huge files, we'd offload to thread/task.)
-        # Here we do it inline for simplicity or offload?
-        # Let's offload to asyncio.to_thread for responsiveness.
+        # 1. Hashing
         content_hash = await asyncio.to_thread(self._calculate_hash, file_path)
         
         # 2. Key Check: Does hash exist?
         existing = await ImageRecord.find({"content_md5": content_hash})
         if existing:
             logger.info(f"Duplicate image found: {file_path} (Matches {existing[0].id})")
-            # Logic: Add a 'Reference' (DUPLICATE_OF)? Or just skip?
-            # For Phase 2, we just ensure we have *a* record.
-            # If path is different, maybe update or track multiple paths?
-            # Current ImageRecord has one 'path'. 
-            # We'll skip re-importing identical existing entity.
             return existing[0]
 
         # 3. Create Record
@@ -63,30 +60,33 @@ class ImportService:
         await record.save()
         logger.info(f"Imported image: {record.id}")
         
-        # 4. Dispatch Tasks
-        # We need a reference to the dispatcher. 
-        # Using ServiceLocator pattern as strictly requested in architecture.
-        # But 'sl' might not have 'tasks' if not initialized.
-        # Assuming we can grab it or we inject it properly.
-        # Let's import the global 'sl' or assume 'engine.tasks' is available.
-        # Ideally ImportService takes dispatcher in __init__.
-        # For now, let's use the one from `src.core.engine.tasks` if we made it singleton?
-        # No, 'TaskDispatcher' is a class.
-        # Let's access it via `sl.tasks` (assuming we add it to SL).
-        
-        # For now, let's just create a quick connection or assume `self.dispatcher` is set.
-        # Better: ImportService(dispatcher).
-        
+        # 4. Dispatch Tasks (Thumbnail)
         if self.dispatcher:
             await self.dispatcher.submit_task("GENERATE_THUMBNAIL", {
                 "source_path": file_path,
                 "content_hash": content_hash
             })
+
+        # 5. Vectorize (Inline/Background)
+        if self.embed_service and self.vector_driver:
+            # We run this in background to not block import loop too much? 
+            # Or inline if we want "Import = Ready".
+            # Let's do inline for now (CLIP is fast on GPU, acceptable on CPU for single file).
+            try:
+                vec = await asyncio.to_thread(self.embed_service.generate_embedding, file_path)
+                if vec is not None and len(vec) > 0:
+                    payload = {"mongo_id": str(record.id), "path": record.full_path}
+                    q_id = self.vector_driver.to_qdrant_id(str(record.id))
+                    await self.vector_driver.upsert_vector(
+                        point_id=q_id, 
+                        vector=vec.tolist(),
+                        payload=payload
+                    )
+                    logger.info(f"Vectorized {record.id}")
+            except Exception as e:
+                logger.error(f"Vectorization failed for {file_path}: {e}")
         
         return record
-
-    def __init__(self, dispatcher=None):
-        self.dispatcher = dispatcher
 
     def _calculate_hash(self, path: str) -> str:
         """MD5 Hash of file content."""

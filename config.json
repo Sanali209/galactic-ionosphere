@@ -1,0 +1,13 @@
+{
+    "ai": {
+        "provider_id": "clip_local",
+        "device": "cpu",
+        "result_limit": 40
+    },
+    "mongo": {
+        "host": "localhost",
+        "port": 27017,
+        "database_name": "gallery_db"
+    },
+    "library_path": "./data"
+}

@@ -22,6 +22,12 @@ class VectorDriver:
         # Dimensions for standard CLIP (ViT-B/32) is 512.
         self.vector_size = 512 
 
+    @staticmethod
+    def to_qdrant_id(mongo_id: str) -> str:
+        """Converts a Mongo ObjectId string to a UUIDv5 (OID Namespace)."""
+        import uuid
+        return str(uuid.uuid5(uuid.NAMESPACE_OID, str(mongo_id))) 
+
     def connect(self):
         """Synchronous connection initialization (QdrantClient is sync/async hybrid)."""
         if not QdrantClient:

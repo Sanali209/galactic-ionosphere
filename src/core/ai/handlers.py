@@ -2,7 +2,7 @@ from loguru import logger
 from src.core.database.models.task import TaskRecord
 from src.core.database.models.image import ImageRecord
 from src.core.database.models.detection import Detection
-from src.core.ai.embeddings import EmbeddingService
+from src.core.ai.service import EmbeddingService
 from src.core.ai.vector_driver import VectorDriver
 from src.core.ai.detection import ObjectDetectionService
 import uuid
@@ -41,7 +41,7 @@ class AITaskHandlers:
             raise RuntimeError("Failed to generate embedding (model error or empty)")
 
         # 3. Upsert to Qdrant
-        oid_uuid = str(uuid.uuid5(uuid.NAMESPACE_OID, str(image.id)))
+        oid_uuid = self.vector_driver.to_qdrant_id(str(image.id))
         
         # Payload for filterable search
         payload = {

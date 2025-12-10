@@ -56,6 +56,15 @@ class MainWindow(QMainWindow):
         self.dock_output.setWidget(self.qml_output)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.dock_output)
 
+        # Settings Dock (Settings Panel)
+        self.dock_settings = QDockWidget("Settings", self)
+        self.dock_settings.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.qml_settings = QQuickWidget()
+        self.qml_settings.setResizeMode(QQuickWidget.SizeRootObjectToView)
+        self.setup_qml_widget(self.qml_settings, "panels/SettingsPanel.qml")
+        self.dock_settings.setWidget(self.qml_settings)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.dock_settings)
+
         # 5. Menu Bar
         self.create_menu()
 
@@ -73,18 +82,25 @@ class MainWindow(QMainWindow):
         import_action = file_menu.addAction("Import Folder...")
         import_action.triggered.connect(self.open_import_dialog)
         
+        vector_action = file_menu.addAction("Generate Missing Vectors (AI)")
+        vector_action.triggered.connect(lambda: self.bridge.vectorizeAll())
+        
         file_menu.addSeparator()
+        
+        # Settings Menu Item
+        settings_action = file_menu.addAction("Settings")
+        settings_action.triggered.connect(lambda: self.dock_settings.toggleViewAction().trigger())
         
         exit_action = file_menu.addAction("Exit")
         exit_action.triggered.connect(self.close)
-        
-        # View Menu
+
         view_menu = menubar.addMenu("&View")
         
         # Toggle Actions for Docks
         view_menu.addAction(self.dock_solution.toggleViewAction())
         view_menu.addAction(self.dock_props.toggleViewAction())
         view_menu.addAction(self.dock_output.toggleViewAction())
+        view_menu.addAction(self.dock_settings.toggleViewAction())
 
     def open_import_dialog(self):
         from PySide6.QtWidgets import QFileDialog

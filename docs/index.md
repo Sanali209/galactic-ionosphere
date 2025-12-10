@@ -17,6 +17,14 @@ The `Local Gallery & AI Manager` is built on a modular "Foundation Layer" design
 -   `src/core/database/`: **Mongo ORM** (Async/Motor).
 -   `src/core/locator.py`: **Service Locator** (Singleton).
 
+## Documentation
+
+-   [Project Status](status.md)
+-   [Roadmap](roadmap.md)
+-   [Features](features.md)
+-   [UI Overview](ui/overview.md)
+-   [Configuration](core/configuration.md)
+
 ## Quick Start
 
 Initialize the system:
@@ -25,7 +33,7 @@ Initialize the system:
 from src.core.locator import sl
 
 # Initialize Core
-sl.init("settings.json")
+sl.init("config.json")
 
 # Connect to Database
 sl.caps.db.init()
