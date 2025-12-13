@@ -141,6 +141,14 @@ class CollectionRecord(metaclass=DbRecordMeta):
         return results
 
     @classmethod
+    async def find_one(cls: Type[T], query: Dict) -> Optional[T]:
+        coll = cls.get_collection()
+        data = await coll.find_one(query)
+        if data:
+            return cls._instantiate_from_data(data)
+        return None
+
+    @classmethod
     def _instantiate_from_data(cls, data: Dict) -> 'CollectionRecord':
         # Polymorphism support: check if there's a specific class defined
         cls_name = data.get('_cls')

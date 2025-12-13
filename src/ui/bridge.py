@@ -26,16 +26,23 @@ class BackendBridge(QObject):
     _aiResultLimit = 20
     # Removed duplicate _ai_result_limit variable
     
-    def __init__(self, importer: ImportService, search_service: SearchService, grid_model: GalleryGridModel):
+    def __init__(self, importer, search_service, grid_model, journal_model, file_system_model, tag_model):
         super().__init__()
         self._importer = importer
-        self._search = search_service
+        self._search_service = search_service
         self._grid_model = grid_model
+        self._journal_model = journal_model
+        self._model_file_system = file_system_model
+        self._tag_model = tag_model
         # AI limit is now pulled from config on demand
         
         # Hook into Loguru? 
         # For now, we can manually emit log messages or use a sink.
         logger.add(lambda msg: self.logMessage.emit(str(msg).strip()), format="{time:HH:mm:ss} | {level} | {message}")
+
+    @Property(QObject, constant=True)
+    def journalModel(self):
+        return self._journal_model
 
     @Slot()
     def refreshGallery(self):
@@ -47,6 +54,9 @@ class BackendBridge(QObject):
         logger.info("Refreshing Gallery from DB...")
         images = await ImageRecord.find({})
         self._grid_model.set_images(images)
+        # Also refresh file system tree
+        await self._model_file_system.load_roots()
+        await self._tag_model.load_tags()
         self.logMessage.emit(f"Gallery refreshed: {len(images)} images.")
         logger.info(f"Gallery refreshed with {len(images)} images.")
 
@@ -82,6 +92,7 @@ class BackendBridge(QObject):
         
         self.logMessage.emit(f"Import Finished. Total: {count}")
         logger.info(f"Import Finished. Total: {count}")
+        await self._refresh_gallery()
         
         # Refresh Gallery
         await self._refresh_gallery()
@@ -99,6 +110,29 @@ class BackendBridge(QObject):
         logger.info(f"Selected: {image_id}")
         loop = asyncio.get_event_loop()
         loop.create_task(self._fetch_details(image_id))
+
+    @Slot(str)
+    def filterByTag(self, tag_id: str):
+        """Filter images by exact tag ID."""
+        logger.info(f"Filter by Tag ID: {tag_id}")
+        loop = asyncio.get_event_loop()
+        
+        async def _do_filter():
+            from bson import ObjectId
+            from src.core.database.models.image import ImageRecord
+            try:
+                # Query DB for images with this tag
+                # Assuming tag_ids stored as ObjectIds list
+                oid = ObjectId(tag_id)
+                records = await ImageRecord.find({"tag_ids": oid}).to_list()
+                logger.info(f"Found {len(records)} images for tag {tag_id}")
+                
+                # Update Gallery Model
+                self._gallery_model.update_images(records)
+            except Exception as e:
+                logger.error(f"Filter failed: {e}")
+                
+        loop.create_task(_do_filter())
 
     # Generic settings access
     @Slot(str, result=str)
@@ -333,3 +367,17 @@ class BackendBridge(QObject):
         if limit > 0:
             sl.config.update("ai", "result_limit", limit)
             self.aiResultLimitChanged.emit(limit)
+    @Slot()
+    def wipeDb(self):
+        """Wipes the database and clears the gallery."""
+        logger.warning("Wiping Database requested by User.")
+        loop = asyncio.get_event_loop()
+        loop.create_task(self._do_wipe_db())
+
+    async def _do_wipe_db(self):
+        print("DEBUG: _do_wipe_db executing")
+        from src.core.database.manager import db_manager
+        await db_manager.reset_db()
+        self._grid_model.set_images([])
+        self.logMessage.emit("Database wiped. Please restart or re-import.")
+        logger.info("Database wiped.")

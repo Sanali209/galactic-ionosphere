@@ -12,13 +12,12 @@ from src.core.engine.importer import ImportService
 from src.core.engine.tasks import TaskDispatcher
 from src.core.engine.monitor import FileMonitor
 from src.core.ai.vector_driver import VectorDriver
-from src.core.ai.vector_driver import VectorDriver
 from src.core.ai.service import EmbeddingService
 from src.core.ai.detection import ObjectDetectionService
 from src.core.ai.search import SearchService
 from src.core.ai.handlers import AITaskHandlers
 
-from src.ui.models.navigation import FolderTreeModel, TagTreeModel
+from src.ui.models.flat_tree import FileSystemFlatModel, TagFlatModel
 from src.ui.models.grid_model import GalleryGridModel
 from src.ui.bridge import BackendBridge
 
@@ -30,8 +29,10 @@ async def main():
     # init() is synchronous but ensures connection client is ready
     db_manager.init()
     
-    # 2. Initialize Core Services
-    # (In a real DI container this would be cleaner)
+    # Start Journal Service (Needs DB)
+    if sl.journal:
+        sl.journal.start()
+    
     # 2. Initialize Core Services
     tasks = TaskDispatcher()
     await tasks.start()
@@ -55,31 +56,34 @@ async def main():
     tasks.register_handler("GENERATE_VECTORS", ai_handlers.handle_generate_vectors)
     tasks.register_handler("DETECT_OBJECTS", ai_handlers.handle_detect_objects)
     
-    # Monitor (Optional start)
-    # monitor = FileMonitor(importer.process_file)
-    # monitor.start()
-
     # 3. Initialize UI Models
-    folder_model = FolderTreeModel()
-    tag_model = TagTreeModel()
-    tag_model.load_tags() # Start Async Load
+    fs_model = FileSystemFlatModel()
+    
+    tag_model = TagFlatModel()
+    # tag_model.load_tags() # Handled by BackendBridge.refreshGallery()
     
     grid_model = GalleryGridModel()
     
-    bridge = BackendBridge(importer, search_service, grid_model)
+    # Journal Model
+    from src.ui.models.journal_model import JournalViewModel
+    journal_model = JournalViewModel()
+    
+    # Connect Journal Service -> View Model
+    if sl.journal:
+        sl.journal.set_ui_callback(journal_model.add_log)
+    
+    bridge = BackendBridge(importer, search_service, grid_model, journal_model, fs_model, tag_model)
 
     # 4. Setup Qt / Hybrid
     # Set Style to Fusion to support customization
     os.environ["QT_QUICK_CONTROLS_STYLE"] = "Fusion"
-    
-    # Check for PySide6-QtAds if we want to upgrade later, but for now standard docks
     
     app = QApplication.instance()
     if not app:
         app = QApplication(sys.argv)
     
     from src.ui.main_window import MainWindow
-    window = MainWindow(bridge, folder_model, tag_model, grid_model)
+    window = MainWindow(bridge, fs_model, tag_model, grid_model, journal_model)
     window.show()
     
     logger.info("Application Started (Hybrid Mode)")
@@ -87,7 +91,6 @@ async def main():
     # Keep reference to window to prevent GC
     engine = window 
     
-    # Keep running via loop
     # Return execution to the caller (qasync loop_forever)
     return engine
 
@@ -107,4 +110,3 @@ if __name__ == "__main__":
         # main() is now async
         main_window_ref = loop.run_until_complete(main())
         loop.run_forever()
-

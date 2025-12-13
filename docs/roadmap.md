@@ -24,12 +24,12 @@
 ## Phase 4: Technical Debt & Gap Remediation (🔄 In Progress)
 *Focus: Aligning codebase with original plan and modernizing stack.*
 
-- [ ] **4.1. Dependency Updates**:
+- [x] **4.1. Dependency Updates**:
     -   Replace `motor` with `pymongo` (AsyncMongoClient).
     -   Add `qdrant-client` and `pyexiv2` to requirements.
 - [ ] **4.2. System Gaps**:
     -   Implement XMP Write-back capability.
-    -   Implement Mongo-based Journal/Log system.
+    -   [x] Implement Mongo-based Journal/Log system.
 
 ## Phase 5: User Interface Construction (🚧 Partially Complete)
 *Focus: Building the IDE-like "Visual Studio" interface defined in the plan.*

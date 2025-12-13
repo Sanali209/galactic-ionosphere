@@ -6,9 +6,9 @@ This document outlines the discrepancies between the initial "Gallery Desktop" p
 
 | Component | Plan Requirement | Current Status | Action |
 | :--- | :--- | :--- | :--- |
-| **Database Driver** | "New pymongo async client - replace motor" | Uses `motor` (deprecated). | **Migrate** to `pymongo` (AsyncMongoClient). |
-| **Metadata** | `pyexiv2` | Not installed; Stubs in `images.py`. | **Add Dependency** and implement wrappers. |
-| **Vector DB** | `qdrant` | `vector_driver.py` exists but `qdrant-client` is missing from `requirements.txt`. | **Add Dependency** to `requirements.txt`. |
+| **Database Driver** | "New pymongo async client - replace motor" | **Migrated** to `pymongo` AsyncMongoClient. | **Done** |
+| **Metadata** | `pyexiv2` | Verified installed. | **Done** |
+| **Vector DB** | `qdrant` | Added `qdrant-client` to `requirements.txt`. | **Done** |
 | **UI Framework** | PySide6 + QML | PySide6 is used. | Maintain. |
 
 ## 2. UI Components

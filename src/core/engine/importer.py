@@ -8,29 +8,67 @@ from src.core.locator import sl
 from src.core.files.images import FileHandlerFactory
 from src.core.database.models.image import ImageRecord
 from src.core.database.models.tag import TagManager
+from src.core.database.models.folder import FolderRecord
 
 class ImportService:
     """
     Coordinates file ingestion: Hash -> DB -> Background Tasks.
     """
     
-    def __init__(self, dispatcher=None, embed_service=None, vector_driver=None):
-        self.dispatcher = dispatcher
+    def __init__(self, dispatcher, embed_service, vector_driver):
+        self._dispatcher = dispatcher
         self.embed_service = embed_service
         self.vector_driver = vector_driver
+        self._folder_cache = set()
+
+    async def _ensure_folder(self, path: str):
+        path = path.replace("\\", "/").rstrip("/")
+        if not path: return
+        
+        if path.endswith(":"): path += "/" # Restore drive root if needed (e.g. C:)
+        
+        if path in self._folder_cache: return
+        
+        # Check DB
+        exists = await FolderRecord.find_one({"path": path})
+        if not exists:
+            # Create
+            import os
+            name = os.path.basename(path)
+            # Detect drive root carefully
+            parent = os.path.dirname(path).replace("\\", "/").rstrip("/")
+            if parent.endswith(":"): parent += "/"
+            
+            # If path was "D:/", parent is "D:/". If path was "D:/foo", parent is "D:/".
+            
+            if parent == path:
+                parent = None
+            else:
+                 await self._ensure_folder(parent)
+
+            rec = FolderRecord(path=path, name=name or path, parent_path=parent)
+            await rec.save()
+            logger.info(f"Created FolderRecord: {path}")
+        
+        self._folder_cache.add(path)
 
     async def process_file(self, file_path: str):
+        # 0. Sync Folder Record
+        import os
+        parent_dir = os.path.dirname(file_path)
+        await self._ensure_folder(parent_dir)
+
         if not os.path.exists(file_path):
             logger.warning(f"File not found: {file_path}")
             return
 
         ext = os.path.splitext(file_path)[1].lower()
         handler = FileHandlerFactory.get_handler(ext)
-        
+            
         if not handler:
             # Unsupported file
             return
-
+ 
         logger.info(f"Processing file: {file_path}")
         
         # 1. Hashing
@@ -74,17 +112,14 @@ class ImportService:
         logger.info(f"Imported image: {record.id}")
         
         # 4. Dispatch Tasks (Thumbnail)
-        if self.dispatcher:
-            await self.dispatcher.submit_task("GENERATE_THUMBNAIL", {
+        if self._dispatcher:
+            await self._dispatcher.submit_task("GENERATE_THUMBNAIL", {
                 "source_path": file_path,
                 "content_hash": content_hash
             })
 
         # 5. Vectorize (Inline/Background)
         if self.embed_service and self.vector_driver:
-            # We run this in background to not block import loop too much? 
-            # Or inline if we want "Import = Ready".
-            # Let's do inline for now (CLIP is fast on GPU, acceptable on CPU for single file).
             try:
                 vec = await asyncio.to_thread(self.embed_service.generate_embedding, file_path)
                 if vec is not None and len(vec) > 0:

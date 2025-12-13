@@ -66,12 +66,61 @@ Item {
                     ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 20
+                        spacing: 10
+
                         Text {
                             text: "General Settings"
                             color: "white"
                             font.bold: true
                             font.pixelSize: 18
                         }
+
+                        Button {
+                            text: "Wipe Database"
+                            Layout.fillWidth: true
+                            Layout.maximumWidth: 200
+
+                            contentItem: Text {
+                                text: parent.text
+                                color: "white"
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            background: Rectangle {
+                                color: parent.down ? "#8b0000" : "#D32F2F" // Red
+                                radius: 4
+                            }
+                            onClicked: confirmWipeDialog.open()
+                        }
+
+                        Dialog {
+                            id: confirmWipeDialog
+                            title: "Confirm Database Wipe"
+                            x: (parent.width - width) / 2
+                            y: (parent.height - height) / 2
+                            width: 300
+                            modal: true
+                            standardButtons: Dialog.Yes | Dialog.No
+
+                            Label {
+                                text: "Are you sure you want to delete ALL data?\nThis cannot be undone."
+                                color: "white"
+                                anchors.centerIn: parent
+                            }
+
+                            onAccepted: {
+                                console.log("Wipe confirmed.");
+                                backendBridge.wipeDb();
+                            }
+                        }
+
+                        Label {
+                            text: "Warning: This will delete all imported data."
+                            color: "#aaaaaa"
+                            font.pixelSize: 12
+                        }
+
                         Item {
                             Layout.fillHeight: true
                         } // Spacer
@@ -100,7 +149,7 @@ Item {
                             }
                             TextField {
                                 id: resultCountField
-                                text: backendBridge.aiResultLimit ? backendBridge.aiResultLimit.toString() : "20"
+                                text: (backendBridge && backendBridge.aiResultLimit) ? backendBridge.aiResultLimit.toString() : "20"
                                 color: "white"
                                 background: Rectangle {
                                     color: "#3c3c3c"

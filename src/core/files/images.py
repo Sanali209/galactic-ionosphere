@@ -78,8 +78,8 @@ class JpgHandler(FileHandler):
                 else:
                     # Parse flat tags for hierarchy
                     for t in tags_flat:
-                         # check for / \ |
-                         norm = re.sub(r'[\\/]', '|', t)
+                         # check for / \ | :
+                         norm = re.sub(r'[\\/:]', '|', t)
                          final_tag_paths.append(norm)
 
                 data = {

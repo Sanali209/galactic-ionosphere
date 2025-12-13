@@ -2,6 +2,7 @@ from .events import ObserverEvent
 from .messaging.builder import MessageBuilder, SystemMessage
 from .config import ConfigManager
 from .capabilities.base import CoreFacade
+from src.core.journal.service import JournalService
 
 class ServiceLocator:
     _instance = None
@@ -10,6 +11,7 @@ class ServiceLocator:
         if cls._instance is None:
             cls._instance = super(ServiceLocator, cls).__new__(cls)
             cls._instance.is_ready = False
+            cls._instance.journal = None # Placeholder
         return cls._instance
 
     def init(self, config_path: str):
@@ -24,6 +26,10 @@ class ServiceLocator:
         
         # 3. Capability Facade
         self.caps = CoreFacade()
+        
+        # 4. Journal
+        self.journal = JournalService()
+
         
         # 4. Reactive binding: Config -> Facade
         # If config changes, switching drivers etc

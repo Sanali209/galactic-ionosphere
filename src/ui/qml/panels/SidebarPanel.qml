@@ -10,10 +10,9 @@ Item {
     width: 250
     height: 600
 
-    property var tagModel: null
-    property var folderModel: null
-    // Data models injected via context properties usually, but explicit properties allow cleaner interface if needed.
-    // For now we rely on Global Context 'folderModel' and 'tagModel' set in Python.
+    // Properties removed to prevent shadowing global context properties
+    // property var tagModel: null
+    // property var folderModel: null
 
     ColumnLayout {
         anchors.fill: parent
@@ -36,19 +35,56 @@ Item {
             Layout.fillHeight: true
 
             // index 0: Tags
-            ListView {
-                clip: true
-                model: tagModel // Context Property
-                delegate: ItemDelegate {
-                    text: display
-                    width: parent.width
-                    onClicked: console.log("Clicked tag: " + tagId)
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 0
+
+                // Tag Header
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 30
+                    color: "#252526"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 2
+
+                        Label {
+                            text: "Tags"
+                            color: "white"
+                            font.bold: true
+                            Layout.leftMargin: 5
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
+                        }
+
+                        ToolButton {
+                            text: "\u21BB" // Refresh
+                            onClicked: backendBridge.refreshGallery()
+                        }
+                    }
+                }
+
+                ListView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    model: tagModel // Context Property
+                    delegate: ItemDelegate {
+                        text: model.display
+                        width: parent.width
+                        onClicked: console.log("Clicked tag: " + (model.name || "")) // 'tagId' might not be in roleNames
+                    }
                 }
             }
 
             // index 1: Files
             FileExplorer {
-                // components/FileExplorer.qml
+                Layout.fillWidth: true
+                Layout.fillHeight: true
             }
         }
     }

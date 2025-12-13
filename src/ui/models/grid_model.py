@@ -1,4 +1,4 @@
-from PySide6.QtCore import QAbstractListModel, Qt, QModelIndex, Signal, Slot
+from PySide6.QtCore import QAbstractListModel, Qt, QModelIndex, Signal, Slot, QUrl
 import asyncio
 from typing import List
 from src.core.database.models.image import ImageRecord
@@ -59,7 +59,7 @@ class GalleryGridModel(QAbstractListModel):
             # QML expects 'file:///' prefix for local Image types sometimes, 
             # or just path if using ImageProvider.
             # Let's return clean path.
-            return img.full_path
+            return QUrl.fromLocalFile(img.full_path).toString()
         elif role == self.ThumbnailRole:
             # Return hash to build thumbnail path in QML or via Provider
             return img.content_md5

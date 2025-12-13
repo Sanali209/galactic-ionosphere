@@ -50,7 +50,7 @@ Item {
                 Image {
                     anchors.fill: parent
                     anchors.margins: 2
-                    source: "file:///" + imagePath
+                    source: imagePath
                     asynchronous: true
                     fillMode: Image.PreserveAspectCrop
                 }
