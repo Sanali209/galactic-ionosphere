@@ -42,6 +42,9 @@ class JournalViewModel(QAbstractListModel):
         if not index.isValid(): return None
         rec = self._filtered_logs[index.row()]
         
+        if role == Qt.DisplayRole:
+            return f"[{rec.timestamp.strftime('%H:%M:%S')}] [{rec.level}] {rec.message}"
+        
         if role == self.LevelRole: return rec.level
         if role == self.CategoryRole: return rec.category
         if role == self.MessageRole: return rec.message

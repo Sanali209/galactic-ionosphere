@@ -17,6 +17,7 @@ class BackendBridge(QObject):
     # Signals
     searchFinished = Signal(int) # Count
     logMessage = Signal(str)
+    galleryRefreshed = Signal() # New Signal
     # id, path, dimensions, size, meta
     imageSelected = Signal(str, str, str, str, str)
     # id, key, value, success
@@ -59,6 +60,7 @@ class BackendBridge(QObject):
         await self._tag_model.load_tags()
         self.logMessage.emit(f"Gallery refreshed: {len(images)} images.")
         logger.info(f"Gallery refreshed with {len(images)} images.")
+        self.galleryRefreshed.emit()
 
     @Slot(str)
     def importFolder(self, path: str):
@@ -124,7 +126,7 @@ class BackendBridge(QObject):
                 # Query DB for images with this tag
                 # Assuming tag_ids stored as ObjectIds list
                 oid = ObjectId(tag_id)
-                records = await ImageRecord.find({"tag_ids": oid}).to_list()
+                records = await ImageRecord.find({"tag_ids": oid})
                 logger.info(f"Found {len(records)} images for tag {tag_id}")
                 
                 # Update Gallery Model
@@ -379,5 +381,8 @@ class BackendBridge(QObject):
         from src.core.database.manager import db_manager
         await db_manager.reset_db()
         self._grid_model.set_images([])
+        # Clear Importer Cache to allow re-import of same folders
+        if hasattr(self._importer, "_folder_cache"):
+            self._importer._folder_cache.clear()
         self.logMessage.emit("Database wiped. Please restart or re-import.")
         logger.info("Database wiped.")

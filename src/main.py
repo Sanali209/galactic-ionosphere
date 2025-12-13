@@ -75,12 +75,13 @@ async def main():
     bridge = BackendBridge(importer, search_service, grid_model, journal_model, fs_model, tag_model)
 
     # 4. Setup Qt / Hybrid
-    # Set Style to Fusion to support customization
-    os.environ["QT_QUICK_CONTROLS_STYLE"] = "Fusion"
-    
     app = QApplication.instance()
     if not app:
         app = QApplication(sys.argv)
+
+    # Set Style to Fusion to support customization
+    # os.environ["QT_QUICK_CONTROLS_STYLE"] = "Fusion" # Not needed for Widgets
+    app.setStyle("Fusion")
     
     from src.ui.main_window import MainWindow
     window = MainWindow(bridge, fs_model, tag_model, grid_model, journal_model)

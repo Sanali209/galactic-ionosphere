@@ -22,13 +22,15 @@ class ImportService:
         self._folder_cache = set()
 
     async def _ensure_folder(self, path: str):
-        path = path.replace("\\", "/").rstrip("/")
+        # Normalize: Lowercase for Windows consistency, Forward slashes
+        path = path.replace("\\", "/").rstrip("/").lower()
         if not path: return
         
         if path.endswith(":"): path += "/" # Restore drive root if needed (e.g. C:)
         
         if path in self._folder_cache: return
-        
+        self._folder_cache.add(path) # Optimistic locking for this run
+
         # Check DB
         exists = await FolderRecord.find_one({"path": path})
         if not exists:
@@ -36,21 +38,26 @@ class ImportService:
             import os
             name = os.path.basename(path)
             # Detect drive root carefully
-            parent = os.path.dirname(path).replace("\\", "/").rstrip("/")
+            # os.path.dirname returns native separators. 
+            parent = os.path.dirname(path).replace("\\", "/").rstrip("/").lower()
             if parent.endswith(":"): parent += "/"
             
-            # If path was "D:/", parent is "D:/". If path was "D:/foo", parent is "D:/".
+            # If path was "d:/", parent is "d:/".
             
             if parent == path:
                 parent = None
             else:
                  await self._ensure_folder(parent)
 
-            rec = FolderRecord(path=path, name=name or path, parent_path=parent)
-            await rec.save()
-            logger.info(f"Created FolderRecord: {path}")
-        
-        self._folder_cache.add(path)
+            try:
+                # Re-check to be safe from other processes or async race
+                exists_check = await FolderRecord.find_one({"path": path})
+                if not exists_check:
+                    rec = FolderRecord(path=path, name=name or path, parent_path=parent)
+                    await rec.save()
+                    logger.info(f"Created FolderRecord: {path}")
+            except Exception as e:
+                logger.error(f"Error creating folder {path}: {e}")
 
     async def process_file(self, file_path: str):
         # 0. Sync Folder Record

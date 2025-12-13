@@ -53,6 +53,21 @@ class GalleryGridModel(QAbstractListModel):
             
         img = self._images[row]
         
+        if role == Qt.DisplayRole:
+            import os
+            return os.path.basename(img.full_path)
+            
+        if role == Qt.DecorationRole:
+            # Basic implementation: Load image directly (SLOW but works for verifying)
+            # Todo: Implement async thumbnail loader
+            from PySide6.QtGui import QIcon, QPixmap
+            # Limit size to avoid memory explosion?
+            # efficient way: QIcon(img.full_path) might be lazy?
+            # Better: Return QIcon with lazy loading or placeholder.
+            # For now: return None or file icon to check visibility?
+            # Let's try QIcon(path) - it usually generates standard file icon if not image logic
+            return QIcon(img.full_path) 
+        
         if role == self.IdRole:
             return str(img.id)
         elif role == self.PathRole:
