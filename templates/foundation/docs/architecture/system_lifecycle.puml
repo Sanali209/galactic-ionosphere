@@ -1,0 +1,19 @@
+@startuml
+participant Main
+participant "ServiceLocator" as SL
+participant "System(A)" as Sys
+
+Main -> SL: init()
+Main -> SL: register_system(SystemA)
+SL -> Sys: __init__(sl, config)
+
+Main -> SL: start_all()
+SL -> Sys: initialize()
+Sys -->> SL: ready
+
+Main -> Main: App Runs...
+
+Main -> SL: stop_all()
+SL -> Sys: shutdown()
+Sys -->> SL: stopped
+@enduml
