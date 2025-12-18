@@ -1,0 +1,34 @@
+2025-12-17 22:20:05.767 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+2025-12-17 22:20:05.768 | INFO     | __main__:main:76 - ============================================================
+2025-12-17 22:20:05.768 | INFO     | __main__:main:77 - Image Search Application Starting
+2025-12-17 22:20:05.768 | INFO     | __main__:main:78 - ============================================================
+2025-12-17 22:20:05.769 | INFO     | src.core.locator:init:36 - ServiceLocator initialized.
+2025-12-17 22:20:05.785 | INFO     | src.core.database.manager:connect:22 - Connected to MongoDB at mongodb://localhost:27017, DB: image_search_db
+2025-12-17 22:20:05.786 | DEBUG    | src.core.locator:register_system:45 - Registering system: CommandBus
+2025-12-17 22:20:05.786 | DEBUG    | src.core.locator:register_system:45 - Registering system: JournalService
+2025-12-17 22:20:05.786 | DEBUG    | src.core.locator:register_system:45 - Registering system: AssetManager
+2025-12-17 22:20:05.787 | DEBUG    | src.core.locator:register_system:45 - Registering system: TaskSystem
+2025-12-17 22:20:05.787 | DEBUG    | src.core.locator:register_system:45 - Registering system: SearchService
+2025-12-17 22:20:05.787 | INFO     | src.core.locator:start_all:62 - Starting all systems...
+2025-12-17 22:20:05.787 | INFO     | src.core.commands.bus:initialize:15 - CommandBus initialized.
+2025-12-17 22:20:05.787 | INFO     | src.core.locator:start_all:66 - System CommandBus started.
+2025-12-17 22:20:05.788 | INFO     | src.core.journal.service:initialize:11 - JournalService initialized.
+2025-12-17 22:20:05.788 | INFO     | src.core.locator:start_all:66 - System JournalService started.
+2025-12-17 22:20:05.788 | INFO     | src.core.assets.manager:initialize:17 - AssetManager initialized.
+2025-12-17 22:20:05.788 | INFO     | src.core.locator:start_all:66 - System AssetManager started.
+2025-12-17 22:20:05.789 | INFO     | src.core.tasks.system:initialize:19 - TaskSystem initializing...
+2025-12-17 22:20:05.792 | INFO     | src.core.tasks.system:initialize:35 - Loaded 0 pending tasks.
+2025-12-17 22:20:05.792 | INFO     | src.core.locator:start_all:66 - System TaskSystem started.
+2025-12-17 22:20:05.792 | INFO     | app_search_service:initialize:31 - SearchService initialized
+2025-12-17 22:20:05.793 | INFO     | src.core.locator:start_all:66 - System SearchService started.
+2025-12-17 22:20:05.793 | INFO     | src.ui.menus.action_registry:__init__:17 - ActionRegistry initialized
+2025-12-17 22:20:05.794 | INFO     | src.ui.docking.dock_manager:__init__:50 - DockManager initialized
+2025-12-17 22:20:05.805 | INFO     | src.ui.menus.menu_builder:__init__:16 - MenuBuilder initialized
+2025-12-17 22:20:06.052 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: search
+2025-12-17 22:20:06.053 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: gallery
+2025-12-17 22:20:06.055 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: search
+2025-12-17 22:20:06.063 | INFO     | src.ui.docking.dock_manager:create_panel:92 - Panel created: search
+2025-12-17 22:20:06.064 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: gallery
+2025-12-17 22:20:06.064 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 0 started.
+2025-12-17 22:20:06.065 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 1 started.
+2025-12-17 22:20:06.065 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 2 started.

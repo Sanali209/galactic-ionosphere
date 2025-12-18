@@ -1,0 +1,59 @@
+2025-12-17 22:48:46.290 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+2025-12-17 22:48:46.290 | INFO     | __main__:main:76 - ============================================================
+2025-12-17 22:48:46.291 | INFO     | __main__:main:77 - Image Search Application Starting
+2025-12-17 22:48:46.291 | INFO     | __main__:main:78 - ============================================================
+2025-12-17 22:48:46.292 | INFO     | src.core.locator:init:36 - ServiceLocator initialized.
+2025-12-17 22:48:46.292 | DEBUG    | src.core.locator:register_system:45 - Registering system: DatabaseManager
+2025-12-17 22:48:46.292 | DEBUG    | src.core.locator:register_system:45 - Registering system: CommandBus
+2025-12-17 22:48:46.293 | DEBUG    | src.core.locator:register_system:45 - Registering system: JournalService
+2025-12-17 22:48:46.293 | DEBUG    | src.core.locator:register_system:45 - Registering system: AssetManager
+2025-12-17 22:48:46.293 | DEBUG    | src.core.locator:register_system:45 - Registering system: TaskSystem
+2025-12-17 22:48:46.293 | DEBUG    | src.core.locator:register_system:45 - Registering system: SearchService
+2025-12-17 22:48:46.294 | INFO     | src.core.locator:start_all:62 - Starting all systems...
+2025-12-17 22:48:46.310 | INFO     | src.core.database.manager:initialize:32 - Connected to MongoDB at mongodb://localhost:27017, DB: app_db
+2025-12-17 22:48:46.310 | INFO     | src.core.locator:start_all:66 - System DatabaseManager started.
+2025-12-17 22:48:46.311 | INFO     | src.core.commands.bus:initialize:15 - CommandBus initialized.
+2025-12-17 22:48:46.311 | INFO     | src.core.locator:start_all:66 - System CommandBus started.
+2025-12-17 22:48:46.311 | INFO     | src.core.journal.service:initialize:11 - JournalService initialized.
+2025-12-17 22:48:46.312 | INFO     | src.core.locator:start_all:66 - System JournalService started.
+2025-12-17 22:48:46.312 | INFO     | src.core.assets.manager:initialize:17 - AssetManager initialized.
+2025-12-17 22:48:46.312 | INFO     | src.core.locator:start_all:66 - System AssetManager started.
+2025-12-17 22:48:46.312 | INFO     | src.core.tasks.system:initialize:19 - TaskSystem initializing...
+2025-12-17 22:48:46.316 | INFO     | src.core.tasks.system:initialize:35 - Loaded 0 pending tasks.
+2025-12-17 22:48:46.316 | INFO     | src.core.locator:start_all:66 - System TaskSystem started.
+2025-12-17 22:48:46.316 | INFO     | app_search_service:initialize:31 - SearchService initialized
+2025-12-17 22:48:46.316 | INFO     | src.core.locator:start_all:66 - System SearchService started.
+2025-12-17 22:48:46.317 | INFO     | src.ui.menus.action_registry:__init__:17 - ActionRegistry initialized
+2025-12-17 22:48:46.318 | INFO     | src.ui.docking.dock_manager:__init__:50 - DockManager initialized
+2025-12-17 22:48:46.328 | INFO     | src.ui.menus.menu_builder:__init__:16 - MenuBuilder initialized
+2025-12-17 22:48:46.597 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: search
+2025-12-17 22:48:46.598 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: gallery
+2025-12-17 22:48:46.599 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: search
+2025-12-17 22:48:46.607 | INFO     | src.ui.docking.dock_manager:create_panel:92 - Panel created: search
+2025-12-17 22:48:46.608 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: gallery
+2025-12-17 22:48:46.609 | DEBUG    | app_gallery_panel:initialize_ui:63 - GalleryPanel UI initialized
+2025-12-17 22:48:46.611 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_new_search
+2025-12-17 22:48:46.611 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_open_downloads
+2025-12-17 22:48:46.612 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_exit
+2025-12-17 22:48:46.612 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_select_all
+2025-12-17 22:48:46.612 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_deselect_all
+2025-12-17 22:48:46.613 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: search_images
+2025-12-17 22:48:46.613 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_selected
+2025-12-17 22:48:46.614 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_all
+2025-12-17 22:48:46.614 | INFO     | app_main_window:__init__:39 - Image Search MainWindow initialized
+2025-12-17 22:48:46.791 | INFO     | __main__:main:103 - Application started successfully
+2025-12-17 22:48:46.817 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 0 started.
+2025-12-17 22:48:46.817 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 1 started.
+2025-12-17 22:48:46.817 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 2 started.
+2025-12-17 22:48:46.855 | INFO     | app_search_panel:_load_recent_searches:151 - ✅ Loaded 0 recent searches
+2025-12-17 22:48:46.856 | INFO     | app_main_window:_load_latest_results:214 - 📊 Loaded 0 results from MongoDB
+2025-12-17 22:48:46.857 | INFO     | app_gallery_panel:load_images:72 - 📸 Loading 0 images into gallery
+2025-12-17 22:53:45.207 | INFO     | src.core.locator:stop_all:74 - Stopping all systems...
+2025-12-17 22:53:45.207 | INFO     | app_search_service:shutdown:86 - SearchService shutdown
+2025-12-17 22:53:45.208 | INFO     | src.core.locator:stop_all:80 - System SearchService stopped.
+2025-12-17 22:53:45.210 | INFO     | src.core.locator:stop_all:80 - System TaskSystem stopped.
+2025-12-17 22:53:45.211 | INFO     | src.core.locator:stop_all:80 - System AssetManager stopped.
+2025-12-17 22:53:45.211 | INFO     | src.core.locator:stop_all:80 - System JournalService stopped.
+2025-12-17 22:53:45.212 | INFO     | src.core.locator:stop_all:80 - System CommandBus stopped.
+2025-12-17 22:53:45.213 | INFO     | src.core.database.manager:shutdown:44 - MongoDB connection closed.
+2025-12-17 22:53:45.213 | INFO     | src.core.locator:stop_all:80 - System DatabaseManager stopped.

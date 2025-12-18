@@ -1,0 +1,112 @@
+2025-12-17 22:10:00.585 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+2025-12-17 22:10:00.585 | INFO     | __main__:main:76 - ============================================================
+2025-12-17 22:10:00.586 | INFO     | __main__:main:77 - Image Search Application Starting
+2025-12-17 22:10:00.586 | INFO     | __main__:main:78 - ============================================================
+2025-12-17 22:10:00.586 | INFO     | src.core.locator:init:36 - ServiceLocator initialized.
+2025-12-17 22:10:00.601 | INFO     | src.core.database.manager:connect:22 - Connected to MongoDB at mongodb://localhost:27017, DB: image_search_db
+2025-12-17 22:10:00.601 | DEBUG    | src.core.locator:register_system:45 - Registering system: CommandBus
+2025-12-17 22:10:00.602 | DEBUG    | src.core.locator:register_system:45 - Registering system: JournalService
+2025-12-17 22:10:00.602 | DEBUG    | src.core.locator:register_system:45 - Registering system: AssetManager
+2025-12-17 22:10:00.602 | DEBUG    | src.core.locator:register_system:45 - Registering system: TaskSystem
+2025-12-17 22:10:00.603 | DEBUG    | src.core.locator:register_system:45 - Registering system: SearchService
+2025-12-17 22:10:00.603 | INFO     | src.core.locator:start_all:62 - Starting all systems...
+2025-12-17 22:10:00.603 | INFO     | src.core.commands.bus:initialize:15 - CommandBus initialized.
+2025-12-17 22:10:00.603 | INFO     | src.core.locator:start_all:66 - System CommandBus started.
+2025-12-17 22:10:00.604 | INFO     | src.core.journal.service:initialize:11 - JournalService initialized.
+2025-12-17 22:10:00.604 | INFO     | src.core.locator:start_all:66 - System JournalService started.
+2025-12-17 22:10:00.605 | INFO     | src.core.assets.manager:initialize:17 - AssetManager initialized.
+2025-12-17 22:10:00.605 | INFO     | src.core.locator:start_all:66 - System AssetManager started.
+2025-12-17 22:10:00.605 | INFO     | src.core.tasks.system:initialize:19 - TaskSystem initializing...
+2025-12-17 22:10:00.607 | INFO     | src.core.tasks.system:initialize:35 - Loaded 0 pending tasks.
+2025-12-17 22:10:00.608 | INFO     | src.core.locator:start_all:66 - System TaskSystem started.
+2025-12-17 22:10:00.608 | INFO     | app_search_service:initialize:31 - SearchService initialized
+2025-12-17 22:10:00.608 | INFO     | src.core.locator:start_all:66 - System SearchService started.
+2025-12-17 22:10:00.609 | INFO     | src.ui.menus.action_registry:__init__:17 - ActionRegistry initialized
+2025-12-17 22:10:00.609 | INFO     | src.ui.docking.dock_manager:__init__:50 - DockManager initialized
+2025-12-17 22:10:00.620 | INFO     | src.ui.menus.menu_builder:__init__:16 - MenuBuilder initialized
+2025-12-17 22:10:00.627 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: search
+2025-12-17 22:10:00.629 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: search
+2025-12-17 22:10:00.636 | INFO     | src.ui.docking.dock_manager:create_panel:92 - Panel created: search
+2025-12-17 22:10:00.638 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_new_search
+2025-12-17 22:10:00.638 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_open_downloads
+2025-12-17 22:10:00.639 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_exit
+2025-12-17 22:10:00.639 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_select_all
+2025-12-17 22:10:00.639 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_deselect_all
+2025-12-17 22:10:00.640 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: search_images
+2025-12-17 22:10:00.640 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_selected
+2025-12-17 22:10:00.641 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_all
+2025-12-17 22:10:00.641 | INFO     | app_main_window:__init__:39 - Image Search MainWindow initialized
+2025-12-17 22:10:00.852 | INFO     | __main__:main:106 - Application started successfully
+2025-12-17 22:10:00.893 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 0 started.
+2025-12-17 22:10:00.893 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 1 started.
+2025-12-17 22:10:00.894 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 2 started.
+2025-12-17 22:10:05.086 | INFO     | app_search_panel:_on_search_clicked:88 - Search requested: 'test' (count: 20)
+2025-12-17 22:10:05.086 | INFO     | app_main_window:_execute_search:124 - Executing search: 'test' (count: 20)
+2025-12-17 22:10:05.089 | DEBUG    | src.core.tasks.system:register_handler:55 - Registered task handler: search_images
+2025-12-17 22:10:05.095 | INFO     | src.core.tasks.system:submit:83 - Task submitted: Search: test (69430e1de0763c8bb5c12332)
+2025-12-17 22:10:05.095 | INFO     | app_main_window:_run_search:162 - Search task submitted successfully
+2025-12-17 22:10:05.113 | INFO     | app_search_task:search_images_handler:22 - 🚀 Search handler started: 'test' (count: 20)
+2025-12-17 22:10:05.113 | DEBUG    | app_search_task:search_images_handler:27 - Converted count to integer: 20
+2025-12-17 22:10:05.114 | DEBUG    | app_search_task:search_images_handler:30 - Getting SearchService from ServiceLocator...
+2025-12-17 22:10:05.115 | DEBUG    | app_search_task:search_images_handler:37 - ✅ SearchService retrieved
+2025-12-17 22:10:05.115 | INFO     | app_search_task:search_images_handler:40 - 🔎 Executing search via SearchService...
+2025-12-17 22:10:05.116 | INFO     | app_search_service:search_images:44 - 🔍 Starting image search: 'test' (max: 20)
+2025-12-17 22:10:05.116 | DEBUG    | app_search_service:search_images:47 - Importing duckduckgo_search module...
+2025-12-17 22:10:05.151 | DEBUG    | app_search_service:search_images:49 - ✅ duckduckgo_search imported successfully
+2025-12-17 22:10:05.151 | INFO     | app_search_service:search_images:53 - 📡 Calling DuckDuckGo API...
+2025-12-17 22:10:06.452 | ERROR    | app_search_service:search_images:80 - ❌ Search failed: https://duckduckgo.com/i.js?o=json&q=test&l=us-en&vqd=4-261442924172089252439976485029074000787&p=1&f=%2C%2C%2C%2C%2C 403 Ratelimit
+2025-12-17 22:10:06.453 | ERROR    | app_search_service:search_images:81 - Full traceback:
+Traceback (most recent call last):
+
+  File "D:\github\USCore\samples\image_search\main.py", line 121, in <module>
+    loop.run_forever()
+    │    └ <function _QEventLoop.run_forever at 0x0000018D413E6CA0>
+    └ <QIOCPEventLoop running=True closed=False debug=False>
+
+  File "D:\github\USCore\.venv\Lib\site-packages\qasync\__init__.py", line 404, in run_forever
+    rslt = self.__app.exec()
+           └ <QIOCPEventLoop running=True closed=False debug=False>
+  File "D:\github\USCore\.venv\Lib\site-packages\qasync\__init__.py", line 307, in timerEvent
+    handle._run()
+    │      └ <function Handle._run at 0x0000018D40BF2840>
+    └ <Handle Task.task_wakeup(<Future finis...wledged=True)>)>
+  File "C:\Users\User\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py", line 84, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle Task.task_wakeup(<Future finis...wledged=True)>)>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle Task.task_wakeup(<Future finis...wledged=True)>)>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle Task.task_wakeup(<Future finis...wledged=True)>)>
+
+  File "D:\github\USCore\templates\foundation\src\core\tasks\system.py", line 114, in _worker
+    result = await handler(*record.task_args)
+                   │        │      └ <src.core.database.orm.ListField object at 0x0000018D42790C10>
+                   │        └ <src.core.tasks.models.TaskRecord object at 0x0000018D43941D90>
+                   └ <function search_images_handler at 0x0000018D439256C0>
+
+  File "D:\github\USCore\samples\image_search\src\tasks\search_task.py", line 41, in search_images_handler
+    results = await search_service.search_images(query, count_int)
+                    │              │             │      └ 20
+                    │              │             └ 'test'
+                    │              └ <function SearchService.search_images at 0x0000018D4278E700>
+                    └ <app_search_service.SearchService object at 0x0000018D438F53D0>
+
+> File "D:\github\USCore\samples\image_search\src\core\search_service.py", line 56, in search_images
+    search_results = ddgs.images(query, max_results=max_results)
+                     │    │      │                  └ 20
+                     │    │      └ 'test'
+                     │    └ <function DDGS.images at 0x0000018D47B2C4A0>
+                     └ <duckduckgo_search.duckduckgo_search.DDGS object at 0x0000018D439835D0>
+
+  File "D:\github\USCore\.venv\Lib\site-packages\duckduckgo_search\duckduckgo_search.py", line 502, in images
+    resp_content = self._get_url(
+                   │    └ <function DDGS._get_url at 0x0000018D47B2C0E0>
+                   └ <duckduckgo_search.duckduckgo_search.DDGS object at 0x0000018D439835D0>
+  File "D:\github\USCore\.venv\Lib\site-packages\duckduckgo_search\duckduckgo_search.py", line 138, in _get_url
+    raise RatelimitException(f"{resp.url} {resp.status_code} Ratelimit")
+          └ <class 'duckduckgo_search.exceptions.RatelimitException'>
+
+duckduckgo_search.exceptions.RatelimitException: https://duckduckgo.com/i.js?o=json&q=test&l=us-en&vqd=4-261442924172089252439976485029074000787&p=1&f=%2C%2C%2C%2C%2C 403 Ratelimit
+2025-12-17 22:10:06.487 | INFO     | app_search_task:search_images_handler:43 - 📊 Search returned 0 results
+2025-12-17 22:10:06.487 | DEBUG    | app_search_task:search_images_handler:46 - Creating SearchHistory record...

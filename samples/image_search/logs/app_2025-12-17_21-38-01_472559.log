@@ -1,0 +1,5 @@
+2025-12-17 21:38:01.477 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+2025-12-17 21:38:01.478 | INFO     | __main__:main:76 - ============================================================
+2025-12-17 21:38:01.478 | INFO     | __main__:main:77 - Image Search Application Starting
+2025-12-17 21:38:01.479 | INFO     | __main__:main:78 - ============================================================
+2025-12-17 21:38:01.498 | INFO     | src.core.database.manager:connect:22 - Connected to MongoDB at mongodb://localhost:27017, DB: image_search_db

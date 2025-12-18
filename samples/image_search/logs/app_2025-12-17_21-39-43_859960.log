@@ -1,0 +1,11 @@
+2025-12-17 21:39:43.860 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+2025-12-17 21:39:43.861 | INFO     | __main__:main:76 - ============================================================
+2025-12-17 21:39:43.861 | INFO     | __main__:main:77 - Image Search Application Starting
+2025-12-17 21:39:43.862 | INFO     | __main__:main:78 - ============================================================
+2025-12-17 21:39:43.862 | INFO     | src.core.locator:init:36 - ServiceLocator initialized.
+2025-12-17 21:39:43.897 | INFO     | src.core.database.manager:connect:22 - Connected to MongoDB at mongodb://localhost:27017, DB: image_search_db
+2025-12-17 21:39:43.898 | DEBUG    | src.core.locator:register_system:45 - Registering system: CommandBus
+2025-12-17 21:39:43.898 | DEBUG    | src.core.locator:register_system:45 - Registering system: JournalService
+2025-12-17 21:39:43.899 | DEBUG    | src.core.locator:register_system:45 - Registering system: AssetManager
+2025-12-17 21:39:43.899 | DEBUG    | src.core.locator:register_system:45 - Registering system: TaskSystem
+2025-12-17 21:39:43.900 | DEBUG    | src.core.locator:register_system:45 - Registering system: SearchService

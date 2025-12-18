@@ -1,0 +1,63 @@
+2025-12-17 21:59:08.605 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+2025-12-17 21:59:08.606 | INFO     | __main__:main:76 - ============================================================
+2025-12-17 21:59:08.606 | INFO     | __main__:main:77 - Image Search Application Starting
+2025-12-17 21:59:08.607 | INFO     | __main__:main:78 - ============================================================
+2025-12-17 21:59:08.608 | INFO     | src.core.locator:init:36 - ServiceLocator initialized.
+2025-12-17 21:59:08.641 | INFO     | src.core.database.manager:connect:22 - Connected to MongoDB at mongodb://localhost:27017, DB: image_search_db
+2025-12-17 21:59:08.642 | DEBUG    | src.core.locator:register_system:45 - Registering system: CommandBus
+2025-12-17 21:59:08.642 | DEBUG    | src.core.locator:register_system:45 - Registering system: JournalService
+2025-12-17 21:59:08.642 | DEBUG    | src.core.locator:register_system:45 - Registering system: AssetManager
+2025-12-17 21:59:08.643 | DEBUG    | src.core.locator:register_system:45 - Registering system: TaskSystem
+2025-12-17 21:59:08.643 | DEBUG    | src.core.locator:register_system:45 - Registering system: SearchService
+2025-12-17 21:59:08.643 | INFO     | src.core.locator:start_all:62 - Starting all systems...
+2025-12-17 21:59:08.643 | INFO     | src.core.commands.bus:initialize:15 - CommandBus initialized.
+2025-12-17 21:59:08.644 | INFO     | src.core.locator:start_all:66 - System CommandBus started.
+2025-12-17 21:59:08.644 | INFO     | src.core.journal.service:initialize:11 - JournalService initialized.
+2025-12-17 21:59:08.644 | INFO     | src.core.locator:start_all:66 - System JournalService started.
+2025-12-17 21:59:08.645 | INFO     | src.core.assets.manager:initialize:17 - AssetManager initialized.
+2025-12-17 21:59:08.645 | INFO     | src.core.locator:start_all:66 - System AssetManager started.
+2025-12-17 21:59:08.645 | INFO     | src.core.tasks.system:initialize:19 - TaskSystem initializing...
+2025-12-17 21:59:08.649 | INFO     | src.core.tasks.system:initialize:35 - Loaded 0 pending tasks.
+2025-12-17 21:59:08.649 | INFO     | src.core.locator:start_all:66 - System TaskSystem started.
+2025-12-17 21:59:08.649 | INFO     | app_search_service:initialize:31 - SearchService initialized
+2025-12-17 21:59:08.649 | INFO     | src.core.locator:start_all:66 - System SearchService started.
+2025-12-17 21:59:08.650 | INFO     | src.ui.menus.action_registry:__init__:17 - ActionRegistry initialized
+2025-12-17 21:59:08.650 | INFO     | src.ui.docking.dock_manager:__init__:50 - DockManager initialized
+2025-12-17 21:59:08.660 | INFO     | src.ui.menus.menu_builder:__init__:16 - MenuBuilder initialized
+2025-12-17 21:59:08.665 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: search
+2025-12-17 21:59:08.667 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: search
+2025-12-17 21:59:08.675 | INFO     | src.ui.docking.dock_manager:create_panel:92 - Panel created: search
+2025-12-17 21:59:08.678 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_new_search
+2025-12-17 21:59:08.678 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_open_downloads
+2025-12-17 21:59:08.679 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_exit
+2025-12-17 21:59:08.679 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_select_all
+2025-12-17 21:59:08.679 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_deselect_all
+2025-12-17 21:59:08.679 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: search_images
+2025-12-17 21:59:08.681 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_selected
+2025-12-17 21:59:08.681 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_all
+2025-12-17 21:59:08.681 | INFO     | app_main_window:__init__:39 - Image Search MainWindow initialized
+2025-12-17 21:59:08.844 | INFO     | __main__:main:106 - Application started successfully
+2025-12-17 21:59:08.875 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 0 started.
+2025-12-17 21:59:08.876 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 1 started.
+2025-12-17 21:59:08.877 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 2 started.
+2025-12-17 21:59:13.032 | INFO     | app_search_panel:_on_search_clicked:88 - Search requested: 'cats' (count: 20)
+2025-12-17 21:59:13.032 | INFO     | app_main_window:_execute_search:124 - Executing search: 'cats' (count: 20)
+2025-12-17 21:59:13.036 | DEBUG    | src.core.tasks.system:register_handler:55 - Registered task handler: search_images
+2025-12-17 21:59:13.044 | INFO     | src.core.tasks.system:submit:83 - Task submitted: Search: cats (69430b91b8c54adeb927ecc1)
+2025-12-17 21:59:13.044 | INFO     | app_main_window:_run_search:162 - Search task submitted successfully
+2025-12-17 21:59:13.068 | INFO     | app_search_task:search_images_handler:22 - 🚀 Search handler started: 'cats' (count: 20)
+2025-12-17 21:59:13.069 | DEBUG    | app_search_task:search_images_handler:27 - Converted count to integer: 20
+2025-12-17 21:59:13.069 | DEBUG    | app_search_task:search_images_handler:30 - Getting SearchService from ServiceLocator...
+2025-12-17 21:59:13.071 | DEBUG    | app_search_task:search_images_handler:37 - ✅ SearchService retrieved
+2025-12-17 21:59:13.071 | INFO     | app_search_task:search_images_handler:40 - 🔎 Executing search via SearchService...
+2025-12-17 21:59:13.071 | INFO     | app_search_service:search_images:44 - 🔍 Starting image search: 'cats' (max: 20)
+2025-12-17 21:59:13.071 | DEBUG    | app_search_service:search_images:47 - Importing duckduckgo_search module...
+2025-12-17 21:59:13.073 | ERROR    | app_search_service:search_images:75 - ❌ Import Error: No module named 'duckduckgo_search'
+2025-12-17 21:59:13.073 | ERROR    | app_search_service:search_images:76 - 💡 Fix: Run 'pip install duckduckgo-search' in the correct environment
+2025-12-17 21:59:13.073 | ERROR    | app_search_service:search_images:77 -    Current Python: D:\github\USCore\.venv\Scripts\python.exe
+2025-12-17 21:59:13.074 | INFO     | app_search_task:search_images_handler:43 - 📊 Search returned 0 results
+2025-12-17 21:59:13.074 | DEBUG    | app_search_task:search_images_handler:46 - Creating SearchHistory record...
+2025-12-17 21:59:13.076 | INFO     | app_search_task:search_images_handler:54 - 💾 Search history saved: 69430b91b8c54adeb927ecc2
+2025-12-17 21:59:13.076 | DEBUG    | app_search_task:search_images_handler:57 - Saving 0 image records to MongoDB...
+2025-12-17 21:59:13.077 | INFO     | app_search_task:search_images_handler:71 - ✅ Successfully saved 0 image records to database
+2025-12-17 21:59:13.077 | INFO     | app_search_task:search_images_handler:72 - 🎉 Search complete! Query: 'cats', Results: 0

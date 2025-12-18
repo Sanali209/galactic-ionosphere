@@ -1,0 +1,78 @@
+2025-12-17 22:26:23.499 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+2025-12-17 22:26:23.500 | INFO     | __main__:main:76 - ============================================================
+2025-12-17 22:26:23.500 | INFO     | __main__:main:77 - Image Search Application Starting
+2025-12-17 22:26:23.500 | INFO     | __main__:main:78 - ============================================================
+2025-12-17 22:26:23.501 | INFO     | src.core.locator:init:36 - ServiceLocator initialized.
+2025-12-17 22:26:23.538 | INFO     | src.core.database.manager:connect:22 - Connected to MongoDB at mongodb://localhost:27017, DB: image_search_db
+2025-12-17 22:26:23.539 | DEBUG    | src.core.locator:register_system:45 - Registering system: CommandBus
+2025-12-17 22:26:23.540 | DEBUG    | src.core.locator:register_system:45 - Registering system: JournalService
+2025-12-17 22:26:23.540 | DEBUG    | src.core.locator:register_system:45 - Registering system: AssetManager
+2025-12-17 22:26:23.541 | DEBUG    | src.core.locator:register_system:45 - Registering system: TaskSystem
+2025-12-17 22:26:23.541 | DEBUG    | src.core.locator:register_system:45 - Registering system: SearchService
+2025-12-17 22:26:23.541 | INFO     | src.core.locator:start_all:62 - Starting all systems...
+2025-12-17 22:26:23.541 | INFO     | src.core.commands.bus:initialize:15 - CommandBus initialized.
+2025-12-17 22:26:23.542 | INFO     | src.core.locator:start_all:66 - System CommandBus started.
+2025-12-17 22:26:23.542 | INFO     | src.core.journal.service:initialize:11 - JournalService initialized.
+2025-12-17 22:26:23.542 | INFO     | src.core.locator:start_all:66 - System JournalService started.
+2025-12-17 22:26:23.543 | INFO     | src.core.assets.manager:initialize:17 - AssetManager initialized.
+2025-12-17 22:26:23.543 | INFO     | src.core.locator:start_all:66 - System AssetManager started.
+2025-12-17 22:26:23.543 | INFO     | src.core.tasks.system:initialize:19 - TaskSystem initializing...
+2025-12-17 22:26:23.546 | INFO     | src.core.tasks.system:initialize:35 - Loaded 0 pending tasks.
+2025-12-17 22:26:23.547 | INFO     | src.core.locator:start_all:66 - System TaskSystem started.
+2025-12-17 22:26:23.547 | INFO     | app_search_service:initialize:31 - SearchService initialized
+2025-12-17 22:26:23.548 | INFO     | src.core.locator:start_all:66 - System SearchService started.
+2025-12-17 22:26:23.548 | INFO     | src.ui.menus.action_registry:__init__:17 - ActionRegistry initialized
+2025-12-17 22:26:23.548 | INFO     | src.ui.docking.dock_manager:__init__:50 - DockManager initialized
+2025-12-17 22:26:23.558 | INFO     | src.ui.menus.menu_builder:__init__:16 - MenuBuilder initialized
+2025-12-17 22:26:23.822 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: search
+2025-12-17 22:26:23.823 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: gallery
+2025-12-17 22:26:23.825 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: search
+2025-12-17 22:26:23.833 | INFO     | src.ui.docking.dock_manager:create_panel:92 - Panel created: search
+2025-12-17 22:26:23.833 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: gallery
+2025-12-17 22:26:23.835 | DEBUG    | app_gallery_panel:initialize_ui:62 - GalleryPanel UI initialized
+2025-12-17 22:26:23.838 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_new_search
+2025-12-17 22:26:23.838 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_open_downloads
+2025-12-17 22:26:23.838 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_exit
+2025-12-17 22:26:23.839 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_select_all
+2025-12-17 22:26:23.839 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_deselect_all
+2025-12-17 22:26:23.839 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: search_images
+2025-12-17 22:26:23.840 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_selected
+2025-12-17 22:26:23.841 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_all
+2025-12-17 22:26:23.841 | INFO     | app_main_window:__init__:39 - Image Search MainWindow initialized
+2025-12-17 22:26:24.051 | INFO     | __main__:main:106 - Application started successfully
+2025-12-17 22:26:24.091 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 0 started.
+2025-12-17 22:26:24.092 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 1 started.
+2025-12-17 22:26:24.093 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 2 started.
+2025-12-17 22:26:24.129 | INFO     | app_search_panel:_load_recent_searches:149 - ✅ Loaded 4 recent searches
+2025-12-17 22:26:24.130 | INFO     | app_main_window:_load_latest_results:214 - 📊 Loaded 20 results from MongoDB
+2025-12-17 22:26:24.131 | INFO     | app_gallery_panel:load_images:71 - 📸 Loading 20 images into gallery
+2025-12-17 22:26:24.149 | DEBUG    | app_gallery_panel:load_images:95 -   Loaded 10/20 thumbnails
+2025-12-17 22:26:24.169 | DEBUG    | app_gallery_panel:load_images:95 -   Loaded 20/20 thumbnails
+2025-12-17 22:26:24.169 | INFO     | app_gallery_panel:load_images:99 - ✅ Gallery loaded with 20 images
+2025-12-17 22:26:24.530 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.fkmjOXuMCocqtIqbpZAzlAHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.538 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.4fFBrrPTdTTUvd7hVKhtqwHaEm?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.543 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.HSaLqf2d4d6ZIN9mmcAYGAHaE7?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.546 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.TvyxO2qZHUb1YJIdSv4mRwHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.548 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.-jcjUz5sP_EQ-PfRjq5fzwHaEk?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.560 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.RIHIVMOeAPjgLR0jhDuQ6QHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.563 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.AmDI_MZkA6UbjvT8FF5qMgHaIT?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.566 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.CbtARvIT3gtAR9ReWqK5CQHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.571 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.QEz08T8zJmAk9ov_oehSBgHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.575 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.ORzhcMSxQsArjgvtNJisOQHaLH?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.580 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.WJy8q2tNuzgk7EWGzhYPWwHaLH?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.584 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.6a92DtLY3PnHbetbNqhEwQHaKa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.601 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.PRLenQIYWs9PPOACRXc9UAHaNl?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.606 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.gwoZdSkPPDgi-WJ2MzQUVwHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.609 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.iPfMgMDziXVowjdhHIqJ1QHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.612 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.c-vjbmkRnixJ7GtOGWAfnAHaGo?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.614 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.FND-9z9Fov7SLX_FMX_U5QHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.618 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.ry7a63qsTZuPqKqUR7D8-wHaKh?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.622 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.VX4oFweKGDPYUYS2Yd8gJgHaNL?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:24.633 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.vNa5RnKuNm6kGBPFchUlPwHaJJ?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:26:54.939 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Werewolves: Frank Grillo & Dir on Classic Horror Inspiration & Action
+2025-12-17 22:26:55.605 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Werewolves: Frank Grillo & Dir on Classic Horror Inspiration & Action
+2025-12-17 22:26:56.709 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Werewolf 8 Png Overlay. by lewis4721 on DeviantArt
+2025-12-17 22:26:57.815 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Premium Photo | Experience the eerie spectacle of a fearsome werew ...
+2025-12-17 22:26:58.589 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Pin on WereW
+2025-12-17 22:26:59.807 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Pin by ideeperlamente on Fantasy | Alpha wolf, Alpha werewolf, Wolf ...
+2025-12-17 22:27:00.807 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Weregarurumon by leewolf

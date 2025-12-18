@@ -1,0 +1,297 @@
+2025-12-17 22:28:16.283 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+2025-12-17 22:28:16.283 | INFO     | __main__:main:76 - ============================================================
+2025-12-17 22:28:16.284 | INFO     | __main__:main:77 - Image Search Application Starting
+2025-12-17 22:28:16.284 | INFO     | __main__:main:78 - ============================================================
+2025-12-17 22:28:16.286 | INFO     | src.core.locator:init:36 - ServiceLocator initialized.
+2025-12-17 22:28:16.320 | INFO     | src.core.database.manager:connect:22 - Connected to MongoDB at mongodb://localhost:27017, DB: image_search_db
+2025-12-17 22:28:16.321 | DEBUG    | src.core.locator:register_system:45 - Registering system: CommandBus
+2025-12-17 22:28:16.321 | DEBUG    | src.core.locator:register_system:45 - Registering system: JournalService
+2025-12-17 22:28:16.321 | DEBUG    | src.core.locator:register_system:45 - Registering system: AssetManager
+2025-12-17 22:28:16.321 | DEBUG    | src.core.locator:register_system:45 - Registering system: TaskSystem
+2025-12-17 22:28:16.322 | DEBUG    | src.core.locator:register_system:45 - Registering system: SearchService
+2025-12-17 22:28:16.322 | INFO     | src.core.locator:start_all:62 - Starting all systems...
+2025-12-17 22:28:16.323 | INFO     | src.core.commands.bus:initialize:15 - CommandBus initialized.
+2025-12-17 22:28:16.323 | INFO     | src.core.locator:start_all:66 - System CommandBus started.
+2025-12-17 22:28:16.323 | INFO     | src.core.journal.service:initialize:11 - JournalService initialized.
+2025-12-17 22:28:16.323 | INFO     | src.core.locator:start_all:66 - System JournalService started.
+2025-12-17 22:28:16.324 | INFO     | src.core.assets.manager:initialize:17 - AssetManager initialized.
+2025-12-17 22:28:16.324 | INFO     | src.core.locator:start_all:66 - System AssetManager started.
+2025-12-17 22:28:16.324 | INFO     | src.core.tasks.system:initialize:19 - TaskSystem initializing...
+2025-12-17 22:28:16.327 | INFO     | src.core.tasks.system:initialize:35 - Loaded 0 pending tasks.
+2025-12-17 22:28:16.327 | INFO     | src.core.locator:start_all:66 - System TaskSystem started.
+2025-12-17 22:28:16.328 | INFO     | app_search_service:initialize:31 - SearchService initialized
+2025-12-17 22:28:16.328 | INFO     | src.core.locator:start_all:66 - System SearchService started.
+2025-12-17 22:28:16.329 | INFO     | src.ui.menus.action_registry:__init__:17 - ActionRegistry initialized
+2025-12-17 22:28:16.329 | INFO     | src.ui.docking.dock_manager:__init__:50 - DockManager initialized
+2025-12-17 22:28:16.339 | INFO     | src.ui.menus.menu_builder:__init__:16 - MenuBuilder initialized
+2025-12-17 22:28:16.580 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: search
+2025-12-17 22:28:16.581 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: gallery
+2025-12-17 22:28:16.582 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: search
+2025-12-17 22:28:16.589 | INFO     | src.ui.docking.dock_manager:create_panel:92 - Panel created: search
+2025-12-17 22:28:16.590 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: gallery
+2025-12-17 22:28:16.591 | DEBUG    | app_gallery_panel:initialize_ui:62 - GalleryPanel UI initialized
+2025-12-17 22:28:16.593 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_new_search
+2025-12-17 22:28:16.593 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_open_downloads
+2025-12-17 22:28:16.594 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_exit
+2025-12-17 22:28:16.594 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_select_all
+2025-12-17 22:28:16.595 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_deselect_all
+2025-12-17 22:28:16.595 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: search_images
+2025-12-17 22:28:16.595 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_selected
+2025-12-17 22:28:16.596 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_all
+2025-12-17 22:28:16.596 | INFO     | app_main_window:__init__:39 - Image Search MainWindow initialized
+2025-12-17 22:28:16.758 | INFO     | __main__:main:106 - Application started successfully
+2025-12-17 22:28:16.799 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 0 started.
+2025-12-17 22:28:16.800 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 1 started.
+2025-12-17 22:28:16.800 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 2 started.
+2025-12-17 22:28:16.820 | INFO     | app_search_panel:_load_recent_searches:151 - ✅ Loaded 4 recent searches
+2025-12-17 22:28:16.821 | INFO     | app_main_window:_load_latest_results:214 - 📊 Loaded 20 results from MongoDB
+2025-12-17 22:28:16.823 | INFO     | app_gallery_panel:load_images:71 - 📸 Loading 20 images into gallery
+2025-12-17 22:28:16.841 | DEBUG    | app_gallery_panel:load_images:95 -   Loaded 10/20 thumbnails
+2025-12-17 22:28:16.856 | DEBUG    | app_gallery_panel:load_images:95 -   Loaded 20/20 thumbnails
+2025-12-17 22:28:16.857 | INFO     | app_gallery_panel:load_images:99 - ✅ Gallery loaded with 20 images
+2025-12-17 22:28:17.157 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.FND-9z9Fov7SLX_FMX_U5QHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.159 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.CbtARvIT3gtAR9ReWqK5CQHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.161 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.HSaLqf2d4d6ZIN9mmcAYGAHaE7?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.163 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.TvyxO2qZHUb1YJIdSv4mRwHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.167 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.ORzhcMSxQsArjgvtNJisOQHaLH?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.171 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.6a92DtLY3PnHbetbNqhEwQHaKa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.185 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.ry7a63qsTZuPqKqUR7D8-wHaKh?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.191 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.vNa5RnKuNm6kGBPFchUlPwHaJJ?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.195 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.VX4oFweKGDPYUYS2Yd8gJgHaNL?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.201 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.fkmjOXuMCocqtIqbpZAzlAHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.206 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.c-vjbmkRnixJ7GtOGWAfnAHaGo?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.208 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.-jcjUz5sP_EQ-PfRjq5fzwHaEk?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.213 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.AmDI_MZkA6UbjvT8FF5qMgHaIT?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.221 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.WJy8q2tNuzgk7EWGzhYPWwHaLH?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.226 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.gwoZdSkPPDgi-WJ2MzQUVwHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.230 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.RIHIVMOeAPjgLR0jhDuQ6QHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.238 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.4fFBrrPTdTTUvd7hVKhtqwHaEm?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.243 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.QEz08T8zJmAk9ov_oehSBgHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.253 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.iPfMgMDziXVowjdhHIqJ1QHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:17.273 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.PRLenQIYWs9PPOACRXc9UAHaNl?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:19.262 | INFO     | app_search_panel:_on_search_clicked:92 - Search requested: 'cats' (count: 20)
+2025-12-17 22:28:19.262 | INFO     | app_main_window:_execute_search:139 - Executing search: 'cats' (count: 20)
+2025-12-17 22:28:19.264 | DEBUG    | src.core.tasks.system:register_handler:55 - Registered task handler: search_images
+2025-12-17 22:28:19.267 | INFO     | src.core.tasks.system:submit:83 - Task submitted: Search: cats (69431263f7fccfcf0069994b)
+2025-12-17 22:28:19.267 | INFO     | app_main_window:_run_search:178 - Search task submitted successfully
+2025-12-17 22:28:19.270 | INFO     | app_search_task:search_images_handler:22 - 🚀 Search handler started: 'cats' (count: 20)
+2025-12-17 22:28:19.270 | DEBUG    | app_search_task:search_images_handler:27 - Converted count to integer: 20
+2025-12-17 22:28:19.271 | DEBUG    | app_search_task:search_images_handler:30 - Getting SearchService from ServiceLocator...
+2025-12-17 22:28:19.272 | DEBUG    | app_search_task:search_images_handler:37 - ✅ SearchService retrieved
+2025-12-17 22:28:19.272 | INFO     | app_search_task:search_images_handler:40 - 🔎 Executing search via SearchService...
+2025-12-17 22:28:19.272 | INFO     | app_search_service:search_images:44 - 🔍 Starting image search: 'cats' (max: 20)
+2025-12-17 22:28:19.273 | DEBUG    | app_search_service:search_images:47 - Importing ddgs module...
+2025-12-17 22:28:19.275 | DEBUG    | app_search_service:search_images:49 - ✅ ddgs imported successfully
+2025-12-17 22:28:19.275 | INFO     | app_search_service:search_images:53 - 📡 Calling DuckDuckGo API...
+2025-12-17 22:28:20.511 | DEBUG    | app_search_service:search_images:58 - Processing search results...
+2025-12-17 22:28:20.512 | DEBUG    | app_search_service:search_images:69 -   [1] Group of various breeds of cats sitting together, posing for a Cat Day ... (2940x1960)
+2025-12-17 22:28:20.512 | DEBUG    | app_search_service:search_images:69 -   [2] 17 Cute Longhaired Cat Breeds | Cats with Long Hair (2121x1414)
+2025-12-17 22:28:20.512 | DEBUG    | app_search_service:search_images:69 -   [3] 50+ Amazing Cats Photos · Pexels · Free Stock Photos (1575x1969)
+2025-12-17 22:28:20.512 | DEBUG    | app_search_service:search_images:69 -   [4] 10 Facts About Cats | Incredible Planet (1280x960)
+2025-12-17 22:28:20.513 | DEBUG    | app_search_service:search_images:69 -   [5] The Enigmatic World of Cats: Why We Can't Get Enough of These Furry ... (1898x1266)
+2025-12-17 22:28:20.513 | DEBUG    | app_search_service:search_images:69 -   [6] Cats Facts (1152x768)
+2025-12-17 22:28:20.513 | DEBUG    | app_search_service:search_images:69 -   [7] Understand the Language of Cats | PetCareRx (5130x3420)
+2025-12-17 22:28:20.514 | DEBUG    | app_search_service:search_images:69 -   [8] Interesting Facts About Cats | POPSUGAR Pets (2048x1365)
+2025-12-17 22:28:20.514 | DEBUG    | app_search_service:search_images:69 -   [9] What Is a Group of Cats Called? (1500x1000)
+2025-12-17 22:28:20.514 | DEBUG    | app_search_service:search_images:69 -   [10] Pets Tutorial: 9 Types Of Cats - List of Cat Breeds (1000x562)
+2025-12-17 22:28:20.514 | DEBUG    | app_search_service:search_images:69 -   [11] Top 10 facts about cats | 2013-09-26 | 432182 | Express.co.uk (590x350)
+2025-12-17 22:28:20.515 | DEBUG    | app_search_service:search_images:69 -   [12] Cats Cats Cats Cats | Encyclopedia of World Photo (1600x1200)
+2025-12-17 22:28:20.515 | DEBUG    | app_search_service:search_images:69 -   [13] Cats - Key Facts, Information & Pictures (1024x600)
+2025-12-17 22:28:20.515 | DEBUG    | app_search_service:search_images:69 -   [14] cat, Animal, Pet, Cats, Kitty, Cute, Sweet Wallpapers HD / Desktop and ... (1920x1080)
+2025-12-17 22:28:20.515 | DEBUG    | app_search_service:search_images:69 -   [15] Pretty Cats, Beautiful Cats, Gorgeous, Kittens Cutest, Cats And Kittens ... (1500x1268)
+2025-12-17 22:28:20.516 | DEBUG    | app_search_service:search_images:69 -   [16] All Wallpapers: Beautiful Cats Hd Wallpapers (1600x1200)
+2025-12-17 22:28:20.516 | DEBUG    | app_search_service:search_images:69 -   [17] Beautiful Cat - Cats Photo (3878544) - Fanpop (1024x931)
+2025-12-17 22:28:20.516 | DEBUG    | app_search_service:search_images:69 -   [18] Hot,Spicy & Stuuning HD Wallpapers: Cats and Kittens Wallpapers (1024x768)
+2025-12-17 22:28:20.516 | DEBUG    | app_search_service:search_images:69 -   [19] Download Cuddling Cute Cats Pictures | Wallpapers.com (1500x1121)
+2025-12-17 22:28:20.517 | DEBUG    | app_search_service:search_images:69 -   [20] Cats photos (III) (1600x1200)
+2025-12-17 22:28:20.517 | INFO     | app_search_service:search_images:71 - ✅ Search complete: Found 20 images for 'cats'
+2025-12-17 22:28:20.517 | INFO     | app_search_task:search_images_handler:43 - 📊 Search returned 20 results
+2025-12-17 22:28:20.518 | DEBUG    | app_search_task:search_images_handler:46 - Creating SearchHistory record...
+2025-12-17 22:28:20.553 | INFO     | app_search_task:search_images_handler:54 - 💾 Search history saved: 69431264f7fccfcf0069994c
+2025-12-17 22:28:20.554 | DEBUG    | app_search_task:search_images_handler:57 - Saving 20 image records to MongoDB...
+2025-12-17 22:28:20.575 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 5/20 images...
+2025-12-17 22:28:20.594 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 10/20 images...
+2025-12-17 22:28:20.614 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 15/20 images...
+2025-12-17 22:28:20.630 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 20/20 images...
+2025-12-17 22:28:20.631 | INFO     | app_search_task:search_images_handler:71 - ✅ Successfully saved 20 image records to database
+2025-12-17 22:28:20.631 | INFO     | app_search_task:search_images_handler:72 - 🎉 Search complete! Query: 'cats', Results: 20
+2025-12-17 22:28:21.268 | INFO     | app_main_window:_load_latest_results:214 - 📊 Loaded 20 results from MongoDB
+2025-12-17 22:28:21.268 | INFO     | app_gallery_panel:load_images:71 - 📸 Loading 20 images into gallery
+2025-12-17 22:28:21.278 | DEBUG    | app_gallery_panel:load_images:95 -   Loaded 10/20 thumbnails
+2025-12-17 22:28:21.290 | DEBUG    | app_gallery_panel:load_images:95 -   Loaded 20/20 thumbnails
+2025-12-17 22:28:21.290 | INFO     | app_gallery_panel:load_images:99 - ✅ Gallery loaded with 20 images
+2025-12-17 22:28:21.525 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.OsIwy6hxoLMTCnaYNyw5lAHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.546 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.ZS6zTvqdDt4aO2XzuD63OAHaEZ?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.550 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.4TuqjnIG3bIxXgHI5QJhogHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.555 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.XEIAUqfBYFrwH-PLpcEMgAHaGQ?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.558 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.1zY_WjFMf_H4rtbc1GvSUgHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.563 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.XAeHchsCgXxL2zwMTcCOmgHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.567 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.BNVLlRkcRfAMkQkFgV6bDAHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.570 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.kWki_30q0PQXNem-_NXmaQHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.575 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.267gNV0g4IfZu1SKQalamAHaGu?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.600 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.N0xm_MvMR4tvurIctKaCEwHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.603 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.96xGC-g0IvkanPsCqf7YhAHaE7?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.609 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.jAGYnfZRDypurXptdPxzjgHaJQ?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.613 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.explicit.bing.net/th/id/OIP.Z0YLenkfAfG4UGyA4jstkQHaFi?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.615 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.PxX1s048z_BeTlJfxk5HEgHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.621 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.-jm8WnPBzvqTeC-lz_eR_AHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.623 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.8EYPyCU4GgOfq6qrzRH_OwHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.626 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.q7pRCGAokNXeU6wA8wYbNAHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.629 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.RuolWPFLq-kZqNULDyzjagHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.632 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.yvj61X0dbFFF8viA7fmKcAHaEV?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:21.645 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.TR3c9vnvpkKLVgBteDtyAgHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:28:24.948 | INFO     | app_search_panel:_on_search_clicked:92 - Search requested: 'test' (count: 20)
+2025-12-17 22:28:24.948 | INFO     | app_main_window:_execute_search:139 - Executing search: 'test' (count: 20)
+2025-12-17 22:28:24.949 | DEBUG    | src.core.tasks.system:register_handler:55 - Registered task handler: search_images
+2025-12-17 22:28:24.952 | INFO     | src.core.tasks.system:submit:83 - Task submitted: Search: test (69431268f7fccfcf00699961)
+2025-12-17 22:28:24.952 | INFO     | app_main_window:_run_search:178 - Search task submitted successfully
+2025-12-17 22:28:24.955 | INFO     | app_search_task:search_images_handler:22 - 🚀 Search handler started: 'test' (count: 20)
+2025-12-17 22:28:24.955 | DEBUG    | app_search_task:search_images_handler:27 - Converted count to integer: 20
+2025-12-17 22:28:24.956 | DEBUG    | app_search_task:search_images_handler:30 - Getting SearchService from ServiceLocator...
+2025-12-17 22:28:24.956 | DEBUG    | app_search_task:search_images_handler:37 - ✅ SearchService retrieved
+2025-12-17 22:28:24.956 | INFO     | app_search_task:search_images_handler:40 - 🔎 Executing search via SearchService...
+2025-12-17 22:28:24.956 | INFO     | app_search_service:search_images:44 - 🔍 Starting image search: 'test' (max: 20)
+2025-12-17 22:28:24.957 | DEBUG    | app_search_service:search_images:47 - Importing ddgs module...
+2025-12-17 22:28:24.957 | DEBUG    | app_search_service:search_images:49 - ✅ ddgs imported successfully
+2025-12-17 22:28:24.957 | INFO     | app_search_service:search_images:53 - 📡 Calling DuckDuckGo API...
+2025-12-17 22:28:25.713 | DEBUG    | app_search_service:search_images:58 - Processing search results...
+2025-12-17 22:28:25.713 | DEBUG    | app_search_service:search_images:69 -   [1] LIST: COVID-19 test kits approved by Philippine FDA (1920x1080)
+2025-12-17 22:28:25.713 | DEBUG    | app_search_service:search_images:69 -   [2] What to Know About Standardized Tests - OnToCollege (600x315)
+2025-12-17 22:28:25.714 | DEBUG    | app_search_service:search_images:69 -   [3] Taking Tests (1200x630)
+2025-12-17 22:28:25.714 | DEBUG    | app_search_service:search_images:69 -   [4] Corona: Das gilt bei Corona-Tests | Bundesregierung (1023x575)
+2025-12-17 22:28:25.714 | DEBUG    | app_search_service:search_images:69 -   [5] Take the Better Test - BJU Press Homeschool Blog (1068x559)
+2025-12-17 22:28:25.714 | DEBUG    | app_search_service:search_images:69 -   [6] A Short History of Standardized Tests - JSTOR Daily (1050x699)
+2025-12-17 22:28:25.715 | DEBUG    | app_search_service:search_images:69 -   [7] 10 Common Mistakes You Make on Tests (1526x2290)
+2025-12-17 22:28:25.715 | DEBUG    | app_search_service:search_images:69 -   [8] Standardized Tests: The Ultimate Guide to the SAT, ACT, & More (400x300)
+2025-12-17 22:28:25.715 | DEBUG    | app_search_service:search_images:69 -   [9] Grids Are Great, But What Of The Subtle Undertones Of Creative Testing? (500x332)
+2025-12-17 22:28:25.716 | DEBUG    | app_search_service:search_images:69 -   [10] What's In a Test? | Admissions Blog (1022x682)
+2025-12-17 22:28:25.716 | DEBUG    | app_search_service:search_images:69 -   [11] Write Automated Tests for Electron with Spectron, Mocha, and Chai ... (1920x1390)
+2025-12-17 22:28:25.716 | DEBUG    | app_search_service:search_images:69 -   [12] Testing Center | JCTC (2400x1600)
+2025-12-17 22:28:25.716 | DEBUG    | app_search_service:search_images:69 -   [13] Testing in the education system (4580x2484)
+2025-12-17 22:28:25.717 | DEBUG    | app_search_service:search_images:69 -   [14] Test Writing in English | Testing and Assessment | English EFL (640x360)
+2025-12-17 22:28:25.717 | DEBUG    | app_search_service:search_images:69 -   [15] Testing Services | University of Illinois Chicago (600x397)
+2025-12-17 22:28:25.717 | DEBUG    | app_search_service:search_images:69 -   [16] Why Students Should Choose Their Own Tests (2000x1414)
+2025-12-17 22:28:25.717 | DEBUG    | app_search_service:search_images:69 -   [17] No Child Left Behind: What standardized test scores reveal about its ... (1440x957)
+2025-12-17 22:28:25.717 | DEBUG    | app_search_service:search_images:69 -   [18] 6 Vital tests for rheumatoid arthritis diagnosis (1921x1921)
+2025-12-17 22:28:25.718 | DEBUG    | app_search_service:search_images:69 -   [19] Tests don't improve learning. And PARCC will be no different (926x615)
+2025-12-17 22:28:25.718 | DEBUG    | app_search_service:search_images:69 -   [20] 14 Tips for Test Taking Success - Harvard Summer School (2000x1333)
+2025-12-17 22:28:25.718 | INFO     | app_search_service:search_images:71 - ✅ Search complete: Found 20 images for 'test'
+2025-12-17 22:28:25.719 | INFO     | app_search_task:search_images_handler:43 - 📊 Search returned 20 results
+2025-12-17 22:28:25.719 | DEBUG    | app_search_task:search_images_handler:46 - Creating SearchHistory record...
+2025-12-17 22:28:25.721 | INFO     | app_search_task:search_images_handler:54 - 💾 Search history saved: 69431269f7fccfcf00699962
+2025-12-17 22:28:25.722 | DEBUG    | app_search_task:search_images_handler:57 - Saving 20 image records to MongoDB...
+2025-12-17 22:28:25.726 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 5/20 images...
+2025-12-17 22:28:25.731 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 10/20 images...
+2025-12-17 22:28:25.736 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 15/20 images...
+2025-12-17 22:28:25.740 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 20/20 images...
+2025-12-17 22:28:25.741 | INFO     | app_search_task:search_images_handler:71 - ✅ Successfully saved 20 image records to database
+2025-12-17 22:28:25.741 | INFO     | app_search_task:search_images_handler:72 - 🎉 Search complete! Query: 'test', Results: 20
+2025-12-17 22:28:26.953 | INFO     | app_main_window:_load_latest_results:214 - 📊 Loaded 20 results from MongoDB
+2025-12-17 22:28:26.954 | INFO     | app_gallery_panel:load_images:71 - 📸 Loading 20 images into gallery
+2025-12-17 22:28:26.963 | DEBUG    | app_gallery_panel:load_images:95 -   Loaded 10/20 thumbnails
+2025-12-17 22:28:26.973 | DEBUG    | app_gallery_panel:load_images:95 -   Loaded 20/20 thumbnails
+2025-12-17 22:28:26.974 | INFO     | app_gallery_panel:load_images:99 - ✅ Gallery loaded with 20 images
+2025-12-17 22:28:27.220 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.nblb4Mbe7_pNl7UVz-rSoQHaD4?pid=Api
+2025-12-17 22:28:27.228 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.OCOXY5Wvj5pQvgIG-LmpYQAAAA?pid=Api
+2025-12-17 22:28:27.232 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.-sqyMLfR5PDgge_zQyfdCgHaFP?pid=Api
+2025-12-17 22:28:27.235 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.DoyS1y9ui39_ZrZZc1utcAHaEK?pid=Api
+2025-12-17 22:28:27.237 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.bAou8dQdiXvZVd0VeKkeWQHaEK?pid=Api
+2025-12-17 22:28:27.242 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.uRTpI1zraWuEklfjJVjAMwHaD4?pid=Api
+2025-12-17 22:28:27.244 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.dpCgDL0lVU3Kxxnz7DM-JgHaEK?pid=Api
+2025-12-17 22:28:27.249 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.dXhGspiBElhoc6HtIcOkhQHaE7?pid=Api
+2025-12-17 22:28:27.254 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.r8UZNWMUGOtemPOpCANxDQHaE6?pid=Api
+2025-12-17 22:28:27.258 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.si0594KxN90yS3TKHX4QUwHaE5?pid=Api
+2025-12-17 22:28:27.263 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.y_gVzYDI1IKsZX1cv_LVjQHaLH?pid=Api
+2025-12-17 22:28:27.267 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.F9LGVGkyHVvwK9jMlc2TJAHaHa?pid=Api
+2025-12-17 22:28:27.272 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.k2zCFnjRQlIvd_zCfb6dJAHaE6?pid=Api
+2025-12-17 22:28:27.275 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.WM1GtZDdfJyJtwB66ETlaQHaEB?pid=Api
+2025-12-17 22:28:27.278 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.explicit.bing.net/th/id/OIP.MzU94wsMIMJpSFt7Q_RoDAHaE8?pid=Api
+2025-12-17 22:28:27.281 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.VljEFRrXH196ZeaESK2xfwHaD4?pid=Api
+2025-12-17 22:28:27.285 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.explicit.bing.net/th/id/OIP.ULq5QQnJfNFuhcLNBVqzAwHaE7?pid=Api
+2025-12-17 22:28:27.288 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.AmS8XNM4YxY8AAm5gL1OgAHaFX?pid=Api
+2025-12-17 22:28:27.357 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.yxjzcvTHkf6uALA3cuH9tgHaE7?pid=Api
+2025-12-17 22:28:27.411 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.AOiFpFdhMc3azOUsarW76AHaE8?pid=Api
+2025-12-17 22:28:28.726 | INFO     | app_search_panel:_on_search_clicked:92 - Search requested: 'sfd' (count: 20)
+2025-12-17 22:28:28.726 | INFO     | app_main_window:_execute_search:139 - Executing search: 'sfd' (count: 20)
+2025-12-17 22:28:28.727 | DEBUG    | src.core.tasks.system:register_handler:55 - Registered task handler: search_images
+2025-12-17 22:28:28.731 | INFO     | src.core.tasks.system:submit:83 - Task submitted: Search: sfd (6943126cf7fccfcf00699977)
+2025-12-17 22:28:28.731 | INFO     | app_main_window:_run_search:178 - Search task submitted successfully
+2025-12-17 22:28:28.734 | INFO     | app_search_task:search_images_handler:22 - 🚀 Search handler started: 'sfd' (count: 20)
+2025-12-17 22:28:28.734 | DEBUG    | app_search_task:search_images_handler:27 - Converted count to integer: 20
+2025-12-17 22:28:28.734 | DEBUG    | app_search_task:search_images_handler:30 - Getting SearchService from ServiceLocator...
+2025-12-17 22:28:28.735 | DEBUG    | app_search_task:search_images_handler:37 - ✅ SearchService retrieved
+2025-12-17 22:28:28.735 | INFO     | app_search_task:search_images_handler:40 - 🔎 Executing search via SearchService...
+2025-12-17 22:28:28.735 | INFO     | app_search_service:search_images:44 - 🔍 Starting image search: 'sfd' (max: 20)
+2025-12-17 22:28:28.735 | DEBUG    | app_search_service:search_images:47 - Importing ddgs module...
+2025-12-17 22:28:28.735 | DEBUG    | app_search_service:search_images:49 - ✅ ddgs imported successfully
+2025-12-17 22:28:28.735 | INFO     | app_search_service:search_images:53 - 📡 Calling DuckDuckGo API...
+2025-12-17 22:28:29.786 | DEBUG    | app_search_service:search_images:58 - Processing search results...
+2025-12-17 22:28:29.787 | DEBUG    | app_search_service:search_images:69 -   [1] SFD | Daz Content | Outfits (256x256)
+2025-12-17 22:28:29.787 | DEBUG    | app_search_service:search_images:69 -   [2] SFD - WPI IsoWhey Instant - 1800g - SFD Nutrition Vietnam (1024x314)
+2025-12-17 22:28:29.788 | DEBUG    | app_search_service:search_images:69 -   [3] SFD Offline-Token für VCDS / VAG-COM | Volkswagen ID Forum (1000x1000)
+2025-12-17 22:28:29.788 | DEBUG    | app_search_service:search_images:69 -   [4] SFD - 株式会社三功工業所 (582x456)
+2025-12-17 22:28:29.788 | DEBUG    | app_search_service:search_images:69 -   [5] Sfd Logo Letter Monogram Design Stock Vector (Royalty Free) 2491264869 ... (1500x1600)
+2025-12-17 22:28:29.788 | DEBUG    | app_search_service:search_images:69 -   [6] SFD Ashwagandha Forte 800 Naturalne wsparcie dla ciała i umysłu 90 tabl ... (128x128)
+2025-12-17 22:28:29.788 | DEBUG    | app_search_service:search_images:69 -   [7] Rodzynus/dziennik treningowy - Forum SFD (920x920)
+2025-12-17 22:28:29.788 | DEBUG    | app_search_service:search_images:69 -   [8] MR. OLYMPIA 2018 - Forum SFD - strona 61 (920x517)
+2025-12-17 22:28:29.789 | DEBUG    | app_search_service:search_images:69 -   [9] SFD Ashwagandha Forte 800 Naturalne wsparcie dla ciała i umysłu 90 tabl ... (128x128)
+2025-12-17 22:28:29.789 | DEBUG    | app_search_service:search_images:69 -   [10] Poznań : Ustawka Treningowa SFD + Super Goście - 21 maj - Forum SFD (977x616)
+2025-12-17 22:28:29.789 | DEBUG    | app_search_service:search_images:69 -   [11] Dzień dobry mam 15 lat ;) - Forum SFD (575x430)
+2025-12-17 22:28:29.789 | DEBUG    | app_search_service:search_images:69 -   [12] Na poczatek - Forum SFD - strona 2 (270x202)
+2025-12-17 22:28:29.789 | DEBUG    | app_search_service:search_images:69 -   [13] Fbw plan na poczatek - Forum SFD (270x202)
+2025-12-17 22:28:29.790 | DEBUG    | app_search_service:search_images:69 -   [14] Powrót do treningów, proszę o ocene i sugestie - Forum SFD (526x1000)
+2025-12-17 22:28:29.790 | DEBUG    | app_search_service:search_images:69 -   [15] sfd logo diseño, inspiración para un único identidad. moderno elegancia ... (1920x1920)
+2025-12-17 22:28:29.790 | DEBUG    | app_search_service:search_images:69 -   [16] Resources - SFD Trailer Parts (2243x2242)
+2025-12-17 22:28:29.790 | DEBUG    | app_search_service:search_images:69 -   [17] QSD - 365 SFD (226x55)
+2025-12-17 22:28:29.791 | DEBUG    | app_search_service:search_images:69 -   [18] SFD, HCS, SDC Power Electronics | EV Solution | HL Mando (1400x782)
+2025-12-17 22:28:29.791 | DEBUG    | app_search_service:search_images:69 -   [19] Zwrot towarów w SFD - ProPaczka (1920x795)
+2025-12-17 22:28:29.791 | DEBUG    | app_search_service:search_images:69 -   [20] SFD CREATINE 500g KREATYNA MONOHYDRAT SIŁA MASA WYTRZYMAŁOŚĆ ENERGIA ... (948x864)
+2025-12-17 22:28:29.791 | INFO     | app_search_service:search_images:71 - ✅ Search complete: Found 20 images for 'sfd'
+2025-12-17 22:28:29.792 | INFO     | app_search_task:search_images_handler:43 - 📊 Search returned 20 results
+2025-12-17 22:28:29.792 | DEBUG    | app_search_task:search_images_handler:46 - Creating SearchHistory record...
+2025-12-17 22:28:29.794 | INFO     | app_search_task:search_images_handler:54 - 💾 Search history saved: 6943126df7fccfcf00699978
+2025-12-17 22:28:29.794 | DEBUG    | app_search_task:search_images_handler:57 - Saving 20 image records to MongoDB...
+2025-12-17 22:28:29.799 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 5/20 images...
+2025-12-17 22:28:29.803 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 10/20 images...
+2025-12-17 22:28:29.808 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 15/20 images...
+2025-12-17 22:28:29.812 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 20/20 images...
+2025-12-17 22:28:29.812 | INFO     | app_search_task:search_images_handler:71 - ✅ Successfully saved 20 image records to database
+2025-12-17 22:28:29.812 | INFO     | app_search_task:search_images_handler:72 - 🎉 Search complete! Query: 'sfd', Results: 20
+2025-12-17 22:28:30.733 | INFO     | app_main_window:_load_latest_results:214 - 📊 Loaded 20 results from MongoDB
+2025-12-17 22:28:30.734 | INFO     | app_gallery_panel:load_images:71 - 📸 Loading 20 images into gallery
+2025-12-17 22:28:30.747 | DEBUG    | app_gallery_panel:load_images:95 -   Loaded 10/20 thumbnails
+2025-12-17 22:28:30.757 | DEBUG    | app_gallery_panel:load_images:95 -   Loaded 20/20 thumbnails
+2025-12-17 22:28:30.757 | INFO     | app_gallery_panel:load_images:99 - ✅ Gallery loaded with 20 images
+2025-12-17 22:28:31.604 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.oB33MXr-PXqymkT5XSORIgHaGw?pid=Api
+2025-12-17 22:28:31.606 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.xFhtsj_CShPy7aZ6B7b8SwHaHZ?pid=Api
+2025-12-17 22:28:31.607 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.5bGpPrXuOBu9FJUL0kxZrwHaHa?pid=Api
+2025-12-17 22:28:31.612 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.HUPOSpJ-bZScfoxjKavc0QHaCR?pid=Api
+2025-12-17 22:28:31.617 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIF.4HHVTEU4K2CY7CnwwZ2nmA?pid=Api
+2025-12-17 22:28:31.669 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th?id=OIF.s2e/Q3yrpfpuO3Mwf5RoYg&pid=Api
+2025-12-17 22:28:31.673 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.UQ9WJHozb5i8rzVBe2BEwwHaEI?pid=Api
+2025-12-17 22:28:31.675 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.H-7hzEM4sXFsFLMF-dK4wAHaDE?pid=Api
+2025-12-17 22:28:31.676 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.Hf8p2UqnGPKYZYlx_5ZZjQAAAA?pid=Api
+2025-12-17 22:28:31.679 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.REFjuSGKvswknJOtVzU4cQHaH5?pid=Api
+2025-12-17 22:28:31.683 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.explicit.bing.net/th/id/OIF.v1Z0rZrQpVhIg604rSgYZA?pid=Api
+2025-12-17 22:28:31.684 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIF.sKqDRvbsNcETwXusENJSlA?pid=Api
+2025-12-17 22:28:31.685 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.EILpsWVe3xP131jhGMxrVAAAAA?pid=Api
+2025-12-17 22:28:31.691 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.1leuJQVANqL8OPdimBu3gQHaHa?pid=Api
+2025-12-17 22:28:31.693 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIF.0hvnc8NmESTNcMUD4nU0Lw?pid=Api
+2025-12-17 22:28:31.696 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.BjXjHzBXZH1GTkKp1Yw6uQHaFz?pid=Api
+2025-12-17 22:28:31.699 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIF.8MGr3G5YSM5Ra4LlmLZ65w?pid=Api
+2025-12-17 22:28:31.706 | ERROR    | src.ui.widgets.async_image:load_from_url:84 - Failed to load image from https://tse2.mm.bing.net/th?id=OIF.H7xkwKWS+h7TcmqtIqbaLA&pid=Api: HTTP 404
+2025-12-17 22:28:31.707 | ERROR    | src.ui.widgets.async_image:load_from_url:84 - Failed to load image from https://tse1.mm.bing.net/th?id=OIF.X+w9NN5ggXxpUFRVKPc3+w&pid=Api: HTTP 404
+2025-12-17 22:28:31.759 | ERROR    | src.ui.widgets.async_image:load_from_url:84 - Failed to load image from https://tse1.mm.bing.net/th?id=OIF.HN+jULY4o5vIDI8D/lDd5w&pid=Api: HTTP 404
+2025-12-17 22:28:37.613 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Poznań : Ustawka Treningowa SFD + Super Goście - 21 maj - Forum SFD
+2025-12-17 22:28:39.525 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Dzień dobry mam 15 lat ;) - Forum SFD
+2025-12-17 22:28:40.869 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Na poczatek - Forum SFD - strona 2
+2025-12-17 22:28:44.461 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Resources - SFD Trailer Parts
+2025-12-17 22:28:46.741 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: SFD CREATINE 500g KREATYNA MONOHYDRAT SIŁA MASA WYTRZYMAŁOŚĆ ENERGIA ...
+2025-12-17 22:28:47.373 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Zwrot towarów w SFD - ProPaczka
+2025-12-17 22:28:47.861 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: SFD, HCS, SDC Power Electronics | EV Solution | HL Mando
+2025-12-17 22:28:48.326 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: QSD - 365 SFD
+2025-12-17 22:28:49.502 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Fbw plan na poczatek - Forum SFD
+2025-12-17 22:28:52.830 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Rodzynus/dziennik treningowy - Forum SFD
+2025-12-17 22:28:54.159 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Rodzynus/dziennik treningowy - Forum SFD
+2025-12-17 22:28:54.748 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Rodzynus/dziennik treningowy - Forum SFD
+2025-12-17 22:28:55.198 | DEBUG    | app_gallery_panel:_on_thumbnail_clicked:103 - Thumbnail clicked: Rodzynus/dziennik treningowy - Forum SFD

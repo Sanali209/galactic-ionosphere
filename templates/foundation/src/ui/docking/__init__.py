@@ -1,0 +1,1 @@
+"""Docking system for panels."""

@@ -1,0 +1,170 @@
+2025-12-17 22:50:29.562 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+2025-12-17 22:50:29.562 | INFO     | __main__:main:76 - ============================================================
+2025-12-17 22:50:29.562 | INFO     | __main__:main:77 - Image Search Application Starting
+2025-12-17 22:50:29.563 | INFO     | __main__:main:78 - ============================================================
+2025-12-17 22:50:29.564 | INFO     | src.core.locator:init:36 - ServiceLocator initialized.
+2025-12-17 22:50:29.564 | DEBUG    | src.core.locator:register_system:45 - Registering system: DatabaseManager
+2025-12-17 22:50:29.565 | DEBUG    | src.core.locator:register_system:45 - Registering system: CommandBus
+2025-12-17 22:50:29.565 | DEBUG    | src.core.locator:register_system:45 - Registering system: JournalService
+2025-12-17 22:50:29.565 | DEBUG    | src.core.locator:register_system:45 - Registering system: AssetManager
+2025-12-17 22:50:29.565 | DEBUG    | src.core.locator:register_system:45 - Registering system: TaskSystem
+2025-12-17 22:50:29.565 | DEBUG    | src.core.locator:register_system:45 - Registering system: SearchService
+2025-12-17 22:50:29.566 | INFO     | src.core.locator:start_all:62 - Starting all systems...
+2025-12-17 22:50:29.582 | INFO     | src.core.database.manager:initialize:40 - Connected to MongoDB at mongodb://localhost:27017, DB: image_search_db
+2025-12-17 22:50:29.582 | INFO     | src.core.locator:start_all:66 - System DatabaseManager started.
+2025-12-17 22:50:29.582 | INFO     | src.core.commands.bus:initialize:15 - CommandBus initialized.
+2025-12-17 22:50:29.582 | INFO     | src.core.locator:start_all:66 - System CommandBus started.
+2025-12-17 22:50:29.583 | INFO     | src.core.journal.service:initialize:11 - JournalService initialized.
+2025-12-17 22:50:29.583 | INFO     | src.core.locator:start_all:66 - System JournalService started.
+2025-12-17 22:50:29.583 | INFO     | src.core.assets.manager:initialize:17 - AssetManager initialized.
+2025-12-17 22:50:29.583 | INFO     | src.core.locator:start_all:66 - System AssetManager started.
+2025-12-17 22:50:29.583 | INFO     | src.core.tasks.system:initialize:19 - TaskSystem initializing...
+2025-12-17 22:50:29.586 | INFO     | src.core.tasks.system:initialize:35 - Loaded 0 pending tasks.
+2025-12-17 22:50:29.586 | INFO     | src.core.locator:start_all:66 - System TaskSystem started.
+2025-12-17 22:50:29.586 | INFO     | app_search_service:initialize:31 - SearchService initialized
+2025-12-17 22:50:29.587 | INFO     | src.core.locator:start_all:66 - System SearchService started.
+2025-12-17 22:50:29.587 | INFO     | src.ui.menus.action_registry:__init__:17 - ActionRegistry initialized
+2025-12-17 22:50:29.587 | INFO     | src.ui.docking.dock_manager:__init__:50 - DockManager initialized
+2025-12-17 22:50:29.597 | INFO     | src.ui.menus.menu_builder:__init__:16 - MenuBuilder initialized
+2025-12-17 22:50:29.841 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: search
+2025-12-17 22:50:29.842 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: gallery
+2025-12-17 22:50:29.844 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: search
+2025-12-17 22:50:29.851 | INFO     | src.ui.docking.dock_manager:create_panel:92 - Panel created: search
+2025-12-17 22:50:29.851 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: gallery
+2025-12-17 22:50:29.852 | DEBUG    | app_gallery_panel:initialize_ui:63 - GalleryPanel UI initialized
+2025-12-17 22:50:29.854 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_new_search
+2025-12-17 22:50:29.854 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_open_downloads
+2025-12-17 22:50:29.855 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_exit
+2025-12-17 22:50:29.856 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_select_all
+2025-12-17 22:50:29.856 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_deselect_all
+2025-12-17 22:50:29.856 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: search_images
+2025-12-17 22:50:29.857 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_selected
+2025-12-17 22:50:29.857 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_all
+2025-12-17 22:50:29.858 | INFO     | app_main_window:__init__:39 - Image Search MainWindow initialized
+2025-12-17 22:50:30.017 | INFO     | __main__:main:103 - Application started successfully
+2025-12-17 22:50:30.046 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 0 started.
+2025-12-17 22:50:30.047 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 1 started.
+2025-12-17 22:50:30.047 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 2 started.
+2025-12-17 22:50:30.068 | INFO     | app_search_panel:_load_recent_searches:151 - ✅ Loaded 4 recent searches
+2025-12-17 22:50:30.071 | INFO     | app_main_window:_load_latest_results:214 - 📊 Loaded 100 results from MongoDB
+2025-12-17 22:50:30.072 | INFO     | app_gallery_panel:load_images:72 - 📸 Loading 100 images into gallery
+2025-12-17 22:50:30.092 | DEBUG    | app_gallery_panel:load_images:100 -   Loaded 10/100 thumbnails
+2025-12-17 22:50:30.113 | DEBUG    | app_gallery_panel:load_images:100 -   Loaded 20/100 thumbnails
+2025-12-17 22:50:30.132 | DEBUG    | app_gallery_panel:load_images:100 -   Loaded 30/100 thumbnails
+2025-12-17 22:50:30.152 | DEBUG    | app_gallery_panel:load_images:100 -   Loaded 40/100 thumbnails
+2025-12-17 22:50:30.165 | DEBUG    | app_gallery_panel:load_images:100 -   Loaded 50/100 thumbnails
+2025-12-17 22:50:30.180 | DEBUG    | app_gallery_panel:load_images:100 -   Loaded 60/100 thumbnails
+2025-12-17 22:50:30.196 | DEBUG    | app_gallery_panel:load_images:100 -   Loaded 70/100 thumbnails
+2025-12-17 22:50:30.212 | DEBUG    | app_gallery_panel:load_images:100 -   Loaded 80/100 thumbnails
+2025-12-17 22:50:30.229 | DEBUG    | app_gallery_panel:load_images:100 -   Loaded 90/100 thumbnails
+2025-12-17 22:50:30.244 | DEBUG    | app_gallery_panel:load_images:100 -   Loaded 100/100 thumbnails
+2025-12-17 22:50:30.245 | INFO     | app_gallery_panel:load_images:104 - ✅ Gallery loaded with 100 images
+2025-12-17 22:50:32.043 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.RIHIVMOeAPjgLR0jhDuQ6QHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.047 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.AmDI_MZkA6UbjvT8FF5qMgHaIT?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.050 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.fkmjOXuMCocqtIqbpZAzlAHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.055 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.QEz08T8zJmAk9ov_oehSBgHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.056 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.TvyxO2qZHUb1YJIdSv4mRwHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.061 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.PRLenQIYWs9PPOACRXc9UAHaNl?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.066 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.6a92DtLY3PnHbetbNqhEwQHaKa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.069 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.ORzhcMSxQsArjgvtNJisOQHaLH?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.072 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.CbtARvIT3gtAR9ReWqK5CQHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.076 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.gwoZdSkPPDgi-WJ2MzQUVwHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.079 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.4fFBrrPTdTTUvd7hVKhtqwHaEm?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.082 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.c-vjbmkRnixJ7GtOGWAfnAHaGo?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.085 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.HSaLqf2d4d6ZIN9mmcAYGAHaE7?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.088 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.FND-9z9Fov7SLX_FMX_U5QHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.091 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.RuolWPFLq-kZqNULDyzjagHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.096 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.WJy8q2tNuzgk7EWGzhYPWwHaLH?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.103 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.VX4oFweKGDPYUYS2Yd8gJgHaNL?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.106 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.-jcjUz5sP_EQ-PfRjq5fzwHaEk?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.109 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.iPfMgMDziXVowjdhHIqJ1QHaHa?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.113 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.vNa5RnKuNm6kGBPFchUlPwHaJJ?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.116 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.kWki_30q0PQXNem-_NXmaQHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.121 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.jAGYnfZRDypurXptdPxzjgHaJQ?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.137 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.ry7a63qsTZuPqKqUR7D8-wHaKh?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.140 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.OsIwy6hxoLMTCnaYNyw5lAHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.145 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.8EYPyCU4GgOfq6qrzRH_OwHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.148 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.TR3c9vnvpkKLVgBteDtyAgHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.151 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.96xGC-g0IvkanPsCqf7YhAHaE7?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.154 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.N0xm_MvMR4tvurIctKaCEwHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.157 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.bAou8dQdiXvZVd0VeKkeWQHaEK?pid=Api
+2025-12-17 22:50:32.179 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.XEIAUqfBYFrwH-PLpcEMgAHaGQ?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.185 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.OCOXY5Wvj5pQvgIG-LmpYQAAAA?pid=Api
+2025-12-17 22:50:32.189 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.BNVLlRkcRfAMkQkFgV6bDAHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.192 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.uRTpI1zraWuEklfjJVjAMwHaD4?pid=Api
+2025-12-17 22:50:32.199 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.AOiFpFdhMc3azOUsarW76AHaE8?pid=Api
+2025-12-17 22:50:32.202 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.WM1GtZDdfJyJtwB66ETlaQHaEB?pid=Api
+2025-12-17 22:50:32.206 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.y_gVzYDI1IKsZX1cv_LVjQHaLH?pid=Api
+2025-12-17 22:50:32.210 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.AmS8XNM4YxY8AAm5gL1OgAHaFX?pid=Api
+2025-12-17 22:50:32.212 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.si0594KxN90yS3TKHX4QUwHaE5?pid=Api
+2025-12-17 22:50:32.216 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.k2zCFnjRQlIvd_zCfb6dJAHaE6?pid=Api
+2025-12-17 22:50:32.218 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.VljEFRrXH196ZeaESK2xfwHaD4?pid=Api
+2025-12-17 22:50:32.221 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.DoyS1y9ui39_ZrZZc1utcAHaEK?pid=Api
+2025-12-17 22:50:32.223 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.-sqyMLfR5PDgge_zQyfdCgHaFP?pid=Api
+2025-12-17 22:50:32.225 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.yxjzcvTHkf6uALA3cuH9tgHaE7?pid=Api
+2025-12-17 22:50:32.228 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.4TuqjnIG3bIxXgHI5QJhogHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.232 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.267gNV0g4IfZu1SKQalamAHaGu?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.234 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.1zY_WjFMf_H4rtbc1GvSUgHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.236 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.Hf8p2UqnGPKYZYlx_5ZZjQAAAA?pid=Api
+2025-12-17 22:50:32.239 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.F9LGVGkyHVvwK9jMlc2TJAHaHa?pid=Api
+2025-12-17 22:50:32.241 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.explicit.bing.net/th/id/OIF.v1Z0rZrQpVhIg604rSgYZA?pid=Api
+2025-12-17 22:50:32.244 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.explicit.bing.net/th/id/OIP.Z0YLenkfAfG4UGyA4jstkQHaFi?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.246 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.explicit.bing.net/th/id/OIP.ULq5QQnJfNFuhcLNBVqzAwHaE7?pid=Api
+2025-12-17 22:50:32.250 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.dXhGspiBElhoc6HtIcOkhQHaE7?pid=Api
+2025-12-17 22:50:32.254 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.explicit.bing.net/th/id/OIP.Z0YLenkfAfG4UGyA4jstkQHaFi?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.256 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.XAeHchsCgXxL2zwMTcCOmgHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.259 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.ZS6zTvqdDt4aO2XzuD63OAHaEZ?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.264 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.-jm8WnPBzvqTeC-lz_eR_AHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.267 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.yvj61X0dbFFF8viA7fmKcAHaEV?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.270 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.PxX1s048z_BeTlJfxk5HEgHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.273 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.nblb4Mbe7_pNl7UVz-rSoQHaD4?pid=Api
+2025-12-17 22:50:32.277 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.q7pRCGAokNXeU6wA8wYbNAHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.281 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.dpCgDL0lVU3Kxxnz7DM-JgHaEK?pid=Api
+2025-12-17 22:50:32.295 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.explicit.bing.net/th/id/OIP.MzU94wsMIMJpSFt7Q_RoDAHaE8?pid=Api
+2025-12-17 22:50:32.304 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.1leuJQVANqL8OPdimBu3gQHaHa?pid=Api
+2025-12-17 22:50:32.307 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.HUPOSpJ-bZScfoxjKavc0QHaCR?pid=Api
+2025-12-17 22:50:32.309 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIF.sKqDRvbsNcETwXusENJSlA?pid=Api
+2025-12-17 22:50:32.312 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.r8UZNWMUGOtemPOpCANxDQHaE6?pid=Api
+2025-12-17 22:50:32.316 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.REFjuSGKvswknJOtVzU4cQHaH5?pid=Api
+2025-12-17 22:50:32.319 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th?id=OIF.s2e/Q3yrpfpuO3Mwf5RoYg&pid=Api
+2025-12-17 22:50:32.324 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIF.0hvnc8NmESTNcMUD4nU0Lw?pid=Api
+2025-12-17 22:50:32.328 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIF.8MGr3G5YSM5Ra4LlmLZ65w?pid=Api
+2025-12-17 22:50:32.332 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.BjXjHzBXZH1GTkKp1Yw6uQHaFz?pid=Api
+2025-12-17 22:50:32.334 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.EILpsWVe3xP131jhGMxrVAAAAA?pid=Api
+2025-12-17 22:50:32.338 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.xFhtsj_CShPy7aZ6B7b8SwHaHZ?pid=Api
+2025-12-17 22:50:32.343 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.PxX1s048z_BeTlJfxk5HEgHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.351 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIF.4HHVTEU4K2CY7CnwwZ2nmA?pid=Api
+2025-12-17 22:50:32.353 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.H-7hzEM4sXFsFLMF-dK4wAHaDE?pid=Api
+2025-12-17 22:50:32.356 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.oB33MXr-PXqymkT5XSORIgHaGw?pid=Api
+2025-12-17 22:50:32.360 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.4TuqjnIG3bIxXgHI5QJhogHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.363 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.96xGC-g0IvkanPsCqf7YhAHaE7?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.367 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.ZS6zTvqdDt4aO2XzuD63OAHaEZ?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.370 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.yvj61X0dbFFF8viA7fmKcAHaEV?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.374 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.TR3c9vnvpkKLVgBteDtyAgHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.379 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.UQ9WJHozb5i8rzVBe2BEwwHaEI?pid=Api
+2025-12-17 22:50:32.382 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.q7pRCGAokNXeU6wA8wYbNAHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.386 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.jAGYnfZRDypurXptdPxzjgHaJQ?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.390 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.8EYPyCU4GgOfq6qrzRH_OwHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.393 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse4.mm.bing.net/th/id/OIP.RuolWPFLq-kZqNULDyzjagHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.397 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.OsIwy6hxoLMTCnaYNyw5lAHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.401 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.5bGpPrXuOBu9FJUL0kxZrwHaHa?pid=Api
+2025-12-17 22:50:32.406 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.kWki_30q0PQXNem-_NXmaQHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.412 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse3.mm.bing.net/th/id/OIP.-jm8WnPBzvqTeC-lz_eR_AHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.418 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.XEIAUqfBYFrwH-PLpcEMgAHaGQ?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.421 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.1zY_WjFMf_H4rtbc1GvSUgHaE8?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.425 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse2.mm.bing.net/th/id/OIP.N0xm_MvMR4tvurIctKaCEwHaEK?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.431 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.267gNV0g4IfZu1SKQalamAHaGu?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.437 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.BNVLlRkcRfAMkQkFgV6bDAHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.441 | DEBUG    | src.ui.widgets.async_image:load_from_url:75 - Loaded image from https://tse1.mm.bing.net/th/id/OIP.XAeHchsCgXxL2zwMTcCOmgHaFj?cb=ucfimg2&pid=Api&ucfimg=1
+2025-12-17 22:50:32.460 | ERROR    | src.ui.widgets.async_image:load_from_url:84 - Failed to load image from https://tse1.mm.bing.net/th?id=OIF.X+w9NN5ggXxpUFRVKPc3+w&pid=Api: HTTP 404
+2025-12-17 22:50:32.466 | ERROR    | src.ui.widgets.async_image:load_from_url:84 - Failed to load image from https://tse1.mm.bing.net/th?id=OIF.HN+jULY4o5vIDI8D/lDd5w&pid=Api: HTTP 404
+2025-12-17 22:50:32.467 | ERROR    | src.ui.widgets.async_image:load_from_url:84 - Failed to load image from https://tse2.mm.bing.net/th?id=OIF.H7xkwKWS+h7TcmqtIqbaLA&pid=Api: HTTP 404
+2025-12-17 22:53:42.860 | INFO     | src.core.locator:stop_all:74 - Stopping all systems...
+2025-12-17 22:53:42.861 | INFO     | app_search_service:shutdown:86 - SearchService shutdown
+2025-12-17 22:53:42.861 | INFO     | src.core.locator:stop_all:80 - System SearchService stopped.
+2025-12-17 22:53:42.863 | INFO     | src.core.locator:stop_all:80 - System TaskSystem stopped.
+2025-12-17 22:53:42.863 | INFO     | src.core.locator:stop_all:80 - System AssetManager stopped.
+2025-12-17 22:53:42.864 | INFO     | src.core.locator:stop_all:80 - System JournalService stopped.
+2025-12-17 22:53:42.864 | INFO     | src.core.locator:stop_all:80 - System CommandBus stopped.
+2025-12-17 22:53:42.865 | INFO     | src.core.database.manager:shutdown:52 - MongoDB connection closed.
+2025-12-17 22:53:42.866 | INFO     | src.core.locator:stop_all:80 - System DatabaseManager stopped.

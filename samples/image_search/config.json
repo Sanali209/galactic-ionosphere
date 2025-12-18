@@ -1,0 +1,13 @@
+{
+    "app_name": "Image Search",
+    "mongo": {
+        "host": "localhost",
+        "port": 27017,
+        "database_name": "image_search_db"
+    },
+    "default_result_count": 20,
+    "max_result_count": 100,
+    "download_folder": "./downloads",
+    "thumbnail_size": 200,
+    "parallel_downloads": 5
+}

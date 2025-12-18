@@ -127,4 +127,8 @@ class TaskSystem(BaseSystem):
                 break
             except Exception as e:
                 logger.error(f"Worker {worker_id} crashed: {e}")
-                await asyncio.sleep(1) # Backoff
+                try:
+                    await asyncio.sleep(1) # Backoff
+                except (RuntimeError, asyncio.CancelledError):
+                    # Loop closed or cancelled during sleep
+                    break

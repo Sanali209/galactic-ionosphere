@@ -1,0 +1,89 @@
+2025-12-17 22:01:35.913 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+2025-12-17 22:01:35.914 | INFO     | __main__:main:76 - ============================================================
+2025-12-17 22:01:35.914 | INFO     | __main__:main:77 - Image Search Application Starting
+2025-12-17 22:01:35.914 | INFO     | __main__:main:78 - ============================================================
+2025-12-17 22:01:35.915 | INFO     | src.core.locator:init:36 - ServiceLocator initialized.
+2025-12-17 22:01:35.931 | INFO     | src.core.database.manager:connect:22 - Connected to MongoDB at mongodb://localhost:27017, DB: image_search_db
+2025-12-17 22:01:35.931 | DEBUG    | src.core.locator:register_system:45 - Registering system: CommandBus
+2025-12-17 22:01:35.932 | DEBUG    | src.core.locator:register_system:45 - Registering system: JournalService
+2025-12-17 22:01:35.932 | DEBUG    | src.core.locator:register_system:45 - Registering system: AssetManager
+2025-12-17 22:01:35.932 | DEBUG    | src.core.locator:register_system:45 - Registering system: TaskSystem
+2025-12-17 22:01:35.932 | DEBUG    | src.core.locator:register_system:45 - Registering system: SearchService
+2025-12-17 22:01:35.933 | INFO     | src.core.locator:start_all:62 - Starting all systems...
+2025-12-17 22:01:35.933 | INFO     | src.core.commands.bus:initialize:15 - CommandBus initialized.
+2025-12-17 22:01:35.933 | INFO     | src.core.locator:start_all:66 - System CommandBus started.
+2025-12-17 22:01:35.933 | INFO     | src.core.journal.service:initialize:11 - JournalService initialized.
+2025-12-17 22:01:35.934 | INFO     | src.core.locator:start_all:66 - System JournalService started.
+2025-12-17 22:01:35.934 | INFO     | src.core.assets.manager:initialize:17 - AssetManager initialized.
+2025-12-17 22:01:35.934 | INFO     | src.core.locator:start_all:66 - System AssetManager started.
+2025-12-17 22:01:35.935 | INFO     | src.core.tasks.system:initialize:19 - TaskSystem initializing...
+2025-12-17 22:01:35.938 | INFO     | src.core.tasks.system:initialize:35 - Loaded 0 pending tasks.
+2025-12-17 22:01:35.938 | INFO     | src.core.locator:start_all:66 - System TaskSystem started.
+2025-12-17 22:01:35.938 | INFO     | app_search_service:initialize:31 - SearchService initialized
+2025-12-17 22:01:35.939 | INFO     | src.core.locator:start_all:66 - System SearchService started.
+2025-12-17 22:01:35.939 | INFO     | src.ui.menus.action_registry:__init__:17 - ActionRegistry initialized
+2025-12-17 22:01:35.939 | INFO     | src.ui.docking.dock_manager:__init__:50 - DockManager initialized
+2025-12-17 22:01:35.950 | INFO     | src.ui.menus.menu_builder:__init__:16 - MenuBuilder initialized
+2025-12-17 22:01:35.955 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: search
+2025-12-17 22:01:35.957 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: search
+2025-12-17 22:01:35.964 | INFO     | src.ui.docking.dock_manager:create_panel:92 - Panel created: search
+2025-12-17 22:01:35.966 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_new_search
+2025-12-17 22:01:35.966 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_open_downloads
+2025-12-17 22:01:35.967 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_exit
+2025-12-17 22:01:35.967 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_select_all
+2025-12-17 22:01:35.968 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_deselect_all
+2025-12-17 22:01:35.968 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: search_images
+2025-12-17 22:01:35.968 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_selected
+2025-12-17 22:01:35.969 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_all
+2025-12-17 22:01:35.970 | INFO     | app_main_window:__init__:39 - Image Search MainWindow initialized
+2025-12-17 22:01:36.131 | INFO     | __main__:main:106 - Application started successfully
+2025-12-17 22:01:36.155 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 0 started.
+2025-12-17 22:01:36.156 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 1 started.
+2025-12-17 22:01:36.157 | DEBUG    | src.core.tasks.system:_worker:90 - Worker 2 started.
+2025-12-17 22:01:38.549 | INFO     | app_search_panel:_on_search_clicked:88 - Search requested: 'werew' (count: 20)
+2025-12-17 22:01:38.550 | INFO     | app_main_window:_execute_search:124 - Executing search: 'werew' (count: 20)
+2025-12-17 22:01:38.556 | DEBUG    | src.core.tasks.system:register_handler:55 - Registered task handler: search_images
+2025-12-17 22:01:38.561 | INFO     | src.core.tasks.system:submit:83 - Task submitted: Search: werew (69430c225203d3ceb1eaa718)
+2025-12-17 22:01:38.562 | INFO     | app_main_window:_run_search:162 - Search task submitted successfully
+2025-12-17 22:01:38.575 | INFO     | app_search_task:search_images_handler:22 - 🚀 Search handler started: 'werew' (count: 20)
+2025-12-17 22:01:38.575 | DEBUG    | app_search_task:search_images_handler:27 - Converted count to integer: 20
+2025-12-17 22:01:38.575 | DEBUG    | app_search_task:search_images_handler:30 - Getting SearchService from ServiceLocator...
+2025-12-17 22:01:38.576 | DEBUG    | app_search_task:search_images_handler:37 - ✅ SearchService retrieved
+2025-12-17 22:01:38.576 | INFO     | app_search_task:search_images_handler:40 - 🔎 Executing search via SearchService...
+2025-12-17 22:01:38.576 | INFO     | app_search_service:search_images:44 - 🔍 Starting image search: 'werew' (max: 20)
+2025-12-17 22:01:38.576 | DEBUG    | app_search_service:search_images:47 - Importing duckduckgo_search module...
+2025-12-17 22:01:38.605 | DEBUG    | app_search_service:search_images:49 - ✅ duckduckgo_search imported successfully
+2025-12-17 22:01:38.605 | INFO     | app_search_service:search_images:53 - 📡 Calling DuckDuckGo API...
+2025-12-17 22:01:40.427 | DEBUG    | app_search_service:search_images:58 - Processing search results...
+2025-12-17 22:01:40.428 | DEBUG    | app_search_service:search_images:69 -   [1] Top 50 Best Werewolf Movies (1100x619)
+2025-12-17 22:01:40.428 | DEBUG    | app_search_service:search_images:69 -   [2] Werewolves: Frank Grillo & Dir on Classic Horror Inspiration & Action (1280x1920)
+2025-12-17 22:01:40.428 | DEBUG    | app_search_service:search_images:69 -   [3] A Striking Alpha Male Werewolf Standing Tall And Proud Background ... (640x640)
+2025-12-17 22:01:40.429 | DEBUG    | app_search_service:search_images:69 -   [4] Underworld inspired Werewolf V2 by IvizianMedia on DeviantArt (1024x1536)
+2025-12-17 22:01:40.429 | DEBUG    | app_search_service:search_images:69 -   [5] WEREWOLVES Official Trailer (2024) Frank Grillo, Horror, Action Movie ... (1280x720)
+2025-12-17 22:01:40.429 | DEBUG    | app_search_service:search_images:69 -   [6] Werewolf 8 Png Overlay. by lewis4721 on DeviantArt (1280x1434)
+2025-12-17 22:01:40.429 | DEBUG    | app_search_service:search_images:69 -   [7] Premium Photo | Experience the eerie spectacle of a fearsome werew ... (626x417)
+2025-12-17 22:01:40.430 | DEBUG    | app_search_service:search_images:69 -   [8] Pin on WereW (735x659)
+2025-12-17 22:01:40.430 | DEBUG    | app_search_service:search_images:69 -   [9] Movie - WEREWOLVES Werewolves (2024) is a dramatic action horror film ... (1080x1080)
+2025-12-17 22:01:40.430 | DEBUG    | app_search_service:search_images:69 -   [10] Intense Werewolf Photography with Cinematic Lighting and Intricate ... (1600x987)
+2025-12-17 22:01:40.430 | DEBUG    | app_search_service:search_images:69 -   [11] Diferencia entre "was" y "were" en inglés: Explicación y ejemplos (1280x720)
+2025-12-17 22:01:40.431 | DEBUG    | app_search_service:search_images:69 -   [12] ArtStation - Werewolf fanart (1920x1191)
+2025-12-17 22:01:40.431 | DEBUG    | app_search_service:search_images:69 -   [13] Fan Casting Wyatt Russell as "The Werewolf" in Nocturnal on myCast (590x830)
+2025-12-17 22:01:40.431 | DEBUG    | app_search_service:search_images:69 -   [14] Where vs. Were: Understanding the Key Differences • 7ESL (1117x2048)
+2025-12-17 22:01:40.432 | DEBUG    | app_search_service:search_images:69 -   [15] Monster of Frankenstein drinking beer with a werew by bigmike2545 on ... (640x640)
+2025-12-17 22:01:40.432 | DEBUG    | app_search_service:search_images:69 -   [16] Pin by ideeperlamente on Fantasy | Alpha wolf, Alpha werewolf, Wolf ... (736x909)
+2025-12-17 22:01:40.433 | DEBUG    | app_search_service:search_images:69 -   [17] [Open] [#5488] Furry Selfie Queen, Werew by FurryBowel on DeviantArt (670x1192)
+2025-12-17 22:01:40.433 | DEBUG    | app_search_service:search_images:69 -   [18] Un Logo Audaz De Werewolf Con Una Cabeza De Lobo Con Ojos Amarillos ... (800x800)
+2025-12-17 22:01:40.434 | DEBUG    | app_search_service:search_images:69 -   [19] Werewolf: The Apocalypse RPG - Core Rulebook - Vault Games (1200x1200)
+2025-12-17 22:01:40.434 | DEBUG    | app_search_service:search_images:69 -   [20] Weregarurumon by leewolf (800x1136)
+2025-12-17 22:01:40.434 | INFO     | app_search_service:search_images:71 - ✅ Search complete: Found 20 images for 'werew'
+2025-12-17 22:01:40.435 | INFO     | app_search_task:search_images_handler:43 - 📊 Search returned 20 results
+2025-12-17 22:01:40.435 | DEBUG    | app_search_task:search_images_handler:46 - Creating SearchHistory record...
+2025-12-17 22:01:40.437 | INFO     | app_search_task:search_images_handler:54 - 💾 Search history saved: 69430c245203d3ceb1eaa719
+2025-12-17 22:01:40.437 | DEBUG    | app_search_task:search_images_handler:57 - Saving 20 image records to MongoDB...
+2025-12-17 22:01:40.472 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 5/20 images...
+2025-12-17 22:01:40.481 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 10/20 images...
+2025-12-17 22:01:40.488 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 15/20 images...
+2025-12-17 22:01:40.494 | DEBUG    | app_search_task:search_images_handler:69 -   Saved 20/20 images...
+2025-12-17 22:01:40.494 | INFO     | app_search_task:search_images_handler:71 - ✅ Successfully saved 20 image records to database
+2025-12-17 22:01:40.495 | INFO     | app_search_task:search_images_handler:72 - 🎉 Search complete! Query: 'werew', Results: 20
+2025-12-17 22:02:42.944 | INFO     | app_main_window:_on_open_downloads:187 - Open Downloads

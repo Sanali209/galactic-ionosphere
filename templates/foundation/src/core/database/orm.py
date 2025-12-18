@@ -1,25 +1,50 @@
 import abc
 import asyncio
+import re
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union, Generic, Sequence, Iterator
 from bson import ObjectId
 from loguru import logger
 from ..events import ObserverEvent
-from .manager import db_manager
+from . import manager
 
 T = TypeVar('T', bound='CollectionRecord')
+
+# --- Utility Functions ---
+
+def camel_to_snake(name: str) -> str:
+    """
+    Convert CamelCase to snake_case.
+    
+    Examples:
+        ImageRecord -> image_record
+        HTTPResponse -> http_response
+        MyAPIClient -> my_api_client
+    """
+    # Insert underscore before any uppercase letter that follows a lowercase letter
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    # Insert underscore before any uppercase letter that follows a lowercase or uppercase letter
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 # --- Field Descriptors ---
 
 class Field(abc.ABC):
     """Base class for all ORM fields."""
-    def __init__(self, name: str = None, default: Any = None, index: bool = False, unique: bool = False):
+    def __init__(self, name: str = None, default: Any = None, default_factory: callable = None, index: bool = False, unique: bool = False):
         self.name = name # Set by metaclass
         self.default = default
+        self.default_factory = default_factory
         self.index = index
         self.unique = unique
 
     def __get__(self, instance, owner):
         if instance is None: return self
+        # Use factory if provided and no value exists
+        if self.default_factory is not None:
+            current_val = instance.get_field_val(self.name, None)
+            if current_val is None:
+                val = self.default_factory()
+                instance.set_field_val(self.name, val)
+                return val
         return instance.get_field_val(self.name, self.default)
 
     def __set__(self, instance, value):
@@ -179,6 +204,20 @@ class DbRecordMeta(type):
         table = kwargs.get('table', None)
         if table:
              new_class._collection_name = table
+        elif '_collection_name' not in namespace or namespace['_collection_name'] is None:
+            # Auto-generate collection name from class name
+            # Skip for base CollectionRecord class
+            if name != 'CollectionRecord':
+                # ImageRecord -> image_records
+                # SearchHistory -> search_histories  
+                snake_name = camel_to_snake(name)
+                # Simple pluralization: add 's' (can be enhanced with inflect library)
+                if snake_name.endswith('y'):
+                    new_class._collection_name = snake_name[:-1] + 'ies'
+                elif snake_name.endswith('s'):
+                    new_class._collection_name = snake_name + 'es'
+                else:
+                    new_class._collection_name = snake_name + 's'
         
         # 3. Harvest Fields
         new_class._fields = {}
@@ -251,9 +290,9 @@ class CollectionRecord(metaclass=DbRecordMeta):
              # Try to find from bases?
              for base in cls.__bases__:
                  if issubclass(base, CollectionRecord) and getattr(base, '_collection_name', None):
-                     return db_manager.get_collection(base._collection_name)
+                     return manager.db_manager.get_collection(base._collection_name)
              raise ValueError(f"Class {cls.__name__} must define _collection_name")
-        return db_manager.get_collection(cls._collection_name)
+        return manager.db_manager.get_collection(cls._collection_name)
 
     @classmethod
     async def ensure_indexes(cls):
@@ -280,9 +319,34 @@ class CollectionRecord(metaclass=DbRecordMeta):
         return cls._instantiate_from_data(data) if data else None
 
     @classmethod
-    async def find(cls: Type[T], query: Dict) -> List[T]:
+    async def find(cls: Type[T], query: Dict, sort: List[tuple] = None, limit: int = None, skip: int = None) -> List[T]:
+        """
+        Find documents matching query.
+        
+        Args:
+            query: MongoDB query dict
+            sort: List of (field, direction) tuples, e.g. [("timestamp", -1)]
+            limit: Maximum number of results
+            skip: Number of documents to skip (for pagination)
+            
+        Returns:
+            List of model instances
+        """
         coll = cls.get_collection()
         cursor = coll.find(query)
+        
+        # Apply sort if provided
+        if sort:
+            cursor = cursor.sort(sort)
+        
+        # Apply skip if provided (for pagination)
+        if skip:
+            cursor = cursor.skip(skip)
+        
+        # Apply limit if provided
+        if limit:
+            cursor = cursor.limit(limit)
+        
         results = []
         async for doc in cursor:
             results.append(cls._instantiate_from_data(doc))

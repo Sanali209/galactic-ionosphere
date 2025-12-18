@@ -1,0 +1,91 @@
+2025-12-17 22:46:44.230 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+2025-12-17 22:46:44.231 | INFO     | __main__:main:76 - ============================================================
+2025-12-17 22:46:44.231 | INFO     | __main__:main:77 - Image Search Application Starting
+2025-12-17 22:46:44.231 | INFO     | __main__:main:78 - ============================================================
+2025-12-17 22:46:44.232 | INFO     | src.core.locator:init:36 - ServiceLocator initialized.
+2025-12-17 22:46:44.232 | DEBUG    | src.core.locator:register_system:45 - Registering system: DatabaseManager
+2025-12-17 22:46:44.235 | DEBUG    | src.core.locator:register_system:45 - Registering system: CommandBus
+2025-12-17 22:46:44.235 | DEBUG    | src.core.locator:register_system:45 - Registering system: JournalService
+2025-12-17 22:46:44.235 | DEBUG    | src.core.locator:register_system:45 - Registering system: AssetManager
+2025-12-17 22:46:44.235 | DEBUG    | src.core.locator:register_system:45 - Registering system: TaskSystem
+2025-12-17 22:46:44.236 | DEBUG    | src.core.locator:register_system:45 - Registering system: SearchService
+2025-12-17 22:46:44.236 | INFO     | src.core.locator:start_all:62 - Starting all systems...
+2025-12-17 22:46:44.251 | INFO     | src.core.database.manager:initialize:32 - Connected to MongoDB at mongodb://localhost:27017, DB: app_db
+2025-12-17 22:46:44.251 | INFO     | src.core.locator:start_all:66 - System DatabaseManager started.
+2025-12-17 22:46:44.252 | INFO     | src.core.commands.bus:initialize:15 - CommandBus initialized.
+2025-12-17 22:46:44.252 | INFO     | src.core.locator:start_all:66 - System CommandBus started.
+2025-12-17 22:46:44.252 | INFO     | src.core.journal.service:initialize:11 - JournalService initialized.
+2025-12-17 22:46:44.252 | INFO     | src.core.locator:start_all:66 - System JournalService started.
+2025-12-17 22:46:44.253 | INFO     | src.core.assets.manager:initialize:17 - AssetManager initialized.
+2025-12-17 22:46:44.253 | INFO     | src.core.locator:start_all:66 - System AssetManager started.
+2025-12-17 22:46:44.253 | INFO     | src.core.tasks.system:initialize:19 - TaskSystem initializing...
+2025-12-17 22:46:44.253 | ERROR    | src.core.locator:start_all:68 - Failed to start system TaskSystem: 'NoneType' object has no attribute 'get_collection'
+2025-12-17 22:46:44.253 | INFO     | app_search_service:initialize:31 - SearchService initialized
+2025-12-17 22:46:44.254 | INFO     | src.core.locator:start_all:66 - System SearchService started.
+2025-12-17 22:46:44.254 | INFO     | src.ui.menus.action_registry:__init__:17 - ActionRegistry initialized
+2025-12-17 22:46:44.254 | INFO     | src.ui.docking.dock_manager:__init__:50 - DockManager initialized
+2025-12-17 22:46:44.267 | INFO     | src.ui.menus.menu_builder:__init__:16 - MenuBuilder initialized
+2025-12-17 22:46:44.538 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: search
+2025-12-17 22:46:44.539 | DEBUG    | src.ui.docking.dock_manager:register_panel:59 - Panel registered: gallery
+2025-12-17 22:46:44.541 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: search
+2025-12-17 22:46:44.559 | INFO     | src.ui.docking.dock_manager:create_panel:92 - Panel created: search
+2025-12-17 22:46:44.559 | DEBUG    | src.ui.docking.panel_base:__init__:29 - Panel created: gallery
+2025-12-17 22:46:44.562 | DEBUG    | app_gallery_panel:initialize_ui:63 - GalleryPanel UI initialized
+2025-12-17 22:46:44.564 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_new_search
+2025-12-17 22:46:44.564 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_open_downloads
+2025-12-17 22:46:44.565 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file_exit
+2025-12-17 22:46:44.565 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_select_all
+2025-12-17 22:46:44.566 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit_deselect_all
+2025-12-17 22:46:44.566 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: search_images
+2025-12-17 22:46:44.567 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_selected
+2025-12-17 22:46:44.567 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: download_all
+2025-12-17 22:46:44.568 | INFO     | app_main_window:__init__:39 - Image Search MainWindow initialized
+2025-12-17 22:46:44.746 | INFO     | __main__:main:103 - Application started successfully
+2025-12-17 22:46:44.767 | ERROR    | app_search_panel:_load_recent_searches:154 - Failed to load recent searches: 'NoneType' object has no attribute 'get_collection'
+2025-12-17 22:46:44.768 | ERROR    | app_main_window:_load_latest_results:226 - Failed to load results: 'NoneType' object has no attribute 'get_collection'
+2025-12-17 22:46:44.769 | ERROR    | app_main_window:_load_latest_results:227 - Traceback:
+Traceback (most recent call last):
+
+  File "D:\github\USCore\samples\image_search\main.py", line 116, in <module>
+    sl = loop.run_until_complete(main())
+         │    │                  └ <function main at 0x0000027C589A5580>
+         │    └ <function _QEventLoop.run_until_complete at 0x0000027C57626D40>
+         └ <QIOCPEventLoop running=True closed=False debug=False>
+
+  File "D:\github\USCore\.venv\Lib\site-packages\qasync\__init__.py", line 428, in run_until_complete
+    self.run_forever()
+    │    └ <function _QEventLoop.run_forever at 0x0000027C57626CA0>
+    └ <QIOCPEventLoop running=True closed=False debug=False>
+  File "D:\github\USCore\.venv\Lib\site-packages\qasync\__init__.py", line 404, in run_forever
+    rslt = self.__app.exec()
+           └ <QIOCPEventLoop running=True closed=False debug=False>
+  File "D:\github\USCore\.venv\Lib\site-packages\qasync\__init__.py", line 307, in timerEvent
+    handle._run()
+    │      └ <function Handle._run at 0x0000027C56E32840>
+    └ <Handle <TaskStepMethWrapper object at 0x0000027C5B07E9E0>()>
+  File "C:\Users\User\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py", line 84, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle <TaskStepMethWrapper object at 0x0000027C5B07E9E0>()>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle <TaskStepMethWrapper object at 0x0000027C5B07E9E0>()>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle <TaskStepMethWrapper object at 0x0000027C5B07E9E0>()>
+
+> File "D:\github\USCore\samples\image_search\src\ui\main_window.py", line 212, in _load_latest_results
+    images = await ImageRecord.find({}, limit=100)
+                   │           └ <classmethod(<function CollectionRecord.find at 0x0000027C589A72E0>)>
+                   └ <class 'app_image_record.ImageRecord'>
+
+  File "D:\github\USCore\templates\foundation\src\core\database\orm.py", line 295, in find
+    coll = cls.get_collection()
+           │   └ <classmethod(<function CollectionRecord.get_collection at 0x0000027C589A7100>)>
+           └ <class 'app_image_record.ImageRecord'>
+
+  File "D:\github\USCore\templates\foundation\src\core\database\orm.py", line 256, in get_collection
+    return db_manager.get_collection(cls._collection_name)
+           │                         │   └ 'images'
+           │                         └ <class 'app_image_record.ImageRecord'>
+           └ None
+
+AttributeError: 'NoneType' object has no attribute 'get_collection'
