@@ -195,6 +195,19 @@ class AlbumTreeWidget(QTreeWidget):
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat('application/x-file-ids'):
             event.acceptProposedAction()
+        else:
+            event.ignore()
+    
+    def dragMoveEvent(self, event):
+        """Highlight target album during drag."""
+        item = self.itemAt(event.position().toPoint())
+        if item:
+            is_smart = item.data(0, Qt.UserRole + 1)
+            if not is_smart:  # Can only drop on non-smart albums
+                self.setCurrentItem(item)
+                event.acceptProposedAction()
+                return
+        event.ignore()
     
     def dropEvent(self, event):
         item = self.itemAt(event.position().toPoint())

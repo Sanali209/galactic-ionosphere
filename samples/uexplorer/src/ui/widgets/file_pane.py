@@ -72,8 +72,8 @@ class FilePaneWidget(QWidget):
         self.view_details.setAlternatingRowColors(True)
         self.view_details.setSortingEnabled(True)
         self.view_details.setDragEnabled(True)
-        self.view_details.setAcceptDrops(True)
-        self.view_details.setDropIndicatorShown(True)
+        self.view_details.setDragDropMode(QTreeView.DragOnly)  # Enable drag out
+        self.view_details.setDefaultDropAction(Qt.CopyAction)
         
         # 2. Icons View (List)
         self.view_icons = QListView()
@@ -83,7 +83,8 @@ class FilePaneWidget(QWidget):
         self.view_icons.customContextMenuRequested.connect(self.show_context_menu)
         self.view_icons.setSelectionMode(QListView.ExtendedSelection)
         self.view_icons.setDragEnabled(True)
-        self.view_icons.setAcceptDrops(True)
+        self.view_icons.setDragDropMode(QListView.DragOnly)  # Enable drag out
+        self.view_icons.setDefaultDropAction(Qt.CopyAction)
         self.view_icons.setSpacing(10)
         self.view_icons.setIconSize(self.get_icon_size())
         
