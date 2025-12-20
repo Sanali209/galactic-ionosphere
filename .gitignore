@@ -1,4 +1,6 @@
 /.pytest_cache
 /.venv
 *.pyc
-
+/__pycache__
+/chromadb
+/thumbnails

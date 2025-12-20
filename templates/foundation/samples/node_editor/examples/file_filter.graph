@@ -1,0 +1,58 @@
+{
+  "name": "File List and Filter",
+  "nodes": [
+    {
+      "node_id": "start-1",
+      "node_type": "Start",
+      "position": [50, 200],
+      "pin_values": {}
+    },
+    {
+      "node_id": "list-dir",
+      "node_type": "ListDirectory",
+      "position": [250, 200],
+      "pin_values": {
+        "path": ".",
+        "pattern": "*",
+        "recursive": false
+      }
+    },
+    {
+      "node_id": "print-count",
+      "node_type": "Print",
+      "position": [500, 200],
+      "pin_values": {
+        "message": "Files found!"
+      }
+    },
+    {
+      "node_id": "print-error",
+      "node_type": "Print",
+      "position": [500, 400],
+      "pin_values": {
+        "message": "Failed to list directory"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "source_node_id": "start-1",
+      "source_pin_name": "exec",
+      "target_node_id": "list-dir",
+      "target_pin_name": "exec"
+    },
+    {
+      "source_node_id": "list-dir",
+      "source_pin_name": "success",
+      "target_node_id": "print-count",
+      "target_pin_name": "exec"
+    },
+    {
+      "source_node_id": "list-dir",
+      "source_pin_name": "failed",
+      "target_node_id": "print-error",
+      "target_pin_name": "exec"
+    }
+  ],
+  "variables": []
+}

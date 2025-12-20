@@ -1,0 +1,93 @@
+{
+  "name": "Counter Loop",
+  "nodes": [
+    {
+      "node_id": "start-1",
+      "node_type": "Start",
+      "position": [50, 200],
+      "pin_values": {}
+    },
+    {
+      "node_id": "set-counter",
+      "node_type": "SetVariable",
+      "position": [250, 200],
+      "pin_values": {
+        "value": 0
+      },
+      "variable_name": "counter"
+    },
+    {
+      "node_id": "loop-1",
+      "node_type": "ForLoop",
+      "position": [450, 200],
+      "pin_values": {
+        "first_index": 1,
+        "last_index": 5
+      }
+    },
+    {
+      "node_id": "increment",
+      "node_type": "IncrementVariable",
+      "position": [700, 150],
+      "pin_values": {
+        "amount": 1
+      },
+      "variable_name": "counter"
+    },
+    {
+      "node_id": "print-loop",
+      "node_type": "Print",
+      "position": [950, 150],
+      "pin_values": {
+        "message": "Loop iteration!"
+      }
+    },
+    {
+      "node_id": "print-done",
+      "node_type": "Print",
+      "position": [700, 350],
+      "pin_values": {
+        "message": "Loop completed!"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "source_node_id": "start-1",
+      "source_pin_name": "exec",
+      "target_node_id": "set-counter",
+      "target_pin_name": "exec"
+    },
+    {
+      "source_node_id": "set-counter",
+      "source_pin_name": "exec_out",
+      "target_node_id": "loop-1",
+      "target_pin_name": "exec"
+    },
+    {
+      "source_node_id": "loop-1",
+      "source_pin_name": "loop_body",
+      "target_node_id": "increment",
+      "target_pin_name": "exec"
+    },
+    {
+      "source_node_id": "increment",
+      "source_pin_name": "exec_out",
+      "target_node_id": "print-loop",
+      "target_pin_name": "exec"
+    },
+    {
+      "source_node_id": "loop-1",
+      "source_pin_name": "completed",
+      "target_node_id": "print-done",
+      "target_pin_name": "exec"
+    }
+  ],
+  "variables": [
+    {
+      "name": "counter",
+      "var_type": "Integer",
+      "default_value": 0
+    }
+  ]
+}

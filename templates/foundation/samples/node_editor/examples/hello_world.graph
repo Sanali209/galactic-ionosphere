@@ -1,0 +1,42 @@
+{
+  "name": "Hello World",
+  "nodes": [
+    {
+      "node_id": "start-1",
+      "node_type": "Start",
+      "position": [100, 200],
+      "pin_values": {}
+    },
+    {
+      "node_id": "print-1",
+      "node_type": "Print",
+      "position": [350, 200],
+      "pin_values": {
+        "message": "Hello, World!"
+      }
+    },
+    {
+      "node_id": "print-2",
+      "node_type": "Print",
+      "position": [600, 200],
+      "pin_values": {
+        "message": "Welcome to Node Editor!"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "source_node_id": "start-1",
+      "source_pin_name": "exec",
+      "target_node_id": "print-1",
+      "target_pin_name": "exec"
+    },
+    {
+      "source_node_id": "print-1",
+      "source_pin_name": "exec_out",
+      "target_node_id": "print-2",
+      "target_pin_name": "exec"
+    }
+  ],
+  "variables": []
+}

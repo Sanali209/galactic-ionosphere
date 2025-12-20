@@ -38,13 +38,9 @@ class VectorService(BaseSystem):
         
         try:
             import chromadb
-            from chromadb.config import Settings
             
-            # Initialize ChromaDB client
-            self._client = chromadb.Client(Settings(
-                chroma_db_impl="duckdb+parquet",
-                persist_directory="./chromadb"
-            ))
+            # Initialize ChromaDB client with new persistent API
+            self._client = chromadb.PersistentClient(path="./chromadb")
             
             # Create/get collections
             for coll_name, description in self.COLLECTIONS.items():
