@@ -127,7 +127,7 @@ class ImageDriver(IFileDriver):
         """
         Generate CLIP embedding for image.
         
-        TODO: Implement actual CLIP model integration
+        NOTE: [OPTIONAL/FUTURE] CLIP model integration - requires additional dependencies
         
         Args:
             record: FileRecord to process
@@ -142,7 +142,7 @@ class ImageDriver(IFileDriver):
         """
         Generate BLIP caption for image.
         
-        TODO: Implement actual BLIP model integration
+        NOTE: [OPTIONAL/FUTURE] BLIP model integration - requires additional dependencies
         
         Args:
             record: FileRecord to caption
@@ -157,7 +157,7 @@ class ImageDriver(IFileDriver):
         """
         Generate LLM description from image.
         
-        TODO: Implement LLM vision API integration
+        NOTE: [OPTIONAL/FUTURE] LLM vision API - requires API key configuration
         
         Args:
             record: FileRecord to describe

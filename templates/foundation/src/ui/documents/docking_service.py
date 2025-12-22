@@ -84,6 +84,11 @@ class DockingService(QObject):
         dock.setFeature(QtAds.CDockWidget.DockWidgetMovable, True)
         dock.setFeature(QtAds.CDockWidget.DockWidgetFloatable, True)
         
+        # Connect view toggle (when tab clicked) to document_activated
+        dock.viewToggled.connect(
+            lambda visible, did=doc_id: self._on_doc_view_toggled(did, visible)
+        )
+        
         # Add to docking system
         area_enum = self._get_area_enum(area)
         self.dock_manager.addDockWidget(area_enum, dock)
@@ -170,6 +175,12 @@ class DockingService(QObject):
             self._documents[doc_id].toggleView(True)
             self._documents[doc_id].raise_()
             self.document_activated.emit(doc_id)
+    
+    def _on_doc_view_toggled(self, doc_id: str, visible: bool):
+        """Handle document view toggle - emit activation when visible."""
+        if visible:
+            self.document_activated.emit(doc_id)
+            logger.debug(f"Document activated via tab: {doc_id}")
     
     def save_layout(self) -> bytes:
         """Save layout including panel states."""

@@ -9,7 +9,7 @@ Supports:
 """
 import asyncio
 from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QAction, QColor, QDragEnterEvent, QDropEvent
 from loguru import logger
 from bson import ObjectId
@@ -50,6 +50,14 @@ class TagTreeWidget(QTreeWidget):
         self.setAcceptDrops(True)
         self.setDragEnabled(False)  # Don't drag tags themselves
         self.setDropIndicatorShown(True)
+        
+        # Drag throttling state - prevents UI freeze during drag
+        self._last_drag_item = None
+        self._drag_throttle_timer = QTimer()
+        self._drag_throttle_timer.setSingleShot(True)
+        self._drag_throttle_timer.setInterval(50)  # 50ms throttle
+        self._drag_throttle_pending_item = None
+        self._drag_throttle_timer.timeout.connect(self._apply_drag_highlight)
         
         # Tag ID to TreeWidgetItem mapping
         self._tag_items = {}
@@ -134,14 +142,32 @@ class TagTreeWidget(QTreeWidget):
         else:
             event.ignore()
     
+    def _apply_drag_highlight(self):
+        """Apply throttled drag highlight (timer callback)."""
+        if self._drag_throttle_pending_item:
+            self.setCurrentItem(self._drag_throttle_pending_item)
+            self._last_drag_item = self._drag_throttle_pending_item
+            self._drag_throttle_pending_item = None
+    
     def dragMoveEvent(self, event):
-        """Highlight target tag during drag."""
+        """Highlight target tag during drag (throttled)."""
         item = self.itemAt(event.position().toPoint())
         if item and item.data(0, Qt.UserRole):
-            self.setCurrentItem(item)
+            # Reason: Only update highlight if item changed to reduce repaints
+            if item != self._last_drag_item:
+                self._drag_throttle_pending_item = item
+                if not self._drag_throttle_timer.isActive():
+                    self._drag_throttle_timer.start()
             event.acceptProposedAction()
         else:
             event.ignore()
+    
+    def dragLeaveEvent(self, event):
+        """Clear drag state when leaving widget."""
+        self._last_drag_item = None
+        self._drag_throttle_pending_item = None
+        self._drag_throttle_timer.stop()
+        super().dragLeaveEvent(event)
     
     def dropEvent(self, event: QDropEvent):
         """Handle files dropped on tag."""

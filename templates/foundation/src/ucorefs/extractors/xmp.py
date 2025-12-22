@@ -57,13 +57,29 @@ class XMPExtractor:
                 "raw_xmp": xmp_data
             }
             
-            # Extract tags
+            # Extract tags from dc:subject
             if "Xmp.dc.subject" in xmp_data:
                 raw_tags = xmp_data["Xmp.dc.subject"]
                 if isinstance(raw_tags, list):
                     result["tags"] = self._parse_hierarchical_tags(raw_tags)
                 elif isinstance(raw_tags, str):
                     result["tags"] = self._parse_hierarchical_tags([raw_tags])
+            
+            # Also check Lightroom/other hierarchical subject formats
+            HIERARCHICAL_KEYS = [
+                "Xmp.lr.hierarchicalSubject",
+                "Xmp.LrC.hierarchicalSubject",
+                "Xmp.digiKam.TagsList",
+                "Xmp.photoshop.SupplementalCategories"
+            ]
+            for lr_key in HIERARCHICAL_KEYS:
+                if lr_key in xmp_data:
+                    lr_tags = xmp_data[lr_key]
+                    if isinstance(lr_tags, str):
+                        lr_tags = [lr_tags]
+                    if isinstance(lr_tags, list):
+                        result["tags"].extend(self._parse_hierarchical_tags(lr_tags))
+                    break  # Use first available format
             
             # Extract label
             if "Xmp.xmp.Label" in xmp_data:

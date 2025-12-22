@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QTreeWidget, QTreeWidgetItem, QMenu,
                                 QInputDialog, QMessageBox, QDialog,
                                 QVBoxLayout, QHBoxLayout, QLabel, 
                                 QLineEdit, QCheckBox, QTextEdit, QPushButton)
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QAction, QColor
 from loguru import logger
 from bson import ObjectId
@@ -33,6 +33,14 @@ class AlbumTreeWidget(QTreeWidget):
         
         # Enable drop for adding files to albums
         self.setAcceptDrops(True)
+        
+        # Drag throttling state - prevents UI freeze during drag
+        self._last_drag_item = None
+        self._drag_throttle_timer = QTimer()
+        self._drag_throttle_timer.setSingleShot(True)
+        self._drag_throttle_timer.setInterval(50)  # 50ms throttle
+        self._drag_throttle_pending_item = None
+        self._drag_throttle_timer.timeout.connect(self._apply_drag_highlight)
         
         self._album_items = {}
         
@@ -198,16 +206,34 @@ class AlbumTreeWidget(QTreeWidget):
         else:
             event.ignore()
     
+    def _apply_drag_highlight(self):
+        """Apply throttled drag highlight (timer callback)."""
+        if self._drag_throttle_pending_item:
+            self.setCurrentItem(self._drag_throttle_pending_item)
+            self._last_drag_item = self._drag_throttle_pending_item
+            self._drag_throttle_pending_item = None
+    
     def dragMoveEvent(self, event):
-        """Highlight target album during drag."""
+        """Highlight target album during drag (throttled)."""
         item = self.itemAt(event.position().toPoint())
         if item:
             is_smart = item.data(0, Qt.UserRole + 1)
             if not is_smart:  # Can only drop on non-smart albums
-                self.setCurrentItem(item)
+                # Reason: Only update highlight if item changed to reduce repaints
+                if item != self._last_drag_item:
+                    self._drag_throttle_pending_item = item
+                    if not self._drag_throttle_timer.isActive():
+                        self._drag_throttle_timer.start()
                 event.acceptProposedAction()
                 return
         event.ignore()
+    
+    def dragLeaveEvent(self, event):
+        """Clear drag state when leaving widget."""
+        self._last_drag_item = None
+        self._drag_throttle_pending_item = None
+        self._drag_throttle_timer.stop()
+        super().dragLeaveEvent(event)
     
     def dropEvent(self, event):
         item = self.itemAt(event.position().toPoint())

@@ -46,14 +46,15 @@ class SyncManager:
             root_id: Library root ObjectId
             
         Returns:
-            Statistics dict with counts
+            Statistics dict with counts and added_file_ids for Phase 2 queueing
         """
         stats = {
             "files_added": 0,
             "dirs_added": 0,
             "files_modified": 0,
             "files_deleted": 0,
-            "dirs_deleted": 0
+            "dirs_deleted": 0,
+            "added_file_ids": []  # For Phase 2 queueing
         }
         
         # Process deletions first (children before parents)
@@ -66,8 +67,10 @@ class SyncManager:
             root_id
         )
         
-        # Add files
-        stats["files_added"] = await self._add_files(diff.added_files, root_id)
+        # Add files and collect IDs for Phase 2
+        added_count, added_ids = await self._add_files(diff.added_files, root_id)
+        stats["files_added"] = added_count
+        stats["added_file_ids"] = added_ids
         
         # Update modified files
         stats["files_modified"] = await self._update_files(diff.modified_files)
@@ -83,9 +86,17 @@ class SyncManager:
         self,
         scan_results: List[ScanResult],
         root_id: str
-    ) -> int:
-        """Add new files to database."""
+    ) -> tuple:
+        """
+        Add new files to database.
+        
+        Returns:
+            Tuple of (count, list of added file ObjectIds)
+        """
+        from src.ucorefs.models.base import ProcessingState
+        
         count = 0
+        added_ids = []
         
         for result in scan_results:
             try:
@@ -96,26 +107,25 @@ class SyncManager:
                 # Try finding parent directory
                 parent = await DirectoryRecord.find_one({"path": parent_path})
                 
-                # If parent not found (and not at root), maybe we need to rely on root_id?
-                # But for correct hierarchy we need parent_id.
-                # If scanning root direct children, parent_path should equal root path.
-                
-                # Create or update file record
-                await self.fs_service.upsert_file(
+                # Create or update file record with REGISTERED state
+                file = await self.fs_service.upsert_file(
                     path=file_path,
                     name=Path(result.path).name,
                     parent_id=parent._id if parent else None,
                     root_id=root_id,
                     extension=result.extension,
                     size_bytes=result.size,
-                    modified_at=datetime.fromtimestamp(result.modified_time)
+                    modified_at=datetime.fromtimestamp(result.modified_time),
+                    processing_state=ProcessingState.REGISTERED
                 )
                 count += 1
+                if file and hasattr(file, '_id'):
+                    added_ids.append(file._id)
                 
             except Exception as e:
                 logger.error(f"Failed to add file {result.path}: {e}")
         
-        return count
+        return count, added_ids
     
     async def _add_directories(
         self,

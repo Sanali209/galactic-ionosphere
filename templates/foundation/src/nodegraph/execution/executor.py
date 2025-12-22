@@ -640,6 +640,37 @@ class GraphExecutor:
         elif node_type == "E":
             import math
             node.set_output("e", math.e)
+        
+        # Comparison nodes
+        elif node_type == "Equal":
+            a = self.evaluate_input(node, "a")
+            b = self.evaluate_input(node, "b")
+            node.set_output("result", a == b)
+        
+        elif node_type == "NotEqual":
+            a = self.evaluate_input(node, "a")
+            b = self.evaluate_input(node, "b")
+            node.set_output("result", a != b)
+        
+        elif node_type == "Greater":
+            a = float(self.evaluate_input(node, "a") or 0)
+            b = float(self.evaluate_input(node, "b") or 0)
+            node.set_output("result", a > b)
+        
+        elif node_type == "Less":
+            a = float(self.evaluate_input(node, "a") or 0)
+            b = float(self.evaluate_input(node, "b") or 0)
+            node.set_output("result", a < b)
+        
+        elif node_type == "GreaterEqual":
+            a = float(self.evaluate_input(node, "a") or 0)
+            b = float(self.evaluate_input(node, "b") or 0)
+            node.set_output("result", a >= b)
+        
+        elif node_type == "LessEqual":
+            a = float(self.evaluate_input(node, "a") or 0)
+            b = float(self.evaluate_input(node, "b") or 0)
+            node.set_output("result", a <= b)
     
     # =========================================================================
     # Flow Control Helpers

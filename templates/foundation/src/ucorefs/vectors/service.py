@@ -1,7 +1,8 @@
 """
 UCoreFS - Vector Service
 
-ChromaDB integration for vector storage and hybrid search.
+Vector storage and similarity search using FAISS + MongoDB.
+Replaced ChromaDB with FAISSIndexService for better performance.
 """
 from typing import List, Dict, Any, Optional
 from bson import ObjectId
@@ -12,113 +13,68 @@ from src.core.base_system import BaseSystem
 
 class VectorService(BaseSystem):
     """
-    Vector storage service using ChromaDB.
+    Vector storage service using FAISS + MongoDB.
+    
+    Architecture:
+    - Embeddings stored in MongoDB (EmbeddingRecord)
+    - FAISS provides in-memory similarity search
+    - Supports multiple providers (clip, blip, mobilenet)
     
     Features:
-    - CLIP image embeddings
-    - BLIP text embeddings
-    - Thumbnail vector embeddings
-    - Hybrid search (vector + metadata filtering)
-    - Payload duplication from MongoDB
+    - Multi-provider embeddings per file
+    - Cosine similarity search
+    - Metadata filtering via MongoDB
     """
     
-    COLLECTIONS = {
-        "file_embeddings": "Primary file embeddings (CLIP)",
-        "text_embeddings": "Text content embeddings (BLIP)",
-        "thumb_embeddings": "Thumbnail embeddings"
-    }
+    PROVIDERS = ["clip", "blip", "mobilenet", "thumb"]
     
     async def initialize(self) -> None:
-        """Initialize vector service and ChromaDB."""
+        """Initialize vector service with FAISS backend."""
         logger.info("VectorService initializing")
         
-        self._chroma_available = False
-        self._client = None
-        self._collections = {}
-        
+        # Get or create FAISSIndexService
+        self._faiss_service = None
         try:
-            import chromadb
-            
-            # Initialize ChromaDB client with new persistent API
-            self._client = chromadb.PersistentClient(path="./chromadb")
-            
-            # Create/get collections
-            for coll_name, description in self.COLLECTIONS.items():
-                self._collections[coll_name] = self._client.get_or_create_collection(
-                    name=coll_name,
-                    metadata={"description": description}
-                )
-            
-            self._chroma_available = True
-            logger.info("ChromaDB initialized successfully")
-        
-        except ImportError:
-            logger.warning("ChromaDB not available, vector search disabled")
-        except Exception as e:
-            logger.error(f"Failed to initialize ChromaDB: {e}")
+            from src.ucorefs.vectors.faiss_service import FAISSIndexService
+            self._faiss_service = self.locator.get_system(FAISSIndexService)
+        except (KeyError, ImportError):
+            logger.info("FAISSIndexService not registered - will use fallback")
         
         await super().initialize()
+        logger.info("VectorService ready (FAISS backend)")
     
     async def shutdown(self) -> None:
         """Shutdown vector service."""
         logger.info("VectorService shutting down")
-        
-        if self._client:
-            try:
-                # ChromaDB client doesn't need explicit close
-                pass
-            except Exception as e:
-                logger.error(f"Error during ChromaDB shutdown: {e}")
-        
         await super().shutdown()
     
     def is_available(self) -> bool:
-        """Check if ChromaDB is available."""
-        return self._chroma_available
+        """Check if vector search is available."""
+        return self._faiss_service is not None and self._faiss_service.is_available()
     
     async def upsert(
         self,
         collection: str,
         file_id: ObjectId,
         vector: List[float],
-        metadata: Dict[str, Any]
+        metadata: Dict[str, Any] = None
     ) -> bool:
         """
-        Insert or update vector with metadata.
+        Insert or update vector embedding.
         
         Args:
-            collection: Collection name
+            collection: Provider name (clip, blip, etc.)
             file_id: File ObjectId
             vector: Embedding vector
-            metadata: Metadata payload (duplicated from MongoDB)
+            metadata: Optional metadata (stored in FileRecord, not here)
             
         Returns:
             True if successful
         """
-        if not self.is_available():
+        if not self._faiss_service:
             return False
         
-        if collection not in self._collections:
-            logger.error(f"Unknown collection: {collection}")
-            return False
-        
-        try:
-            coll = self._collections[collection]
-            file_id_str = str(file_id)
-            
-            # Upsert (ChromaDB handles both insert and update)
-            coll.upsert(
-                ids=[file_id_str],
-                embeddings=[vector],
-                metadatas=[metadata]
-            )
-            
-            logger.debug(f"Upserted vector for {file_id_str} in {collection}")
-            return True
-        
-        except Exception as e:
-            logger.error(f"Failed to upsert vector: {e}")
-            return False
+        return await self._faiss_service.add_vector(collection, file_id, vector)
     
     async def search(
         self,
@@ -131,95 +87,79 @@ class VectorService(BaseSystem):
         Search for similar vectors.
         
         Args:
-            collection: Collection name
-            query_vector: Query embedding vector
-            filters: Metadata filters (where clause)
+            collection: Provider name
+            query_vector: Query embedding
+            filters: MongoDB filters to pre-filter files
             limit: Max results
             
         Returns:
-            List of results with ids, distances, and metadata
+            List of results with file_id, score, and metadata
         """
-        if not self.is_available():
+        if not self._faiss_service:
             return []
         
-        if collection not in self._collections:
-            logger.error(f"Unknown collection: {collection}")
-            return []
+        # If filters provided, first get filtered file_ids from MongoDB
+        file_ids = None
+        if filters:
+            file_ids = await self._get_filtered_file_ids(filters, limit * 10)
         
-        try:
-            coll = self._collections[collection]
-            
-            # Query ChromaDB
-            results = coll.query(
-                query_embeddings=[query_vector],
-                n_results=limit,
-                where=filters if filters else None
-            )
-            
-            # Format results
-            formatted = []
-            if results and results['ids']:
-                for i, file_id_str in enumerate(results['ids'][0]):
-                    formatted.append({
-                        "file_id": ObjectId(file_id_str),
-                        "distance": results['distances'][0][i],
-                        "score": 1.0 - results['distances'][0][i],  # Convert distance to similarity
-                        "metadata": results['metadatas'][0][i] if results['metadatas'] else {}
-                    })
-            
-            return formatted
+        # FAISS search
+        results = await self._faiss_service.search(
+            collection, 
+            query_vector, 
+            k=limit,
+            file_ids=file_ids
+        )
         
-        except Exception as e:
-            logger.error(f"Failed to search vectors: {e}")
-            return []
+        # Format results
+        formatted = []
+        for file_id, score in results:
+            formatted.append({
+                "file_id": file_id,
+                "score": score,
+                "distance": 1.0 - score  # Convert similarity to distance
+            })
+        
+        return formatted
     
     async def delete(self, collection: str, file_id: ObjectId) -> bool:
-        """
-        Delete vector for a file.
-        
-        Args:
-            collection: Collection name
-            file_id: File ObjectId
-            
-        Returns:
-            True if successful
-        """
-        if not self.is_available():
+        """Delete vector for a file."""
+        if not self._faiss_service:
             return False
         
-        if collection not in self._collections:
-            return False
-        
+        return await self._faiss_service.delete_vector(collection, file_id)
+    
+    async def _get_filtered_file_ids(
+        self, 
+        filters: Dict[str, Any],
+        limit: int
+    ) -> List[ObjectId]:
+        """Get file IDs matching filters from MongoDB."""
         try:
-            coll = self._collections[collection]
-            coll.delete(ids=[str(file_id)])
-            return True
-        
+            from src.ucorefs.models.file_record import FileRecord
+            
+            files = await FileRecord.find(filters, limit=limit).to_list()
+            return [f._id for f in files]
+            
         except Exception as e:
-            logger.error(f"Failed to delete vector: {e}")
-            return False
+            logger.error(f"Failed to get filtered file IDs: {e}")
+            return []
     
     async def build_metadata_payload(self, file_id: ObjectId) -> Dict[str, Any]:
         """
         Build metadata payload from MongoDB record.
         
-        Duplicates key fields for filtering in ChromaDB.
-        
-        Args:
-            file_id: File ObjectId
-            
-        Returns:
-            Metadata dict
+        Note: With FAISS backend, metadata is stored in FileRecord,
+        not duplicated to vector store.
         """
         try:
             from src.ucorefs.models.file_record import FileRecord
+            from pathlib import Path
             
             file = await FileRecord.get(file_id)
             if not file:
                 return {}
             
-            # Extract directory path
-            from pathlib import Path
             directory_path = str(Path(file.path).parent)
             
             return {
@@ -230,10 +170,17 @@ class VectorService(BaseSystem):
                 "name": file.name,
                 "directory_path": directory_path,
                 "rating": file.rating,
-                "tags": [str(tid) for tid in file.tag_ids],  # Tag IDs as strings
+                "tags": [str(tid) for tid in file.tag_ids],
                 "created_at": file.created_at.isoformat() if file.created_at else ""
             }
         
         except Exception as e:
             logger.error(f"Failed to build metadata payload: {e}")
             return {}
+    
+    async def get_stats(self) -> Dict[str, Any]:
+        """Get vector service statistics."""
+        if self._faiss_service:
+            return await self._faiss_service.get_index_stats()
+        return {"faiss_available": False}
+

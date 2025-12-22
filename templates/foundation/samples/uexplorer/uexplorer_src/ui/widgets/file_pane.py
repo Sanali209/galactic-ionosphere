@@ -1,11 +1,12 @@
 """
 File Pane Widget
 
-Browsable file pane with tree view.
+Browsable file pane with tree view, list view, and card grid view.
+Integrates with FilterManager and SelectionManager.
 """
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTreeView, QListView, QStackedWidget,
-    QToolBar, QLineEdit, QPushButton, QMenu
+    QToolBar, QLineEdit, QPushButton, QMenu, QLabel
 )
 from PySide6.QtCore import Qt, Signal, QSortFilterProxyModel, QModelIndex, QPersistentModelIndex
 from PySide6.QtGui import QAction
@@ -20,6 +21,61 @@ if str(models_path) not in sys.path:
     sys.path.insert(0, str(models_path))
 
 from file_model import FileModel
+from uexplorer_src.ui.widgets.card_grid_view import CardGridView
+from uexplorer_src.ui.widgets.view_mode_switcher import ViewModeSwitcher, ViewMode
+
+
+class DragAwareTreeView(QTreeView):
+    """
+    QTreeView subclass that notifies the model when drag starts/ends.
+    
+    Reason: Standard QTreeView drag doesn't emit signals when drag starts.
+    We need to pause thumbnail loading during drag to prevent UI freezes.
+    """
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._file_model = None
+    
+    def set_file_model(self, model):
+        """Set reference to FileModel for drag state control."""
+        self._file_model = model
+    
+    def startDrag(self, supportedActions):
+        """Override to notify model when drag starts."""
+        if self._file_model:
+            self._file_model.set_drag_state(True)
+        try:
+            super().startDrag(supportedActions)
+        finally:
+            # Drag ended (either drop or cancel)
+            if self._file_model:
+                self._file_model.set_drag_state(False)
+
+
+class DragAwareListView(QListView):
+    """
+    QListView subclass that notifies the model when drag starts/ends.
+    """
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._file_model = None
+    
+    def set_file_model(self, model):
+        """Set reference to FileModel for drag state control."""
+        self._file_model = model
+    
+    def startDrag(self, supportedActions):
+        """Override to notify model when drag starts."""
+        if self._file_model:
+            self._file_model.set_drag_state(True)
+        try:
+            super().startDrag(supportedActions)
+        finally:
+            # Drag ended (either drop or cancel)
+            if self._file_model:
+                self._file_model.set_drag_state(False)
 
 
 class FilePaneWidget(QWidget):
@@ -35,6 +91,7 @@ class FilePaneWidget(QWidget):
     
     # Signals
     selection_changed = Signal(list)  # List of selected record IDs
+    find_similar = Signal(object)  # file_id for image→vector search
     
     def __init__(self, locator):
         """
@@ -46,11 +103,94 @@ class FilePaneWidget(QWidget):
         super().__init__()
         
         self.locator = locator
-        self._model = None # Initialize to None safe-guard
+        self._model = None  # Initialize to None safe-guard
+        self._viewmodel = None  # BrowseViewModel instance
         
         # Setup UI
         self.setup_ui()
         self.setup_model()
+    
+    def set_viewmodel(self, viewmodel):
+        """
+        Connect to BrowseViewModel for receiving search results.
+        
+        Args:
+            viewmodel: BrowseViewModel instance
+        """
+        from loguru import logger
+        self._viewmodel = viewmodel
+        self._results = []  # Store results locally - EMPTY on init
+        
+        # Subscribe to all ViewModel signals
+        viewmodel.results_changed.connect(self._on_viewmodel_results)
+        viewmodel.view_mode_changed.connect(self._on_viewmodel_mode)
+        viewmodel.sort_changed.connect(self._on_viewmodel_sort)
+        viewmodel.group_changed.connect(self._on_viewmodel_group)
+        viewmodel.loading_changed.connect(self._on_viewmodel_loading)
+        
+        logger.debug(f"FilePaneWidget connected to ViewModel: {viewmodel.doc_id}")
+    
+    def _on_viewmodel_results(self, results):
+        """Handle results from ViewModel - display in current view mode."""
+        logger.info(f"FilePaneWidget received {len(results)} results from ViewModel")
+        self._results = results  # Store for view mode switching
+        self._display_in_current_view()
+    
+    def _on_viewmodel_mode(self, mode: str):
+        """Handle view mode change from ViewModel."""
+        if mode == "tree":
+            self.stack.setCurrentIndex(0)
+        elif mode == "list":
+            self.stack.setCurrentIndex(1)
+        elif mode == "card":
+            self.stack.setCurrentIndex(2)
+        
+        # Re-display results in new view
+        self._display_in_current_view()
+    
+    def _on_viewmodel_sort(self, field: str, ascending: bool):
+        """Handle sort change from ViewModel - apply to all views."""
+        # Apply sort to FileModel (tree/list views)
+        if self._model and hasattr(self._model, 'set_sort'):
+            self._model.set_sort(field, ascending)
+        
+        # Apply sort to CardGridView
+        if hasattr(self, 'view_cards') and hasattr(self.view_cards, 'set_sort'):
+            self.view_cards.set_sort(field, ascending)
+        
+        logger.debug(f"Sort applied: {field} {'asc' if ascending else 'desc'}")
+    
+    def _on_viewmodel_loading(self, loading: bool):
+        """Handle loading state from ViewModel."""
+        # Could show loading indicator
+        pass
+    
+    def _on_viewmodel_group(self, group_by: str):
+        """Handle group change from ViewModel - apply to all views."""
+        # Apply group to FileModel (tree/list views)
+        if self._model and hasattr(self._model, 'set_group'):
+            self._model.set_group(group_by)
+        
+        # Apply group to CardGridView
+        if hasattr(self, 'view_cards') and hasattr(self.view_cards, 'set_group'):
+            self.view_cards.set_group(group_by)
+        
+        logger.debug(f"Group applied: {group_by}")
+    
+    def _display_in_current_view(self):
+        """Display stored results in current view mode."""
+        if not hasattr(self, '_results'):
+            return
+        
+        current = self.stack.currentWidget()
+        
+        if current == self.view_cards:
+            # Card view accepts FileRecords directly
+            self.view_cards.set_files(self._results)
+        elif current == self.view_details or current == self.view_icons:
+            # Tree/List views use FileModel.set_files
+            if self._model and self._results:
+                self._model.set_files(self._results)
     
     def setup_ui(self):
         """Setup UI components."""
@@ -64,8 +204,8 @@ class FilePaneWidget(QWidget):
         # View Stack
         self.stack = QStackedWidget()
         
-        # 1. Details View (Tree)
-        self.view_details = QTreeView()
+        # 1. Details View (Tree) - use drag-aware version
+        self.view_details = DragAwareTreeView()
         self.view_details.setContextMenuPolicy(Qt.CustomContextMenu)
         self.view_details.customContextMenuRequested.connect(self.show_context_menu)
         self.view_details.setSelectionMode(QTreeView.ExtendedSelection)
@@ -75,8 +215,8 @@ class FilePaneWidget(QWidget):
         self.view_details.setDragDropMode(QTreeView.DragOnly)  # Enable drag out
         self.view_details.setDefaultDropAction(Qt.CopyAction)
         
-        # 2. Icons View (List)
-        self.view_icons = QListView()
+        # 2. Icons View (List) - use drag-aware version
+        self.view_icons = DragAwareListView()
         self.view_icons.setViewMode(QListView.IconMode)
         self.view_icons.setResizeMode(QListView.Adjust)
         self.view_icons.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -88,8 +228,26 @@ class FilePaneWidget(QWidget):
         self.view_icons.setSpacing(10)
         self.view_icons.setIconSize(self.get_icon_size())
         
-        self.stack.addWidget(self.view_details)
-        self.stack.addWidget(self.view_icons)
+        # 3. Card Grid View - visual card-based display
+        self.view_cards = CardGridView()
+        self.view_cards.card_clicked.connect(self._on_card_clicked)
+        self.view_cards.card_double_clicked.connect(self._on_card_double_clicked)
+        self.view_cards.selection_changed.connect(self._on_card_selection_changed)
+        self.view_cards.find_similar_requested.connect(self._on_find_similar)
+        
+        # Set thumbnail service for card view
+        if hasattr(self, 'locator') and self.locator:
+            try:
+                from src.ucorefs.thumbnails.service import ThumbnailService
+                thumb_service = self.locator.get_system(ThumbnailService)
+                if thumb_service:
+                    self.view_cards.set_thumbnail_service(thumb_service)
+            except Exception:
+                pass  # ThumbnailService not available
+        
+        self.stack.addWidget(self.view_details)  # Index 0
+        self.stack.addWidget(self.view_icons)    # Index 1
+        self.stack.addWidget(self.view_cards)    # Index 2
         
         layout.addWidget(self.stack)
         
@@ -156,7 +314,79 @@ class FilePaneWidget(QWidget):
         refresh_action.triggered.connect(self.refresh)
         toolbar.addAction(refresh_action)
         
+        toolbar.addSeparator()
+        
+        # Sort dropdown
+        from PySide6.QtWidgets import QToolButton, QMenu
+        
+        self.sort_button = QToolButton()
+        self.sort_button.setText("Sort ▼")
+        self.sort_button.setToolTip("Sort by")
+        self.sort_button.setPopupMode(QToolButton.InstantPopup)
+        
+        sort_menu = QMenu(self.sort_button)
+        sort_menu.addAction("Name").triggered.connect(lambda: self._apply_sort("name"))
+        sort_menu.addAction("Size").triggered.connect(lambda: self._apply_sort("size"))
+        sort_menu.addAction("Modified").triggered.connect(lambda: self._apply_sort("modified"))
+        sort_menu.addAction("Rating").triggered.connect(lambda: self._apply_sort("rating"))
+        sort_menu.addAction("Extension").triggered.connect(lambda: self._apply_sort("extension"))
+        sort_menu.addSeparator()
+        sort_menu.addAction("Ascending").triggered.connect(lambda: self._set_sort_direction(True))
+        sort_menu.addAction("Descending").triggered.connect(lambda: self._set_sort_direction(False))
+        self.sort_button.setMenu(sort_menu)
+        toolbar.addWidget(self.sort_button)
+        
+        # Group dropdown
+        self.group_button = QToolButton()
+        self.group_button.setText("Group ▼")
+        self.group_button.setToolTip("Group by")
+        self.group_button.setPopupMode(QToolButton.InstantPopup)
+        
+        group_menu = QMenu(self.group_button)
+        group_menu.addAction("None").triggered.connect(lambda: self._apply_group(None))
+        group_menu.addAction("File Type").triggered.connect(lambda: self._apply_group("file_type"))
+        group_menu.addAction("Rating").triggered.connect(lambda: self._apply_group("rating"))
+        group_menu.addAction("Date").triggered.connect(lambda: self._apply_group("date"))
+        self.group_button.setMenu(group_menu)
+        toolbar.addWidget(self.group_button)
+        
+        toolbar.addSeparator()
+        
+        # View mode switcher (Tree/List/Card)
+        self.view_switcher = ViewModeSwitcher()
+        self.view_switcher.mode_changed.connect(self._on_view_mode_changed)
+        toolbar.addWidget(self.view_switcher)
+        
         return toolbar
+    
+    def _apply_sort(self, field: str):
+        """Apply sort from toolbar."""
+        if hasattr(self, '_viewmodel') and self._viewmodel:
+            self._viewmodel.set_sort(field, self._viewmodel.sort_ascending)
+            self.sort_button.setText(f"Sort: {field.title()} ▼")
+        else:
+            # Apply directly to model if no viewmodel
+            if self._model and hasattr(self._model, 'set_sort'):
+                self._model.set_sort(field, True)
+            if hasattr(self, 'view_cards') and hasattr(self.view_cards, 'set_sort'):
+                self.view_cards.set_sort(field, True)
+    
+    def _set_sort_direction(self, ascending: bool):
+        """Set sort direction."""
+        if hasattr(self, '_viewmodel') and self._viewmodel:
+            self._viewmodel.set_sort(self._viewmodel.sort_field, ascending)
+    
+    def _apply_group(self, group_by: str = None):
+        """Apply grouping from toolbar."""
+        if hasattr(self, '_viewmodel') and self._viewmodel:
+            self._viewmodel.set_group(group_by)
+            self.group_button.setText(f"Group: {group_by.title() if group_by else 'None'} ▼")
+        else:
+            # Apply directly if no viewmodel
+            if self._model and hasattr(self._model, 'set_group'):
+                self._model.set_group(group_by)
+            if hasattr(self, 'view_cards') and hasattr(self.view_cards, 'set_group'):
+                self.view_cards.set_group(group_by)
     
     def setup_model(self):
         """Setup file model."""
@@ -175,12 +405,13 @@ class FilePaneWidget(QWidget):
             # Create model (qasync handles event loop globally)
             self._model = FileModel(self.locator)
             
-            # Proxy Model
             self.proxy_model = QSortFilterProxyModel()
             self.proxy_model.setSourceModel(self._model)
             self.proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
             self.proxy_model.setRecursiveFilteringEnabled(True)
-            self.proxy_model.setDynamicSortFilter(True)
+            # Reason: Dynamic sort filter causes recalculation on every data change
+            # which causes freezes during drag. Disable and call invalidateFilter manually.
+            self.proxy_model.setDynamicSortFilter(False)
             self.proxy_model.setFilterKeyColumn(0) # Filter by Name
             
             # Set model on both views
@@ -198,6 +429,10 @@ class FilePaneWidget(QWidget):
             
             # Connect selection
             self.view_details.selectionModel().selectionChanged.connect(self.on_selection_changed)
+            
+            # Connect drag-aware views to FileModel for drag state control
+            self.view_details.set_file_model(self._model)
+            self.view_icons.set_file_model(self._model)
             
             # Initial update
             self.update_navigation_state()
@@ -252,6 +487,10 @@ class FilePaneWidget(QWidget):
         
         # Update UI state
         self.update_navigation_state()
+        
+        # Refresh card view if active
+        if self.stack.currentIndex() == 2:  # Card view
+            self._refresh_card_view()
         
     def go_back(self):
         """Go back in history."""
@@ -311,10 +550,16 @@ class FilePaneWidget(QWidget):
                 record_ids.append(record_id)
         
         self.selection_changed.emit(record_ids)
+        
+        # Update SelectionManager for properties panel
+        if hasattr(self, '_selection_manager') and self._selection_manager:
+            self._selection_manager.set_selection(record_ids, source="file_pane")
     
     def on_filter_changed(self, text: str):
         """Handle filter text change."""
         self.proxy_model.setFilterFixedString(text)
+        # Reason: Since setDynamicSortFilter is False, must manually invalidate
+        self.proxy_model.invalidateFilter()
     
     def show_context_menu(self, position):
         """Show context menu."""
@@ -557,3 +802,140 @@ class FilePaneWidget(QWidget):
                 border-radius: 2px;
             }
         """)
+    
+    # ==================== View Mode Handlers ====================
+    
+    def _on_view_mode_changed(self, mode: str):
+        """Handle view mode switch."""
+        if mode == "tree":
+            self.stack.setCurrentIndex(0)
+        elif mode == "list":
+            self.stack.setCurrentIndex(1)
+        elif mode == "card":
+            self.stack.setCurrentIndex(2)
+        
+        # Re-display results in new view (uses _results from ViewModel)
+        self._display_in_current_view()
+        
+        logger.debug(f"View mode changed to: {mode}")
+    
+    def _refresh_card_view(self):
+        """Refresh card grid view with current model data."""
+        if not self._model:
+            return
+        
+        try:
+            # Get current root index
+            root_index = self.view_details.rootIndex()
+            
+            # Collect files from model
+            files = []
+            row_count = self._model.rowCount(root_index)
+            
+            for row in range(min(row_count, 200)):  # Limit for performance
+                index = self._model.index(row, 0, root_index)
+                if index.isValid():
+                    is_dir = index.data(FileModel.IsDirectoryRole)
+                    if not is_dir:  # Only files in card view
+                        file_data = type('FileData', (), {
+                            '_id': index.data(FileModel.IdRole),
+                            'name': index.data(Qt.DisplayRole),
+                            'rating': index.data(FileModel.RatingRole) or 0,
+                            '_thumbnail_data': index.data(FileModel.ThumbnailDataRole)
+                        })()
+                        files.append(file_data)
+            
+            self.view_cards.set_files(files)
+            
+        except Exception as e:
+            logger.error(f"Failed to refresh card view: {e}")
+    
+    def _on_card_clicked(self, file_id):
+        """Handle card click in grid view."""
+        self.selection_changed.emit([file_id])
+        
+        # Update selection manager if available
+        if hasattr(self, '_selection_manager') and self._selection_manager:
+            self._selection_manager.select_single(file_id, source="file_pane")
+    
+    def _on_card_double_clicked(self, file_id):
+        """Handle card double-click - open file."""
+        logger.info(f"Opening file from card: {file_id}")
+        # TODO: Implement file opening
+    
+    def _on_card_selection_changed(self, file_ids):
+        """Handle card selection changes."""
+        self.selection_changed.emit(file_ids)
+        
+        if hasattr(self, '_selection_manager') and self._selection_manager:
+            self._selection_manager.set_selection(file_ids, source="file_pane")
+    
+    def _on_find_similar(self, file_id):
+        """Handle Find Similar request - emit to trigger image→vector search."""
+        from loguru import logger
+        logger.info(f"FilePaneWidget: Find Similar requested for {file_id}")
+        self.find_similar.emit(file_id)
+    
+    # ==================== Manager Integration ====================
+    
+    def set_managers(self, filter_manager=None, selection_manager=None):
+        """
+        Connect to centralized UI managers.
+        
+        Args:
+            filter_manager: FilterManager instance
+            selection_manager: SelectionManager instance
+        """
+        self._filter_manager = filter_manager
+        self._selection_manager = selection_manager
+        
+        if filter_manager:
+            filter_manager.filter_changed.connect(self._on_filter_changed)
+            filter_manager.search_changed.connect(self._on_search_filter_changed)
+            logger.debug("FilePaneWidget: Connected to FilterManager")
+        
+        if selection_manager:
+            selection_manager.selection_changed.connect(self._on_external_selection)
+            logger.debug("FilePaneWidget: Connected to SelectionManager")
+    
+    def _on_filter_changed(self):
+        """Handle filter changes from FilterManager."""
+        if self._filter_manager and self._model:
+            # Apply filter query to model
+            query = self._filter_manager.get_mongo_query()
+            if hasattr(self._model, 'set_filter_query'):
+                self._model.set_filter_query(query)
+            else:
+                # Fallback: just refresh
+                self.refresh()
+    
+    def _on_search_filter_changed(self, text: str):
+        """Handle search text changes from FilterManager."""
+        # Update local filter input to stay in sync
+        if self.filter_input.text() != text:
+            self.filter_input.setText(text)
+    
+    def _on_external_selection(self):
+        """Handle selection changes from SelectionManager."""
+        if not self._selection_manager:
+            return
+        
+        # Don't update if we are the source
+        if self._selection_manager.get_source() == "file_pane":
+            return
+        
+        # Update card view selection
+        selected_ids = self._selection_manager.get_selected_ids()
+        if self.stack.currentIndex() == 2:  # Card view
+            self.view_cards.select(selected_ids)
+    
+    def get_current_view_mode(self) -> str:
+        """Get current view mode."""
+        idx = self.stack.currentIndex()
+        return ["tree", "list", "card"][idx]
+    
+    def set_view_mode(self, mode: str):
+        """Set view mode programmatically."""
+        self.view_switcher.set_mode(mode)
+        self._on_view_mode_changed(mode)
+

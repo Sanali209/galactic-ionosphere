@@ -1,0 +1,17 @@
+{
+    "general": {
+        "debug_mode": true,
+        "theme": "dark"
+    },
+    "ai": {
+        "provider_id": "clip_local",
+        "device": "cpu",
+        "result_limit": 50
+    },
+    "mongo": {
+        "host": "localhost",
+        "port": 27017,
+        "database_name": "foundation_app"
+    },
+    "library_path": "./data"
+}

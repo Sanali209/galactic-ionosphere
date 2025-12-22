@@ -32,9 +32,17 @@ class DiscoveryService(BaseSystem):
         self.fs_service = self.locator.get_system(FSService)
         self.task_system = self.locator.get_system(TaskSystem)
         
+        # Get ProcessingPipeline (optional - may not be registered yet)
+        self.processing_pipeline = None
+        try:
+            from src.ucorefs.processing.pipeline import ProcessingPipeline
+            self.processing_pipeline = self.locator.get_system(ProcessingPipeline)
+        except (KeyError, ImportError):
+            logger.info("ProcessingPipeline not available - Phase 2 auto-queue disabled")
+        
         # Initialize components
         self.library_manager = LibraryManager(self.fs_service)
-        self.scanner = DirectoryScanner(self.library_manager, batch_size=1000)
+        self.scanner = DirectoryScanner(self.library_manager, batch_size=200)  # Phase 1 batch size
         self.diff_detector = DiffDetector()
         self.sync_manager = SyncManager(self.fs_service)
         
@@ -153,13 +161,17 @@ class DiscoveryService(BaseSystem):
                 # Accumulate stats
                 for key in total_stats:
                     total_stats[key] += stats.get(key, 0)
+                
+                # Queue Phase 2 processing for new files
+                added_ids = stats.get("added_file_ids", [])
+                if added_ids and self.processing_pipeline:
+                    await self.processing_pipeline.enqueue_phase2(added_ids)
                     
                 # Publish event for real-time UI updates
                 try:
                     from src.core.commands.bus import CommandBus
                     bus = self.locator.get_system(CommandBus)
                     if hasattr(bus, 'publish'):
-                        # We use a simple dict as event for now, or could define a class
                         await bus.publish("filesystem.updated", {
                             "root_id": str(root._id),
                             "stats": stats

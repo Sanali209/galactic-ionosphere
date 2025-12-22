@@ -47,11 +47,22 @@ class MainWindow(QMainWindow):
     └──────────────────────────────────────┘
     """
     
-    def __init__(self, locator):
+    def __init__(self, viewmodel):
+        """
+        Initialize UExplorer main window.
+        
+        Args:
+            viewmodel: MainViewModel instance (contains locator reference)
+        """
         super().__init__()
         
-        self.locator = locator
-        self.config = locator.config
+        # Extract locator from viewmodel (run_app passes viewmodel)
+        self.viewmodel = viewmodel
+        self.locator = viewmodel.locator
+        self.config = self.locator.config
+        
+        # Initialize centralized UI managers
+        self._init_managers()
         
         # Setup window
         self.setup_window()
@@ -76,6 +87,31 @@ class MainWindow(QMainWindow):
         # Restore docking layout from saved state
         self.restore_docking_layout()
         logger.info("Layout persistence enabled")
+    
+    def _init_managers(self):
+        """Initialize centralized UI managers."""
+        from uexplorer_src.ui.managers import FilterManager, SelectionManager
+        
+        # Create managers
+        self.filter_manager = FilterManager(self)
+        self.selection_manager = SelectionManager(self)
+        
+        # Create MVVM components
+        from uexplorer_src.viewmodels import DocumentManager, SearchPipeline
+        self.document_manager = DocumentManager(self)
+        self.search_pipeline = SearchPipeline(self.locator, self)
+        
+        # Connect search pipeline to document manager
+        self.search_pipeline.search_completed.connect(
+            self.document_manager.send_results_to_active
+        )
+        
+        # Store in viewmodel for easy access from child widgets
+        self.viewmodel.filter_manager = self.filter_manager
+        self.viewmodel.selection_manager = self.selection_manager
+        self.viewmodel.document_manager = self.document_manager
+        
+        logger.info("UI managers initialized (FilterManager, SelectionManager, DocumentManager)")
     
     
     from qasync import asyncSlot
@@ -171,6 +207,7 @@ class MainWindow(QMainWindow):
         # FILE MENU
         file_menu = menubar.addMenu("&File")
         file_menu.addAction(self.action_registry.get_action("file.new_window"))
+        file_menu.addAction(self.action_registry.get_action("file.new_browser"))
         file_menu.addSeparator()
         file_menu.addAction(self.action_registry.get_action("file.exit"))
         
@@ -187,6 +224,9 @@ class MainWindow(QMainWindow):
         panels_menu.addAction(self.action_registry.get_action("view.panel.albums"))
         panels_menu.addAction(self.action_registry.get_action("view.panel.relations"))
         panels_menu.addAction(self.action_registry.get_action("view.panel.properties"))
+        panels_menu.addSeparator()
+        panels_menu.addAction(self.action_registry.get_action("view.panel.filters"))
+        panels_menu.addAction(self.action_registry.get_action("view.panel.search"))
         
         view_menu.addSeparator()
         
@@ -232,6 +272,8 @@ class MainWindow(QMainWindow):
         tags_btn = QAction("Tags", self)
         tags_btn.setToolTip("Manage tags")
         toolbar.addAction(tags_btn)
+        
+        self.toolbar = toolbar
         
         albums_btn = QAction("Albums", self)
         albums_btn.setToolTip("Manage albums")
@@ -556,8 +598,11 @@ class MainWindow(QMainWindow):
         
         # Refresh file models after dialog closes
         import asyncio
-        asyncio.ensure_future(self.left_pane.model.refresh_roots())
-        asyncio.ensure_future(self.right_pane.model.refresh_roots())
+        # Use file_pane_left/right (set by docking service) not left_pane/right_pane
+        if hasattr(self, 'file_pane_left') and self.file_pane_left and self.file_pane_left.model:
+            asyncio.ensure_future(self.file_pane_left.model.refresh_roots())
+        if hasattr(self, 'file_pane_right') and self.file_pane_right and self.file_pane_right.model:
+            asyncio.ensure_future(self.file_pane_right.model.refresh_roots())
     
     def show_settings_dialog(self):
         """Show settings dialog."""
@@ -594,6 +639,9 @@ class MainWindow(QMainWindow):
         # Create docking service
         self.docking_service = DockingService(self)
         
+        # Connect document activation to DocumentManager
+        self.docking_service.document_activated.connect(self._on_document_tab_activated)
+        
         # Create file browser documents (center area, tabbed)
         self._create_file_documents()
         
@@ -602,38 +650,74 @@ class MainWindow(QMainWindow):
         
         logger.info("✓ DockingService initialized successfully!")
     
+    def _on_document_tab_activated(self, doc_id: str):
+        """Handle document tab activation - update DocumentManager."""
+        if hasattr(self, 'document_manager'):
+            self.document_manager.set_active(doc_id)
+            logger.info(f"Active document switched to: {doc_id}")
+    
     def _create_file_documents(self):
-        """Create dual file browser documents."""
+        """Create file browser documents (restores previous session)."""
         import sys
+        import json
         from pathlib import Path
         widgets_path = Path(__file__).parent / "widgets"
         if str(widgets_path) not in sys.path:
             sys.path.insert(0, str(widgets_path))
         from file_pane import FilePaneWidget
         
-        # Left file pane
-        left_pane = FilePaneWidget(self.locator)
-        self.docking_service.add_document(
-            doc_id="file_pane_left",
-            widget=left_pane,
-            title="Files - Left",
-            area="center",
-            closable=False  # Don't close main panes
-        )
-        self.file_pane_left = left_pane
+        # Load browser count from previous session
+        browser_count = 1  # Default: 1 browser
+        session_file = Path(__file__).parent.parent.parent / "session.json"
+        if session_file.exists():
+            try:
+                session_data = json.loads(session_file.read_text())
+                browser_count = session_data.get("browser_count", 1)
+                logger.debug(f"Session restore: {browser_count} browsers")
+            except Exception as e:
+                logger.warning(f"Failed to load session: {e}")
         
-        # Right file pane
-        right_pane = FilePaneWidget(self.locator)
-        self.docking_service.add_document(
-            doc_id="file_pane_right",
-            widget=right_pane,
-            title="Files - Right",
-            area="center",
-            closable=False
-        )
-        self.file_pane_right = right_pane
+        # Create browsers from saved session
+        for i in range(1, browser_count + 1):
+            doc_id = f"browser_{i}"
+            pane = FilePaneWidget(self.locator)
+            self.docking_service.add_document(
+                doc_id=doc_id,
+                widget=pane,
+                title=f"Browser {i}",
+                area="center",
+                closable=True
+            )
+            
+            # Create ViewModel and register with DocumentManager
+            if hasattr(self, 'document_manager'):
+                vm = self.document_manager.create_document(doc_id)
+                pane.set_viewmodel(vm)
+            
+            # Connect to managers
+            self._connect_pane_to_managers(pane)
+            
+            # Keep first as file_pane_left for compatibility
+            if i == 1:
+                self.file_pane_left = pane
         
-        logger.info("✓ Created dual file browser documents")
+        logger.info(f"✓ Created {browser_count} browser(s) (Ctrl+T for more)")
+    
+    def _connect_pane_to_managers(self, pane):
+        """Connect a file pane to FilterManager and SelectionManager."""
+        if hasattr(self, 'filter_manager') and hasattr(self, 'selection_manager'):
+            pane.set_managers(
+                filter_manager=self.filter_manager,
+                selection_manager=self.selection_manager
+            )
+            # Connect Find Similar to image search
+            pane.find_similar.connect(self._on_find_similar_image)
+            logger.debug(f"Connected pane to managers")
+    
+    def _connect_panes_to_managers(self):
+        """Legacy compatibility - connect file_pane_left if exists."""
+        if hasattr(self, 'file_pane_left') and self.file_pane_left:
+            self._connect_pane_to_managers(self.file_pane_left)
     
     def _create_tool_panels(self):
         """Create tool panels from existing panel classes."""
@@ -668,6 +752,34 @@ class MainWindow(QMainWindow):
             closable=False
         )
         
+        # FILTER PANEL (Left, below albums)
+        from uexplorer_src.ui.widgets.filter_panel import FilterPanel
+        self.filter_panel = FilterPanel(
+            filter_manager=self.filter_manager if hasattr(self, 'filter_manager') else None,
+            locator=self.locator
+        )
+        self.docking_service.add_panel(
+            panel_id="filters",
+            widget=self.filter_panel,
+            title="Filters",
+            area="left",
+            closable=True
+        )
+        
+        # SEARCH PANEL (Left, below filters)
+        from uexplorer_src.ui.docking.search_dock_panel import SearchDockPanel
+        self.search_dock_panel = SearchDockPanel(
+            filter_manager=self.filter_manager if hasattr(self, 'filter_manager') else None,
+            locator=self.locator
+        )
+        self.docking_service.add_panel(
+            panel_id="search",
+            widget=self.search_dock_panel,
+            title="Search",
+            area="left",
+            closable=True
+        )
+        
         # PROPERTIES PANEL (Right)
         self.properties_panel = PropertiesPanel(self, self.locator)
         self.docking_service.add_panel(
@@ -700,7 +812,135 @@ class MainWindow(QMainWindow):
         if hasattr(self.relations_panel, 'tree'):
             self.relations_panel.tree.category_selected.connect(self._on_relation_category_selected)
         
+        # Connect PropertiesPanel to SelectionManager for auto-update
+        if hasattr(self, 'selection_manager') and hasattr(self, 'properties_panel'):
+            self.selection_manager.active_changed.connect(self._on_active_file_changed)
+        
+        # Connect SearchDockPanel to execute search via pipeline
+        self.search_dock_panel.search_requested.connect(self._on_search_requested)
+        logger.info("Connected SearchDockPanel.search_requested to _on_search_requested")
+        
+        # Connect FilterPanel to auto-refresh on filter apply
+        if hasattr(self, 'filter_panel'):
+            self.filter_panel.filters_applied.connect(self._on_filters_applied)
+        
         logger.info("✓ Created all tool panels")
+    
+    def _on_active_file_changed(self, file_id):
+        """Update properties panel when active file changes."""
+        if file_id and hasattr(self, 'properties_panel'):
+            self.properties_panel.set_file(str(file_id))
+    
+    def _on_search_requested(self, mode: str, query: str, fields: list):
+        """
+        Handle search request using SearchPipeline.
+        
+        Results automatically go to active document via DocumentManager.
+        """
+        import asyncio
+        asyncio.ensure_future(self._perform_search(mode, query, fields))
+    
+    async def _perform_search(self, mode: str, query_text: str, fields: list = None):
+        """Execute search via SearchPipeline."""
+        from uexplorer_src.viewmodels.search_query import SearchQuery
+        
+        if fields is None:
+            fields = ["name", "path"]
+        
+        logger.info(f"Search: mode={mode}, query='{query_text}', fields={fields}")
+        
+        # Build SearchQuery
+        search_query = SearchQuery(
+            text=query_text,
+            mode="vector" if mode == "vector" else "text",
+            fields=fields,
+            limit=100
+        )
+        
+        # Add filters from filter_manager
+        if hasattr(self, 'filter_manager') and self.filter_manager.is_active():
+            search_query.filters = {
+                "file_type": self.filter_manager.get_selected_types() if hasattr(self.filter_manager, 'get_selected_types') else [],
+                "rating": self.filter_manager.get_min_rating() if hasattr(self.filter_manager, 'get_min_rating') else 0,
+            }
+        
+        # Execute via pipeline (results auto-sent to active document)
+        if hasattr(self, 'search_pipeline'):
+            await self.search_pipeline.execute(search_query)
+    
+    def _on_find_similar_image(self, file_id):
+        """Handle Find Similar request - execute image→vector search."""
+        import asyncio
+        asyncio.ensure_future(self._perform_image_search(file_id))
+    
+    async def _perform_image_search(self, file_id):
+        """Execute image similarity search via SearchPipeline."""
+        from uexplorer_src.viewmodels.search_query import SearchQuery
+        from bson import ObjectId
+        
+        logger.info(f"Find Similar: image_id={file_id}")
+        
+        # Build image search query
+        search_query = SearchQuery(
+            mode="image",
+            file_id=ObjectId(file_id) if isinstance(file_id, str) else file_id,
+            limit=50
+        )
+        
+        # Execute via pipeline (results auto-sent to active document)
+        if hasattr(self, 'search_pipeline'):
+            await self.search_pipeline.execute(search_query)
+    
+    def _on_search_requested(self, mode: str, query: str, fields: list):
+        """Handle search requested from SearchDockPanel."""
+        logger.info(f">>> _on_search_requested CALLED: mode={mode}, query='{query}', fields={fields}")
+        import asyncio
+        asyncio.ensure_future(self._execute_search(mode, query, fields))
+    
+    async def _execute_search(self, mode: str, query: str, fields: list):
+        """Execute search with given parameters."""
+        from uexplorer_src.viewmodels.search_query import SearchQuery
+        
+        logger.info(f"Search requested: mode={mode}, query='{query}', fields={fields}")
+        
+        search_query = SearchQuery(
+            text=query,
+            mode=mode,
+            fields=fields if fields else ["name"],
+            limit=100
+        )
+        
+        if hasattr(self, 'search_pipeline'):
+            await self.search_pipeline.execute(search_query)
+    
+    def _on_filters_applied(self):
+        """Handle filters applied - execute filter-only search."""
+        import asyncio
+        asyncio.ensure_future(self._perform_filter_search())
+    
+    async def _perform_filter_search(self):
+        """Execute search with only filter conditions (no text query)."""
+        from uexplorer_src.viewmodels.search_query import SearchQuery
+        
+        logger.info("Filters applied - refreshing results")
+        
+        # Build filter query
+        filters = {}
+        if hasattr(self, 'filter_manager') and self.filter_manager.is_active():
+            filters = {
+                "file_type": self.filter_manager.get_selected_types() if hasattr(self.filter_manager, 'get_selected_types') else [],
+                "rating": self.filter_manager.get_min_rating() if hasattr(self.filter_manager, 'get_min_rating') else 0,
+            }
+        
+        search_query = SearchQuery(
+            text="",  # No text query
+            mode="text",
+            filters=filters,
+            limit=100
+        )
+        
+        if hasattr(self, 'search_pipeline'):
+            await self.search_pipeline.execute(search_query)
     
     def _toggle_panel(self, panel_name: str):
         """Toggle panel visibility."""
@@ -722,6 +962,15 @@ class MainWindow(QMainWindow):
             # Save to file in config directory
             layout_file = Path(__file__).parent.parent.parent / "docking_layout.bin"
             layout_file.write_bytes(layout_state)
+            
+            # Save browser count for session restore
+            if hasattr(self, 'document_manager'):
+                import json
+                session_file = Path(__file__).parent.parent.parent / "session.json"
+                browser_count = len([k for k in self.document_manager.documents if k.startswith("browser_")])
+                session_data = {"browser_count": browser_count}
+                session_file.write_text(json.dumps(session_data))
+                logger.debug(f"Session saved: {browser_count} browsers")
             
             logger.info(f"✓ Docking layout saved to {layout_file}")
         except Exception as e:
@@ -1015,3 +1264,73 @@ class MainWindow(QMainWindow):
                 background-color: #3d3d3d;
             }
         """)
+    
+    def show_rules_dialog(self):
+        """Show the Rule Manager dialog."""
+        from uexplorer_src.ui.dialogs.rule_manager_dialog import RuleManagerDialog
+        
+        dialog = RuleManagerDialog(locator=self.locator, parent=self)
+        dialog.exec()
+        logger.info("Rule Manager dialog closed")
+    
+    def show_settings_dialog(self):
+        """Show the Settings dialog."""
+        from uexplorer_src.ui.dialogs.settings_dialog import SettingsDialog
+        
+        dialog = SettingsDialog(locator=self.locator, parent=self)
+        if dialog.exec():
+            logger.info("Settings saved")
+        else:
+            logger.info("Settings dialog cancelled")
+    
+    def new_window(self):
+        """Open a new UExplorer window."""
+        # TODO: Implement new window - would require app-level window management
+        logger.info("New window requested (not yet implemented)")
+    
+    def new_browser(self):
+        """
+        Create a new file browser document.
+        
+        Spawns a new FilePaneWidget with its own ViewModel,
+        adds it to DockingService as a closable document.
+        """
+        from uexplorer_src.ui.widgets.file_pane import FilePaneWidget
+        import uuid
+        
+        # Generate unique ID
+        browser_num = len([k for k in self.document_manager.documents if k.startswith("browser_")]) + 1
+        doc_id = f"browser_{browser_num}"
+        
+        # Create FilePaneWidget
+        pane = FilePaneWidget(self.locator)
+        
+        # Create and connect ViewModel
+        if hasattr(self, 'document_manager'):
+            viewmodel = self.document_manager.create_document(doc_id)
+            pane.set_viewmodel(viewmodel)
+        
+        # Connect to managers
+        if hasattr(self, 'filter_manager') and hasattr(self, 'selection_manager'):
+            pane.set_managers(
+                filter_manager=self.filter_manager,
+                selection_manager=self.selection_manager
+            )
+            pane.find_similar.connect(self._on_find_similar_image)
+        
+        # Add to docking service
+        if hasattr(self, 'docking_service'):
+            self.docking_service.add_document(
+                doc_id=doc_id,
+                widget=pane,
+                title=f"Browser {browser_num}",
+                area="center",
+                closable=True
+            )
+        
+        # Set as active
+        if hasattr(self, 'document_manager'):
+            self.document_manager.set_active(doc_id)
+        
+        logger.info(f"✓ New browser created: {doc_id}")
+

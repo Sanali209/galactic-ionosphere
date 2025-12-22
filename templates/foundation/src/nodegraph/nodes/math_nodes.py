@@ -606,6 +606,112 @@ class ENode(BaseNode):
 
 
 # =============================================================================
+# Comparison (Boolean Output)
+# =============================================================================
+
+class EqualNode(BaseNode):
+    """Check equality (A == B)."""
+    
+    node_type = "Equal"
+    metadata = NodeMetadata(
+        category="Comparison",
+        display_name="Equal (==)",
+        description="Check if A equals B",
+        color="#FF5722"
+    )
+    
+    def _setup_pins(self):
+        self.add_input_pin(DataPin("a", PinType.ANY, default_value=0))
+        self.add_input_pin(DataPin("b", PinType.ANY, default_value=0))
+        self.add_output_pin(DataPin("result", PinType.BOOLEAN, PinDirection.OUTPUT))
+
+
+class NotEqualNode(BaseNode):
+    """Check inequality (A != B)."""
+    
+    node_type = "NotEqual"
+    metadata = NodeMetadata(
+        category="Comparison",
+        display_name="Not Equal (!=)",
+        description="Check if A does not equal B",
+        color="#FF5722"
+    )
+    
+    def _setup_pins(self):
+        self.add_input_pin(DataPin("a", PinType.ANY, default_value=0))
+        self.add_input_pin(DataPin("b", PinType.ANY, default_value=0))
+        self.add_output_pin(DataPin("result", PinType.BOOLEAN, PinDirection.OUTPUT))
+
+
+class GreaterNode(BaseNode):
+    """Check if A > B."""
+    
+    node_type = "Greater"
+    metadata = NodeMetadata(
+        category="Comparison",
+        display_name="Greater (>)",
+        description="Check if A is greater than B",
+        color="#FF5722"
+    )
+    
+    def _setup_pins(self):
+        self.add_input_pin(DataPin("a", PinType.FLOAT, default_value=0.0))
+        self.add_input_pin(DataPin("b", PinType.FLOAT, default_value=0.0))
+        self.add_output_pin(DataPin("result", PinType.BOOLEAN, PinDirection.OUTPUT))
+
+
+class LessNode(BaseNode):
+    """Check if A < B."""
+    
+    node_type = "Less"
+    metadata = NodeMetadata(
+        category="Comparison",
+        display_name="Less (<)",
+        description="Check if A is less than B",
+        color="#FF5722"
+    )
+    
+    def _setup_pins(self):
+        self.add_input_pin(DataPin("a", PinType.FLOAT, default_value=0.0))
+        self.add_input_pin(DataPin("b", PinType.FLOAT, default_value=0.0))
+        self.add_output_pin(DataPin("result", PinType.BOOLEAN, PinDirection.OUTPUT))
+
+
+class GreaterEqualNode(BaseNode):
+    """Check if A >= B."""
+    
+    node_type = "GreaterEqual"
+    metadata = NodeMetadata(
+        category="Comparison",
+        display_name="Greater Equal (>=)",
+        description="Check if A is greater than or equal to B",
+        color="#FF5722"
+    )
+    
+    def _setup_pins(self):
+        self.add_input_pin(DataPin("a", PinType.FLOAT, default_value=0.0))
+        self.add_input_pin(DataPin("b", PinType.FLOAT, default_value=0.0))
+        self.add_output_pin(DataPin("result", PinType.BOOLEAN, PinDirection.OUTPUT))
+
+
+class LessEqualNode(BaseNode):
+    """Check if A <= B."""
+    
+    node_type = "LessEqual"
+    metadata = NodeMetadata(
+        category="Comparison",
+        display_name="Less Equal (<=)",
+        description="Check if A is less than or equal to B",
+        color="#FF5722"
+    )
+    
+    def _setup_pins(self):
+        self.add_input_pin(DataPin("a", PinType.FLOAT, default_value=0.0))
+        self.add_input_pin(DataPin("b", PinType.FLOAT, default_value=0.0))
+        self.add_output_pin(DataPin("result", PinType.BOOLEAN, PinDirection.OUTPUT))
+
+
+# =============================================================================
 # Export all math nodes
 # =============================================================================
 
@@ -651,4 +757,11 @@ MATH_NODES = [
     # Constants
     PiNode,
     ENode,
+    # Comparison (boolean output)
+    EqualNode,
+    NotEqualNode,
+    GreaterNode,
+    LessNode,
+    GreaterEqualNode,
+    LessEqualNode,
 ]

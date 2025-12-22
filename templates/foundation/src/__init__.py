@@ -44,6 +44,9 @@ from src.core.tasks.system import TaskSystem
 # UI Framework
 from src.ui.main_window import MainWindow
 from src.ui.mvvm.provider import ViewModelProvider
+from src.ui.mvvm.viewmodel import BaseViewModel, BindableBase, BindableProperty
+from src.ui.mvvm.binding import bind, bind_command, BindingMode
+from src.ui.mvvm.data_context import DataContextMixin, BindableWidget
 from src.ui.docking.dock_manager import DockManager
 from src.ui.docking.panel_base import BasePanelWidget
 from src.ui.menus.action_registry import ActionRegistry
@@ -89,6 +92,14 @@ __all__ = [
     # UI
     "MainWindow",
     "ViewModelProvider",
+    "BaseViewModel",
+    "BindableBase",
+    "BindableProperty",
+    "bind",
+    "bind_command",
+    "BindingMode",
+    "DataContextMixin",
+    "BindableWidget",
     "DockManager",
     "BasePanelWidget",
     "ActionRegistry",

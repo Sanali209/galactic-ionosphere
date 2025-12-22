@@ -1,4 +1,15 @@
-"""UCoreFS Vectors Package."""
-from src.ucorefs.vectors.service import VectorService
+"""
+UCoreFS Vectors Package.
 
-__all__ = ["VectorService"]
+Vector storage and similarity search using FAISS + MongoDB.
+"""
+from src.ucorefs.vectors.service import VectorService
+from src.ucorefs.vectors.faiss_service import FAISSIndexService
+from src.ucorefs.vectors.models import EmbeddingRecord
+
+__all__ = [
+    "VectorService",
+    "FAISSIndexService",
+    "EmbeddingRecord",
+]
+

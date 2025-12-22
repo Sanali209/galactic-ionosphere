@@ -57,6 +57,9 @@ class FileModel(QAbstractItemModel):
         self._thumbnail_cache = {} # record_id -> QIcon
         self._loading_thumbnails = set() # record_id
         
+        # Drag state - pause thumbnail loading during drag to prevent UI freezes
+        self._drag_in_progress = False
+        
         # Virtualization state
         self._children_offset = {}  # parent_id -> number of children loaded
         self._has_more = {}  # parent_id -> True if more children available
@@ -190,6 +193,103 @@ class FileModel(QAbstractItemModel):
             import traceback
             traceback.print_exc()
     
+    def set_files(self, files: list):
+        """
+        Set files to display from external source (ViewModel).
+        
+        This method allows the tree/list views to display search results
+        from BrowseViewModel instead of auto-loading from FSService.
+        
+        Args:
+            files: List of FileRecord objects to display as flat list
+        """
+        self.beginResetModel()
+        
+        # Clear all caches
+        self._roots = []
+        self._cache = {}
+        self._children = {}
+        self._id_to_int = {}
+        self._int_to_id = {}
+        self._next_int_id = 1
+        
+        # Use files as roots (flat display)
+        self._roots = files
+        
+        # Cache all files
+        for file in files:
+            self._cache[str(file._id)] = file
+        
+        self.endResetModel()
+        logger.debug(f"FileModel.set_files: Displaying {len(files)} files")
+    
+    def set_sort(self, field: str, ascending: bool = True):
+        """
+        Sort currently displayed files.
+        
+        Args:
+            field: Field to sort by (name, size, modified_at, rating)
+            ascending: True for ascending, False for descending
+        """
+        if not self._roots:
+            return
+        
+        # Define sort key functions
+        def get_sort_key(record):
+            if field == "name":
+                return getattr(record, 'name', '').lower()
+            elif field == "size":
+                return getattr(record, 'size_bytes', 0)
+            elif field == "modified" or field == "modified_at":
+                return getattr(record, 'modified_at', None) or getattr(record, 'created_at', None)
+            elif field == "rating":
+                return getattr(record, 'rating', 0)
+            elif field == "extension":
+                return getattr(record, 'extension', '').lower()
+            elif field == "file_type":
+                return getattr(record, 'file_type', '')
+            else:
+                return getattr(record, 'name', '').lower()
+        
+        self.beginResetModel()
+        self._roots = sorted(self._roots, key=get_sort_key, reverse=not ascending)
+        self.endResetModel()
+        
+        logger.debug(f"FileModel sorted by {field} {'asc' if ascending else 'desc'}")
+    
+    def set_group(self, group_by: str = None):
+        """
+        Group files by field.
+        
+        Note: Groups are handled as sort+visual separators. Files are sorted by
+        group field first, then by name within groups.
+        
+        Args:
+            group_by: Field to group by (file_type, rating, date) or None
+        """
+        self._group_by = group_by
+        
+        if not self._roots or not group_by:
+            return
+        
+        # Sort by group field first, then by name
+        def get_group_key(record):
+            if group_by == "file_type":
+                return (getattr(record, 'file_type', 'other'), getattr(record, 'name', '').lower())
+            elif group_by == "rating":
+                return (-getattr(record, 'rating', 0), getattr(record, 'name', '').lower())
+            elif group_by == "date":
+                dt = getattr(record, 'modified_at', None) or getattr(record, 'created_at', None)
+                date_str = dt.strftime('%Y-%m-%d') if dt else '1970-01-01'
+                return (date_str, getattr(record, 'name', '').lower())
+            else:
+                return (getattr(record, 'name', '').lower(),)
+        
+        self.beginResetModel()
+        self._roots = sorted(self._roots, key=get_group_key)
+        self.endResetModel()
+        
+        logger.debug(f"FileModel grouped by {group_by}")
     
     def index(self, row: int, column: int, parent: QModelIndex = QModelIndex()) -> QModelIndex:
         """Create index for item."""
@@ -534,6 +634,18 @@ class FileModel(QAbstractItemModel):
         else:
             return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
     
+    def set_drag_state(self, active: bool):
+        """
+        Set drag state to pause/resume thumbnail loading.
+        
+        Args:
+            active: True when drag starts, False when drag ends
+        """
+        self._drag_in_progress = active
+        if not active:
+            # Reason: Resume any pending thumbnail loads after drag ends
+            logger.debug("Drag ended, thumbnail loading resumed")
+    
     def _get_icon(self, record) -> QIcon:
         """Get icon for record (synchronous/cached part)."""
         # 1. Directory icon
@@ -545,12 +657,16 @@ class FileModel(QAbstractItemModel):
         if record_id in self._thumbnail_cache:
             return self._thumbnail_cache[record_id]
         
-        # 3. Trigger async load if not already loading
+        # 3. Skip async load during drag to prevent UI freeze
+        if self._drag_in_progress:
+            return QIcon.fromTheme("text-x-generic")
+        
+        # 4. Trigger async load if not already loading
         if record_id not in self._loading_thumbnails:
             self._loading_thumbnails.add(record_id)
             asyncio.ensure_future(self._load_thumbnail(record_id))
             
-        # 4. Return default file icon
+        # 5. Return default file icon
         return QIcon.fromTheme("text-x-generic")
 
     async def _load_thumbnail(self, record_id: str):
@@ -581,9 +697,10 @@ class FileModel(QAbstractItemModel):
                 self._thumbnail_cache[record_id] = icon
                 
                 # Notify view (find index and emit dataChanged)
-                # This is tricky because we need the index. 
-                # For now, simpler to emit layoutChanged or find index linearly?
-                # Linear search is bad. Let's try _find_index
+                # Skip notification during drag to prevent UI freeze
+                if self._drag_in_progress:
+                    return
+                
                 index = self._find_index(record_id)
                 if index.isValid():
                     self.dataChanged.emit(index, index, [Qt.DecorationRole])

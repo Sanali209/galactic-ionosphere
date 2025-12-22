@@ -57,15 +57,62 @@ class ServiceLocator:
 
     async def start_all(self):
         """
-        Initialize all registered systems.
+        Initialize all registered systems in dependency order.
+        
+        Systems can declare dependencies using `depends_on` class attribute:
+            class MyService(BaseSystem):
+                depends_on = [DatabaseManager, ConfigService]
         """
         logger.info("Starting all systems...")
-        for system in self._systems.values():
+        
+        # Build dependency order using topological sort
+        ordered = self._topological_sort()
+        
+        for system in ordered:
             try:
                 await system.initialize()
                 logger.info(f"System {system.__class__.__name__} started.")
             except Exception as e:
                 logger.error(f"Failed to start system {system.__class__.__name__}: {e}")
+    
+    def _topological_sort(self) -> list:
+        """
+        Sort systems by dependencies (topological order).
+        
+        Returns:
+            List of systems in safe start order
+        """
+        # Build adjacency list
+        in_degree = {sys: 0 for sys in self._systems.values()}
+        graph = {sys: [] for sys in self._systems.values()}
+        
+        for sys in self._systems.values():
+            deps = getattr(sys.__class__, 'depends_on', [])
+            for dep_cls in deps:
+                if dep_cls in self._systems:
+                    dep_sys = self._systems[dep_cls]
+                    graph[dep_sys].append(sys)
+                    in_degree[sys] += 1
+        
+        # Kahn's algorithm
+        queue = [sys for sys, deg in in_degree.items() if deg == 0]
+        result = []
+        
+        while queue:
+            sys = queue.pop(0)
+            result.append(sys)
+            
+            for dependent in graph[sys]:
+                in_degree[dependent] -= 1
+                if in_degree[dependent] == 0:
+                    queue.append(dependent)
+        
+        # Check for cycles
+        if len(result) != len(self._systems):
+            logger.warning("Circular dependency detected, using registration order")
+            return list(self._systems.values())
+        
+        return result
 
     async def stop_all(self):
         """

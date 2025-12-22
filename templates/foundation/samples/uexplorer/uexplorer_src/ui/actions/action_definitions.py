@@ -32,6 +32,14 @@ def register_all_actions(registry: 'ActionRegistry', window: 'MainWindow'):
     )
     
     registry.register_action(
+        "file.new_browser",
+        "New &Browser",
+        window.new_browser,
+        shortcut="Ctrl+T",
+        tooltip="Open a new file browser panel"
+    )
+    
+    registry.register_action(
         "file.exit",
         "E&xit",
         window.close,
@@ -88,6 +96,24 @@ def register_all_actions(registry: 'ActionRegistry', window: 'MainWindow'):
         lambda: window._toggle_panel("properties"),
         shortcut="Ctrl+4",
         tooltip="Toggle Properties panel",
+        checkable=True
+    )
+    
+    registry.register_action(
+        "view.panel.filters",
+        "&Filters",
+        lambda: window._toggle_panel("filters"),
+        shortcut="Ctrl+5",
+        tooltip="Toggle Filters panel",
+        checkable=True
+    )
+    
+    registry.register_action(
+        "view.panel.search",
+        "&Search",
+        lambda: window._toggle_panel("search"),
+        shortcut="Ctrl+6",
+        tooltip="Toggle Search panel",
         checkable=True
     )
     
@@ -160,7 +186,7 @@ def register_all_actions(registry: 'ActionRegistry', window: 'MainWindow'):
     registry.register_action(
         "tools.rules",
         "&Rules Manager...",
-        lambda: None,  # TODO: Implement rules dialog
+        window.show_rules_dialog,
         tooltip="Manage automation rules"
     )
     

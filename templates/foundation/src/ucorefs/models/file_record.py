@@ -4,7 +4,7 @@ UCoreFS - FileRecord Model
 Represents a file in the filesystem database.
 """
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from bson import ObjectId
 
 from src.core.database.orm import Field
@@ -34,7 +34,7 @@ class FileRecord(FSRecord):
     ai_description: str = Field(default="")
     ai_caption: str = Field(default="")  # BLIP caption
     
-    # Processing state
+    # Legacy processing state (kept for compatibility)
     has_thumbnail: bool = Field(default=False)
     has_vector: bool = Field(default=False)
     
@@ -42,5 +42,14 @@ class FileRecord(FSRecord):
     tag_ids: List[ObjectId] = Field(default_factory=list)
     album_ids: List[ObjectId] = Field(default_factory=list)
     
+    # Multi-embedding support
+    # {"clip": {"model": "ViT-B/32", "dim": 512, "created_at": ...}, ...}
+    embeddings: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    
+    # Multi-detection support
+    # {"yolo": {"results": [...], "model": "v8", ...}, "face": {...}, ...}
+    detections: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    
     def __str__(self) -> str:
         return f"File: {self.name} ({self.file_type})"
+

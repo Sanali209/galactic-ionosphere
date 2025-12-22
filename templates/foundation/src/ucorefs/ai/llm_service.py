@@ -135,8 +135,8 @@ class LLMService(BaseSystem):
         Returns:
             Generated text or None
         """
-        # TODO: Implement actual LLM API integration
-        # This would call Gemini Vision, GPT-4V, etc.
+        # NOTE: [OPTIONAL/FUTURE] LLM API integration
+        # This would call Gemini Vision, GPT-4V, etc. when configured
         
         logger.debug(f"Would call {self.llm_provider} vision API for {image_path}")
         return None
