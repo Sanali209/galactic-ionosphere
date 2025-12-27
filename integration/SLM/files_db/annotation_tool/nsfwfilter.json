@@ -10,13 +10,21 @@
     "hub_model_id": "sanali209/nsfwfilter",
     "num_warmup_steps_ratio": 0.1,
     "log_file": "training_runs/my_training_run.log",
-    "hf_token":  "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"
   },
   "data_handling": {
     "job_name": "NSFWFilter",
-    "excluded_labels": ["questionable"],
+    "excluded_labels": [
+      "questionable"
+    ],
     "no_augment_labels": [],
-    "allowed_extensions": [".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"]
+    "allowed_extensions": [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".bmp",
+      ".tiff",
+      ".webp"
+    ]
   },
   "augmentation": {
     "use_random_resized_crop": true,
