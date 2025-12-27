@@ -812,7 +812,194 @@ class MainWindow(QMainWindow):
         
         asyncio.ensure_future(_reindex())
     
+    # ==================== Maintenance Menu Actions ====================
+    
+    def rebuild_all_counts(self):
+        """Show progress dialog and rebuild all counts."""
+        asyncio.ensure_future(self._rebuild_counts_async())
+    
+    async def _rebuild_counts_async(self):
+        """Execute count rebuild with progress feedback."""
+        from PySide6.QtWidgets import QProgressDialog, QMessageBox
+        from src.ucorefs.services.maintenance_service import MaintenanceService
+        
+        try:
+            maintenance = self.locator.get_system(MaintenanceService)
+            if not maintenance:
+                QMessageBox.warning(self, "Error", "MaintenanceService not available")
+                return
+            
+            # Show progress dialog
+            progress = QProgressDialog("Rebuilding file counts...", "Cancel", 0, 3, self)
+            progress.setWindowModality(Qt.WindowModal)
+            progress.setMinimumDuration(0)
+            progress.show()
+            
+            try:
+                progress.setValue(1)
+                progress.setLabelText("Recalculating file counts across all systems...")
+                result = await maintenance.rebuild_all_counts()
+                
+                if progress.wasCanceled():
+                    return
+                
+                progress.setValue(3)
+                
+                # Show results
+                total_updated = (result.get("tags_updated", 0) + 
+                               result.get("albums_updated", 0) + 
+                               result.get("directories_updated", 0))
+                
+                message = (
+                    f"Count rebuild complete!\n\n"
+                    f"Tags updated: {result.get('tags_updated', 0)}\n"
+                    f"Albums updated: {result.get('albums_updated', 0)}\n"
+                    f"Directories updated: {result.get('directories_updated', 0)}\n"
+                    f"Duration: {result.get('duration', 0):.2f}s"
+                )
+                
+                if result.get("errors"):
+                    message += f"\n\nErrors: {len(result['errors'])}"
+                
+                QMessageBox.information(self, "Rebuild Complete", message)
+                
+                # Refresh all panels
+                if hasattr(self, 'tags_panel') and self.tags_panel:
+                    asyncio.ensure_future(self.tags_panel._tree.refresh_tags())
+                if hasattr(self, 'albums_panel') and self.albums_panel:
+                    asyncio.ensure_future(self.albums_panel._tree.refresh_albums())
+                if hasattr(self, 'directory_panel') and self.directory_panel:
+                    asyncio.ensure_future(self.directory_panel.on_update())
+                
+                logger.info(f"Count rebuild complete: {total_updated} records updated")
+                
+            finally:
+                progress.close()
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Rebuild failed: {e}")
+            logger.error(f"Count rebuild failed: {e}")
+    
+    def verify_references(self):
+        """Verify data integrity."""
+        asyncio.ensure_future(self._verify_references_async())
+    
+    async def _verify_references_async(self):
+        """Verify ObjectId references with progress feedback."""
+        from PySide6.QtWidgets import QProgressDialog, QMessageBox
+        from src.ucorefs.services.maintenance_service import MaintenanceService
+        
+        try:
+            maintenance = self.locator.get_system(MaintenanceService)
+            if not maintenance:
+                QMessageBox.warning(self, "Error", "MaintenanceService not available")
+                return
+            
+            # Show progress dialog
+            progress = QProgressDialog("Verifying data integrity...", "Cancel", 0, 0, self)
+            progress.setWindowModality(Qt.WindowModal)
+            progress.setMinimumDuration(0)
+            progress.show()
+            
+            try:
+                result = await maintenance.verify_references()
+                
+                if progress.wasCanceled():
+                    return
+                
+                # Show results
+                total_broken = (result.get("broken_tag_refs", 0) + 
+                              result.get("broken_album_refs", 0) + 
+                              result.get("broken_dir_refs", 0))
+                
+                if total_broken == 0:
+                    message = f"All references are valid!\n\nFiles checked: {result.get('files_checked', 0)}"
+                    QMessageBox.information(self, "Verification Complete", message)
+                else:
+                    message = (
+                        f"Found broken references:\n\n"
+                        f"Broken tag references: {result.get('broken_tag_refs', 0)}\n"
+                        f"Broken album references: {result.get('broken_album_refs', 0)}\n"
+                        f"Broken directory references: {result.get('broken_dir_refs', 0)}\n"
+                        f"Files checked: {result.get('files_checked', 0)}\n\n"
+                        f"Run 'Cleanup Orphaned Records' to fix."
+                    )
+                    QMessageBox.warning(self, "Broken References Found", message)
+                
+                logger.info(f"Reference verification complete: {total_broken} broken references")
+                
+            finally:
+                progress.close()
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Verification failed: {e}")
+            logger.error(f"Reference verification failed: {e}")
+    
+    def cleanup_orphaned_records(self):
+        """Cleanup orphaned references."""
+        asyncio.ensure_future(self._cleanup_orphaned_async())
+    
+    async def _cleanup_orphaned_async(self):
+        """Cleanup orphaned records with confirmation."""
+        from PySide6.QtWidgets import QProgressDialog, QMessageBox
+        from src.ucorefs.services.maintenance_service import MaintenanceService
+        
+        try:
+            # Confirm action
+            reply = QMessageBox.question(
+                self,
+                "Cleanup Orphaned Records",
+                "This will remove invalid references from your database.\n\n"
+                "This operation is safe but cannot be undone.\n\n"
+                "Continue?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            
+            if reply != QMessageBox.Yes:
+                return
+            
+            maintenance = self.locator.get_system(MaintenanceService)
+            if not maintenance:
+                QMessageBox.warning(self, "Error", "MaintenanceService not available")
+                return
+            
+            # Show progress dialog
+            progress = QProgressDialog("Cleaning up orphaned records...", "Cancel", 0, 0, self)
+            progress.setWindowModality(Qt.WindowModal)
+            progress.setMinimumDuration(0)
+            progress.show()
+            
+            try:
+                result = await maintenance.cleanup_orphaned_records()
+                
+                if progress.wasCanceled():
+                    return
+                
+                # Show results
+                message = (
+                    f"Cleanup complete!\n\n"
+                    f"Files cleaned: {result.get('files_cleaned', 0)}\n"
+                    f"Tag references removed: {result.get('tags_removed', 0)}\n"
+                    f"Album references removed: {result.get('albums_removed', 0)}"
+                )
+                
+                if result.get("errors"):
+                    message += f"\n\nErrors: {len(result['errors'])}"
+                
+                QMessageBox.information(self, "Cleanup Complete", message)
+                logger.info(f"Cleanup complete: {result.get('files_cleaned', 0)} files cleaned")
+                
+            finally:
+                progress.close()
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Cleanup failed: {e}")
+            logger.error(f"Cleanup failed: {e}")
+    
+    # ==================== End Maintenance Actions ====================
+    
     def show_settings_dialog(self):
+
         """Show settings dialog integrated with ConfigManager."""
         try:
             from uexplorer_src.ui.dialogs.settings_dialog import SettingsDialog

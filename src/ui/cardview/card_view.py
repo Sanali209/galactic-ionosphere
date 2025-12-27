@@ -124,6 +124,10 @@ class CardView(QWidget):
         widget.set_thumbnail_service(self._thumbnail_service)
         widget.clicked.connect(self.item_clicked.emit)
         widget.double_clicked.connect(self.item_double_clicked.emit)
+        
+        # Enable drag and drop
+        widget.setAcceptDrops(False)  # CardView doesn't accept drops, only drags
+        
         widget.hide()
         return widget
     

@@ -39,6 +39,7 @@ class MenuManager:
         self._build_edit_menu(menubar)
         self._build_view_menu(menubar)
         self._build_tools_menu(menubar)
+        self._build_maintenance_menu(menubar)
         self._build_help_menu(menubar)
         
         logger.info("MenuManager: Menu bar constructed")
@@ -98,6 +99,14 @@ class MenuManager:
         tools_menu.addAction(self.action_registry.get_action("tools.rules"))
         tools_menu.addSeparator()
         tools_menu.addAction(self.action_registry.get_action("tools.command_palette"))
+    
+    def _build_maintenance_menu(self, menubar: QMenuBar):
+        """Build Maintenance menu for data integrity operations."""
+        maintenance_menu = menubar.addMenu("&Maintenance")
+        maintenance_menu.addAction(self.action_registry.get_action("maintenance.rebuild_counts"))
+        maintenance_menu.addSeparator()
+        maintenance_menu.addAction(self.action_registry.get_action("maintenance.verify_references"))
+        maintenance_menu.addAction(self.action_registry.get_action("maintenance.cleanup_orphaned"))
     
     def _build_help_menu(self, menubar: QMenuBar):
         """Build Help menu."""

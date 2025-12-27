@@ -620,4 +620,145 @@ class FSService(BaseSystem):
             counter += 1
         
         return new_path
+    
+    # ==================== Count Management ====================
+    
+    async def recalculate_directory_counts(self, dir_id: ObjectId = None) -> dict:
+        """
+        Recalculate child_count, file_count, and total_size for directories.
+        
+        This method recursively calculates counts starting from a directory
+        (or all roots if dir_id is None). Updates are performed bottom-up
+        to ensure accurate recursive counts.
+        
+        Args:
+            dir_id: Specific directory ObjectId (None for all roots recursively)
+            
+        Returns:
+            Dict with:
+                directories_updated: Number of directories with updated counts
+                total_files_counted: Total number of files counted
+                errors: List of error messages
+        
+        Example:
+            # Rebuild all directory counts
+            result = await fs_service.recalculate_directory_counts()
+            
+            # Rebuild counts for specific directory
+            result = await fs_service.recalculate_directory_counts(dir_id)
+        """
+        result = {
+            "directories_updated": 0,
+            "total_files_counted": 0,
+            "errors": []
+        }
+        
+        try:
+            if dir_id is None:
+                # Process all roots
+                roots = await self.get_roots()
+                logger.info(f"Recalculating counts for {len(roots)} root directories...")
+                
+                for root in roots:
+                    try:
+                        counts = await self._recalculate_directory_recursive(root._id)
+                        result["directories_updated"] += counts["directories_updated"]
+                        result["total_files_counted"] += counts["total_files_counted"]
+                    except Exception as e:
+                        error_msg = f"Failed to process root {root.path}: {e}"
+                        result["errors"].append(error_msg)
+                        logger.error(error_msg)
+            else:
+                # Process specific directory
+                counts = await self._recalculate_directory_recursive(dir_id)
+                result["directories_updated"] = counts["directories_updated"]
+                result["total_files_counted"] = counts["total_files_counted"]
+            
+            logger.info(f"Directory count recalculation complete: {result['directories_updated']} directories updated")
+            
+        except Exception as e:
+            error_msg = f"Directory count recalculation failed: {e}"
+            result["errors"].append(error_msg)
+            logger.error(error_msg)
+        
+        return result
+    
+    async def _recalculate_directory_recursive(self, dir_id: ObjectId) -> dict:
+        """
+        Recursively recalculate counts for a directory and all subdirectories.
+        
+        Uses bottom-up approach: calculates children first, then parent.
+        
+        Args:
+            dir_id: Directory ObjectId
+            
+        Returns:
+            Dict with directories_updated and total_files_counted
+        """
+        result = {
+            "directories_updated": 0,
+            "total_files_counted": 0
+        }
+        
+        # Get subdirectories
+        subdirs = await DirectoryRecord.find({"parent_id": dir_id})
+        
+        # Recursively process subdirectories first (bottom-up)
+        for subdir in subdirs:
+            sub_result = await self._recalculate_directory_recursive(subdir._id)
+            result["directories_updated"] += sub_result["directories_updated"]
+            result["total_files_counted"] += sub_result["total_files_counted"]
+        
+        # Now calculate counts for this directory
+        counts = await self.update_directory_counts(dir_id)
+        result["directories_updated"] += 1
+        result["total_files_counted"] += counts["file_count"]
+        
+        return result
+    
+    async def update_directory_counts(self, dir_id: ObjectId) -> dict:
+        """
+        Update counts for a single directory (non-recursive).
+        
+        Calculates:
+        - child_count: Number of immediate children (files + subdirs)
+        - file_count: Number of files in this directory only
+        - total_size: Sum of file sizes in this directory only
+        
+        Note: For recursive counts, use recalculate_directory_counts().
+        
+        Args:
+            dir_id: Directory ObjectId
+            
+        Returns:
+            Dict with: child_count, file_count, total_size
+            
+        Raises:
+            ValueError: If directory not found
+        """
+        directory = await DirectoryRecord.get(dir_id)
+        if not directory:
+            raise ValueError(f"Directory not found: {dir_id}")
+        
+        # Count immediate children
+        subdirs = await DirectoryRecord.find({"parent_id": dir_id})
+        files = await FileRecord.find({"parent_id": dir_id})
+        
+        child_count = len(subdirs) + len(files)
+        file_count = len(files)
+        total_size = sum(f.size_bytes for f in files if hasattr(f, 'size_bytes'))
+        
+        # Update directory
+        directory.child_count = child_count
+        directory.file_count = file_count
+        directory.total_size = total_size
+        await directory.save()
+        
+        logger.debug(f"Updated directory '{directory.path}': {child_count} children, {file_count} files, {total_size} bytes")
+        
+        return {
+            "child_count": child_count,
+            "file_count": file_count,
+            "total_size": total_size
+        }
 

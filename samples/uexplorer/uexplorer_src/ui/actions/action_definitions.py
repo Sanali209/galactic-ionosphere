@@ -252,6 +252,31 @@ def register_all_actions(registry: 'ActionRegistry', window: 'MainWindow'):
     )
     
     # ============================================================
+    # MAINTENANCE MENU
+    # ============================================================
+    
+    registry.register_action(
+        "maintenance.rebuild_counts",
+        "🔄 &Rebuild All Counts...",
+        window.rebuild_all_counts,
+        tooltip="Recalculate file counts for tags, albums, and directories"
+    )
+    
+    registry.register_action(
+        "maintenance.verify_references",
+        "🔍 &Verify References...",
+        window.verify_references,
+        tooltip="Check for broken ObjectId references in database"
+    )
+    
+    registry.register_action(
+        "maintenance.cleanup_orphaned",
+        "🧹 &Cleanup Orphaned Records...",
+        window.cleanup_orphaned_records,
+        tooltip="Remove references to deleted records"
+    )
+    
+    # ============================================================
     # HELP MENU
     # ============================================================
     

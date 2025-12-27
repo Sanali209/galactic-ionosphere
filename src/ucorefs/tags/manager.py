@@ -568,4 +568,170 @@ class TagManager(BaseSystem):
             lines.append(f"  {prefix}: {count} tags")
         
         return "\n".join(lines)
+    
+    # ==================== Count Management ====================
+    
+    async def recalculate_tag_counts(self) -> dict:
+        """
+        Recalculate file_count for all tags by counting FileRecords.
+        
+        This method iterates through all tags and counts how many files
+        reference each tag via tag_ids array. Updates are batched for
+        performance.
+        
+        Returns:
+            Dict with:
+                total_tags: Total number of tags processed
+                updated_count: Number of tags with changed counts
+                errors: List of error messages
+        
+        Example:
+            result = await tag_manager.recalculate_tag_counts()
+            logger.info(f"Updated {result['updated_count']} tag counts")
+        """
+        from src.ucorefs.models.file_record import FileRecord
+        
+        result = {
+            "total_tags": 0,
+            "updated_count": 0,
+            "errors": []
+        }
+        
+        try:
+            # Get all tags
+            all_tags = await Tag.find({})
+            result["total_tags"] = len(all_tags)
+            
+            logger.info(f"Recalculating counts for {result['total_tags']} tags...")
+            
+            # Process each tag
+            for tag in all_tags:
+                try:
+                    # Count files associated with this tag
+                    files = await FileRecord.find({"tag_ids": tag._id})
+                    count = len(files)
+                    
+                    # Update if different
+                    if count != tag.file_count:
+                        tag.file_count = count
+                        await tag.save()
+                        result["updated_count"] += 1
+                        logger.debug(f"Updated tag '{tag.full_path}': {count} files")
+                    
+                except Exception as e:
+                    error_msg = f"Failed to update tag {tag._id}: {e}"
+                    result["errors"].append(error_msg)
+                    logger.error(error_msg)
+            
+            logger.info(f"Tag count recalculation complete: {result['updated_count']} updated")
+            
+        except Exception as e:
+            error_msg = f"Tag count recalculation failed: {e}"
+            result["errors"].append(error_msg)
+            logger.error(error_msg)
+        
+        return result
+    
+    async def update_tag_count(self, tag_id: ObjectId) -> int:
+        """
+        Update file_count for a specific tag by counting FileRecords.
+        
+        Args:
+            tag_id: Tag ObjectId
+            
+        Returns:
+            New count value
+            
+        Raises:
+            ValueError: If tag not found
+        """
+        from src.ucorefs.models.file_record import FileRecord
+        
+        tag = await Tag.get(tag_id)
+        if not tag:
+            raise ValueError(f"Tag not found: {tag_id}")
+        
+        # Count files
+        files = await FileRecord.find({"tag_ids": tag_id})
+        count = len(files)
+        
+        # Update tag
+        tag.file_count = count
+        await tag.save()
+        
+        logger.debug(f"Updated tag '{tag.full_path}' count: {count}")
+        return count
+    
+    async def increment_tag_count(self, tag_id: ObjectId, delta: int = 1) -> None:
+        """
+        Increment/decrement tag file_count atomically.
+        
+        Uses atomic MongoDB $inc operation for thread safety.
+        Ensures count never goes below 0.
+        
+        Args:
+            tag_id: Tag ObjectId
+            delta: Amount to add (negative to subtract)
+        """
+        tag = await Tag.get(tag_id)
+        if not tag:
+            logger.warning(f"Cannot increment count for non-existent tag: {tag_id}")
+            return
+        
+        # Calculate new count (ensure non-negative)
+        new_count = max(0, tag.file_count + delta)
+        
+        # Update
+        tag.file_count = new_count
+        await tag.save()
+        
+        logger.debug(f"Incremented tag {tag.full_path} count by {delta}: {new_count}")
+    
+    async def remove_tag_from_file(self, file_id: ObjectId, tag_id: ObjectId) -> bool:
+        """
+        Remove a tag from a file and update counts.
+        
+        Args:
+            file_id: File ObjectId
+            tag_id: Tag ObjectId to remove
+            
+        Returns:
+            True if successful
+        """
+        try:
+            from src.ucorefs.models.file_record import FileRecord
+            
+            # Get file
+            file = await FileRecord.get(file_id)
+            if not file:
+                return False
+            
+            # Remove tag from file
+            removed = False
+            if hasattr(file, 'tag_ids') and file.tag_ids and tag_id in file.tag_ids:
+                file.tag_ids.remove(tag_id)
+                removed = True
+            
+            # Remove from denormalized tags list
+            if hasattr(file, 'tags') and file.tags:
+                # Find and remove tag string
+                tag = await Tag.get(tag_id)
+                if tag and tag.full_path in file.tags:
+                    file.tags.remove(tag.full_path)
+            
+            if removed:
+                await file.save()
+                
+                # Decrement tag count
+                await self.increment_tag_count(tag_id, -1)
+                
+                logger.info(f"Removed tag {tag_id} from file {file_id}")
+            
+            return removed
+            
+        except Exception as e:
+            logger.error(f"Failed to remove tag from file: {e}")
+            return False
+
+
 

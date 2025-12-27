@@ -39,6 +39,7 @@ from src.ucorefs.rules.engine import RulesEngine
 from src.ucorefs.detection import DetectionService
 from src.ucorefs.annotation.service import AnnotationService
 from src.ucorefs.services.wd_tagger_service import WDTaggerService
+from src.ucorefs.services.maintenance_service import MaintenanceService
 
 # Import UExplorer UI
 from uexplorer_src.ui.main_window import MainWindow
@@ -67,6 +68,7 @@ def main():
         .add_system(SessionState)        # UI session persistence
         .add_system(NavigationService)   # Smart Selection Routing
         .add_system(FSService)
+        .add_system(MaintenanceService)  # Data integrity & count management
         .add_system(ProcessingPipeline)  # Must be before DiscoveryService
         .add_system(DiscoveryService)
         .add_system(ThumbnailService)

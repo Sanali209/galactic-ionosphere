@@ -170,11 +170,19 @@ class DirectoryPanel(PanelBase):
         item = QTreeWidgetItem()
         name = dir_record.name or Path(dir_record.path).name
         
-        # Add folder icon
+        # Format name with counts
         if dir_record.is_root:
-            item.setText(0, f"📁 {name}")
+            # Show file count for roots (recursive)
+            if hasattr(dir_record, 'file_count') and dir_record.file_count > 0:
+                item.setText(0, f"📁 {name} ({dir_record.file_count} files)")
+            else:
+                item.setText(0, f"📁 {name}")
         else:
-            item.setText(0, f"📂 {name}")
+            # Show child count for subdirectories
+            if hasattr(dir_record, 'child_count') and dir_record.child_count > 0:
+                item.setText(0, f"📂 {name} ({dir_record.child_count})")
+            else:
+                item.setText(0, f"📂 {name}")
         
         item.setToolTip(0, dir_record.path)
         

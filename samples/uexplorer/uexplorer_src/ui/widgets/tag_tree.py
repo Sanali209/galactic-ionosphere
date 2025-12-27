@@ -278,6 +278,13 @@ class TagTreeWidget(QTreeWidget):
         delete_action.triggered.connect(lambda: self._delete_tag(tag_id))
         menu.addAction(delete_action)
         
+        menu.addSeparator()
+        
+        # Recalculate count action
+        recalc_action = QAction("🔄 Recalculate Count", self)
+        recalc_action.triggered.connect(lambda: self._recalculate_tag_count(tag_id))
+        menu.addAction(recalc_action)
+        
         menu.exec_(self.mapToGlobal(position))
     
     def _add_child_tag(self, parent_tag_id):
@@ -331,3 +338,17 @@ class TagTreeWidget(QTreeWidget):
             logger.info(f"Deleted tag: {tag_id}")
         except Exception as e:
             logger.error(f"Failed to delete tag: {e}")
+    
+    def _recalculate_tag_count(self, tag_id: str):
+        """Recalculate count for this tag."""
+        asyncio.ensure_future(self._recalculate_tag_count_async(tag_id))
+    
+    async def _recalculate_tag_count_async(self, tag_id: str):
+        """Recalculate tag count and refresh display."""
+        try:
+            count = await self.tag_manager.update_tag_count(ObjectId(tag_id))
+            logger.info(f"Recalculated tag count: {count}")
+            await self.refresh_tags()
+        except Exception as e:
+            logger.error(f"Failed to recalculate tag count: {e}")
+

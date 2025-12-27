@@ -41,3 +41,22 @@ This map outlines the development stages for the USCore project, aligning existi
 ## Phase 4: Future / Unassigned
 -   **Unit Test Expansion**: (No ticket yet) - Need to increase coverage for `FSService` and `EventBus`.
 -   **Antigravity/Physics Systems**: (Deferred per user request).
+
+## unsorted
+**SAN-8** add loading dialog
+Requirement: Display a modal loading indicator for long-running operations.
+Implementation Plan:
+Create LoadingDialog class in src.ui.dialogs.
+Support indeterminate progress (spinner) and determinate progress (bar).
+Expose via DialogService (show_loading(message), hide_loading()).
+Port existing implementation from integration/dialogs if available.
+
+**SAN-13** [REF-005] Introduce System Bundles
+Why: main.py is too verbose and unmaintainable.
+How: Create SystemBundle class. Create UCoreFSBundle that registers all sub-systems. Update ApplicationBuilder to accept bundles.
+
+**no ticket** resarch anotation system
+
+**no ticket** resarch reference system
+
+**no ticket** resarch indexer system

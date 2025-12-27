@@ -83,21 +83,29 @@ class UnifiedSearchQuery:
         
         # Tag filters
         if self.tag_include:
+            # Files must have ALL included tags
             mongo["tag_ids"] = {"$all": [ObjectId(t) for t in self.tag_include]}
+        
         if self.tag_exclude:
-            if "tag_ids" in mongo:
-                mongo["tag_ids"]["$nin"] = [ObjectId(t) for t in self.tag_exclude]
-            else:
-                mongo["tag_ids"] = {"$nin": [ObjectId(t) for t in self.tag_exclude]}
+            # Files must NOT have ANY excluded tags
+            # Use $nor to properly exclude files containing any excluded tag
+            if "$nor" not in mongo:
+                mongo["$nor"] = []
+            for tag_id in self.tag_exclude:
+                mongo["$nor"].append({"tag_ids": ObjectId(tag_id)})
         
         # Album filters
         if self.album_include:
+            # Files must have ALL included albums
             mongo["album_ids"] = {"$all": [ObjectId(a) for a in self.album_include]}
+        
         if self.album_exclude:
-            if "album_ids" in mongo:
-                mongo["album_ids"]["$nin"] = [ObjectId(a) for a in self.album_exclude]
-            else:
-                mongo["album_ids"] = {"$nin": [ObjectId(a) for a in self.album_exclude]}
+            # Files must NOT have ANY excluded albums
+            # Use $nor to properly exclude files containing any excluded album
+            if "$nor" not in mongo:
+                mongo["$nor"] = []
+            for album_id in self.album_exclude:
+                mongo["$nor"].append({"album_ids": ObjectId(album_id)})
         
         # Directory filters (path prefix matching)
         if self.directory_include:
@@ -113,7 +121,23 @@ class UnifiedSearchQuery:
         # Field filters from FilterPanel
         for field_name, value in self.filters.items():
             if value is not None and value != "":
-                mongo[field_name] = value
+                # Special handling for unrated filter
+                if field_name == "unrated" and value is True:
+                    # Show files with no rating (null, 0, or missing field)
+                    mongo["$or"] = [
+                        {"rating": {"$exists": False}},  # No rating field
+                        {"rating": None},                 # rating is null
+                        {"rating": 0}                     # rating is 0
+                    ]
+                # Special handling for rating - use >= for "X stars or better"
+                elif field_name == "rating":
+                    mongo[field_name] = {"$gte": value}
+                elif field_name != "unrated":  # Skip unrated flag itself
+                    mongo[field_name] = value
+        
+        # Debug logging to see what query is generated
+        if mongo:
+            logger.debug(f"MongoDB filter generated: {mongo}")
         
         return mongo
 

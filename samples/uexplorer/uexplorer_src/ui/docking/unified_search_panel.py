@@ -285,6 +285,12 @@ class UnifiedSearchPanel(QWidget):
         self.rating_label.setMinimumWidth(40)
         rating_row.addWidget(self.rating_label)
         
+        # Unrated checkbox
+        self.cb_unrated = QCheckBox("Unrated")
+        self.cb_unrated.setToolTip("Show only files with no rating")
+        self.cb_unrated.stateChanged.connect(self._on_unrated_changed)
+        rating_row.addWidget(self.cb_unrated)
+        
         filter_layout.addLayout(rating_row)
         
         layout.addWidget(filter_group)
@@ -392,13 +398,27 @@ class UnifiedSearchPanel(QWidget):
         if rating > 0:
             filters["rating"] = rating
         
+        # Unrated filter (overrides rating slider)
+        if self.cb_unrated.isChecked():
+            filters["unrated"] = True  # Special flag for unrated files
+        
         return filters
     
     def _on_rating_changed(self, value):
+        # Uncheck unrated when slider moves
+        if value > 0 and self.cb_unrated.isChecked():
+            self.cb_unrated.setChecked(False)
+        
         if value == 0:
             self.rating_label.setText("Any")
         else:
             self.rating_label.setText("★" * value)
+        self._schedule_search()
+    
+    def _on_unrated_changed(self, state):
+        # Reset slider when unrated is checked
+        if state and self.rating_slider.value() > 0:
+            self.rating_slider.setValue(0)
         self._schedule_search()
     
     def _on_query_changed(self, query):
@@ -414,6 +434,7 @@ class UnifiedSearchPanel(QWidget):
         self.cb_audio.setChecked(False)
         self.cb_docs.setChecked(False)
         self.rating_slider.setValue(0)
+        self.cb_unrated.setChecked(False)
         
         # Clear query builder
         if self._query_builder:

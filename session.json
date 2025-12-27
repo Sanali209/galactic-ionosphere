@@ -1,6 +1,6 @@
 {
   "docking": {
-    "layout_bytes": "0000052a78daad545d6f8230147ddfaf68787742918909628c8b8f5b16757b3405ee5823b4a6adee23fbf16bd13040c03d2c8440ef3d9c9ed3431bcc3ef20c1d4148cad9d4726e6d0b018b7942593ab536ebe5c0b76661f0a4e6c991b018927b1eef746ff52915e4e8b9fcd0421b09a21c6b9a05678a50a62ba61d06e5182d334e543181adebab7d4695d2e547414143544130300407a6a696db89f92e31f80f3cce3ff118cc5c00416b1215d6d0e2200498960422e237dd7fa1490a0a3d901cca2a5a645c42624c0fc36068286a446e854891543669122a20565c8b920dae1a8c64d121ef4514e4ad6a56f40b6438b2313277303c8df5f3bc2435bda38ade48f0771dff367a1d47b13bf69ada2ffa3df2689e6e4778427c7fe2fee29c561c602f220e78577124c638c2b881abd9763d1fdd79e356dba78a6f4fdabb57fe2ac7ea0c7a2ff81e84329936978cc4bb546882a4cf9c80ac984ef6812a93f4c4ae63e9f1eed8d8465d908eed4018e3a7d5689aab745a13e9da5f34a71911171bec5cee09d74467ebab4dfdb03c99f47bc74917defc00f778af30",
+    "layout_bytes": "0000049f78daad545d6f8230147ddfaf6878778020688218e3e2e39645dd1e4d69afac115ad356f791fdf815340c14710f7b827bcfe1f4dccb49a3c9479ea10348c5041f5beebd6321e04450c6d3b1b55ace7b436b1247cf7a4a0f9813a00f826c0db6f8541a72f4527d68a1950259d5466626b8c68c9b4e01c75155a37926b02e0f704c7fb1cb98d6a6fd2419188a2e057a85c09eebb1e55de57c579cfe1f74dc7fd229385309182d71528e86667b29a180146049de0cfeca680a1a3de21caa2e9a6542012d86b6e3c82e241a425e4d883209440b63409dabd5a1a6648386b3649f7732344e55bba905fb0215fb818bfcc041917daccdf3b49986ed7ecd7622c5bb49c13ad98409f1c2c1b9f70bbcc31ecbd3b5431397b8e1e697e75eda0c7d340cdb6d1e3ba37e706b88faee7752ec40ea96d5d7900ee30926db549aacd02e9684ac4c96ea9acdf5fc111a0437edd733883917c7d09edbaf21ad675e0b35cb5986e545aa4fed0efbc5e21dd4fe6becea3a30ef57ae97f8ee07448a83be",
     "documents": {
       "browser_bf7bc375": {
         "title": "Files",
@@ -16,28 +16,14 @@
             "sort_field": "size",
             "sort_ascending": true,
             "group_by": null,
-            "current_directory": "694de30716e48e802ed78a0b",
+            "current_directory": "6950083d2f700255d6de4ecc",
             "search_text": "",
             "search_mode": "text"
           }
         }
       },
-      "img_429a8893": {
-        "title": "a91OyQW_700b.jpg",
-        "is_active": false,
-        "is_floating": false,
-        "is_closed": true,
-        "custom_state": {}
-      },
-      "img_e25ba1e5": {
-        "title": "AAAABYZz9cHoPyxUzXWUq-Yonr9bq3HFPN8nVwj155l18G8FcYUEGF_sZKR2WIY-IVjJqeMMwn0EePIm7VIfusid3mMPuMgs57vnLbRF.jpg",
-        "is_active": false,
-        "is_floating": false,
-        "is_closed": true,
-        "custom_state": {}
-      },
-      "img_eac22b22": {
-        "title": "acDqe9p.jpg",
+      "img_0db1c17f": {
+        "title": "3d_renders_126.jpg",
         "is_active": false,
         "is_floating": false,
         "is_closed": true,
@@ -89,7 +75,7 @@
       },
       "background": {
         "title": "Background Tasks",
-        "is_visible": false,
+        "is_visible": true,
         "is_floating": false,
         "is_auto_hide": false,
         "custom_state": {}

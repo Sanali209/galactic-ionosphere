@@ -250,6 +250,39 @@ class CardItemWidget(QWidget):
                 self.double_clicked.emit(self._data_context.id)
         super().mouseDoubleClickEvent(event)
     
+    def mouseMoveEvent(self, event):
+        """Handle mouse move for drag initiation."""
+        if event.buttons() == Qt.MouseButton.LeftButton:
+            if self._card_view and self._card_view.get_selected_items():
+                self._start_drag()
+        super().mouseMoveEvent(event)
+    
+    def _start_drag(self):
+        """Initiate drag operation with selected file IDs."""
+        from PySide6.QtGui import QDrag
+        from PySide6.QtCore import QMimeData, QByteArray
+        
+        if not self._card_view:
+            return
+        
+        selected_items = self._card_view.get_selected_items()
+        if not selected_items:
+            return
+        
+        # Create mime data with file IDs
+        mime_data = QMimeData()
+        file_ids = ','.join([item.id for item in selected_items])
+        mime_data.setData('application/x-file-ids', QByteArray(file_ids.encode('utf-8')))
+        
+        # Create drag object
+        drag = QDrag(self)
+        drag.setMimeData(mime_data)
+        
+        # Execute drag
+        drag.exec(Qt.DropAction.CopyAction)
+        
+        logger.debug(f"Started drag with {len(selected_items)} file(s)")
+    
     def get_group_key(self, group_param: str) -> str:
         """
         Get grouping key for this item.

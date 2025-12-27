@@ -48,6 +48,44 @@ class AlbumTreeWidget(QTreeWidget):
         
         asyncio.ensure_future(self.refresh_albums())
     
+    async def _get_album_count(self, album: Album) -> int:
+        """
+        Get real-time count for an album.
+        
+        For smart albums, executes the query to get current count.
+        For manual albums, returns cached count.
+        """
+        try:
+            from src.ucorefs.albums.manager import AlbumManager
+            album_manager = self.locator.get_system(AlbumManager)
+            if album_manager:
+                return await album_manager.get_album_count(album._id)
+        except Exception as e:
+            logger.error(f"Failed to get album count: {e}")
+        
+        # Fallback to cached count
+        return album.file_count if album.file_count else 0
+
+    
+    async def _get_album_count(self, album: Album) -> int:
+        """
+        Get real-time count for an album.
+        
+        For smart albums, executes the query to get current count.
+        For manual albums, returns cached count.
+        """
+        try:
+            from src.ucorefs.albums.manager import AlbumManager
+            album_manager = self.locator.get_system(AlbumManager)
+            if album_manager:
+                return await album_manager.get_album_count(album._id)
+        except Exception as e:
+            logger.error(f"Failed to get album count: {e}")
+        
+        # Fallback to cached count
+        return album.file_count if album.file_count else 0
+
+    
     async def refresh_albums(self):
         """Load all albums from database."""
         try:
@@ -72,12 +110,15 @@ class AlbumTreeWidget(QTreeWidget):
     
     async def _add_album_item(self, album: Album, parent_item: QTreeWidgetItem = None):
         """Add album and its children to tree."""
+        # Get real-time count using AlbumManager
+        count = await self._get_album_count(album)
+        
         # Format name with count
         name = album.name
         if album.is_smart:
             name = f"📊 {name}"
-        if album.file_count > 0:
-            name = f"{name} ({album.file_count})"
+        if count > 0:
+            name = f"{name} ({count})"
         
         if parent_item:
             item = QTreeWidgetItem(parent_item, [name])
@@ -94,6 +135,7 @@ class AlbumTreeWidget(QTreeWidget):
         children = await Album.find({"parent_id": album._id})
         for child in children:
             await self._add_album_item(child, item)
+
     
     def _on_item_clicked(self, item: QTreeWidgetItem, column: int):
         """Handle album click - emit signal to filter files."""
@@ -151,6 +193,13 @@ class AlbumTreeWidget(QTreeWidget):
             delete_action = QAction("Delete", self)
             delete_action.triggered.connect(lambda: self._delete_album(album_id))
             menu.addAction(delete_action)
+            
+            menu.addSeparator()
+            
+            # Recalculate count action
+            recalc_action = QAction("🔄 Recalculate Count", self)
+            recalc_action.triggered.connect(lambda: self._recalculate_count(album_id))
+            menu.addAction(recalc_action)
         
         menu.exec_(self.mapToGlobal(position))
     
@@ -218,7 +267,24 @@ class AlbumTreeWidget(QTreeWidget):
                 await album.delete()
                 await self.refresh_albums()
         except Exception as e:
-            logger.error(f"Failed to delete album: {e}")
+            logger.error(f"Failed to delete album: {e}") 
+    
+    def _recalculate_count(self, album_id: str):
+        """Recalculate count for this album."""
+        asyncio.ensure_future(self._recalculate_count_async(album_id))
+    
+    async def _recalculate_count_async(self, album_id: str):
+        """Recalculate album count and refresh display."""
+        try:
+            from src.ucorefs.albums.manager import AlbumManager
+            album_manager = self.locator.get_system(AlbumManager)
+            if album_manager:
+                count = await album_manager.update_album_count(ObjectId(album_id))
+                logger.info(f"Recalculated album count: {count}")
+                await self.refresh_albums()
+        except Exception as e:
+            logger.error(f"Failed to recalculate album count: {e}")
+
     
     # Drag and drop
     def dragEnterEvent(self, event):
@@ -274,23 +340,24 @@ class AlbumTreeWidget(QTreeWidget):
             event.acceptProposedAction()
     
     async def _add_files_to_album(self, album_id: str, file_ids: list):
-        """Add files to album."""
+        """Add files to album using AlbumManager (bidirectional)."""
         try:
-            album = await Album.get(ObjectId(album_id))
-            if not album:
+            # Use AlbumManager to maintain bidirectional relationship
+            from src.ucorefs.albums.manager import AlbumManager
+            album_manager = self.locator.get_system(AlbumManager)
+            
+            if not album_manager:
+                logger.error("AlbumManager not available")
                 return
             
             added = 0
             for fid in file_ids:
                 oid = ObjectId(fid)
-                if oid not in album.file_ids:
-                    album.file_ids.append(oid)
+                success = await album_manager.add_file_to_album(ObjectId(album_id), oid)
+                if success:
                     added += 1
             
-            album.file_count = len(album.file_ids)
-            await album.save()
-            
-            logger.info(f"Added {added} files to album '{album.name}'")
+            logger.info(f"Added {added} files to album (ID: {album_id})")
             await self.refresh_albums()
             
         except Exception as e:
