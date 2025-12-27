@@ -1,0 +1,36 @@
+{
+  "doc_count": 3,
+  "documents": {
+    "doc_1": {
+      "title": "Document 1",
+      "is_active": false,
+      "is_floating": false,
+      "is_closed": false,
+      "custom_state": {
+        "title": "Document 1",
+        "content": ""
+      }
+    },
+    "doc_2": {
+      "title": "Document 2",
+      "is_active": false,
+      "is_floating": false,
+      "is_closed": false,
+      "custom_state": {
+        "title": "Document 2",
+        "content": ""
+      }
+    },
+    "doc_3": {
+      "title": "Document 3",
+      "is_active": true,
+      "is_floating": false,
+      "is_closed": false,
+      "custom_state": {
+        "title": "Document 3",
+        "content": ""
+      }
+    }
+  },
+  "layout": "0000029078da8d92cd6ec2301084ef7d0acb779a3f2aa89404215a8ea555809edd6485ac2676646f10adfaf05d53142511413dd9bb33def9643b5e9caa921dc158a955c2837b9f3350b92ea43a247cb75d4fe67c91c66fb82c8e42e5503ce9fc93b4eccb22546cdf1ee46c67c1b4358d596985422aea38398ddb9aad4b2df01ce0533fab4b8948ed8d9140163c0f98b8018dc28487a39e9f9e676940b0adf8a0b88884c6187012013715ed58449e77591c00d98ba8a0a310fcaad4160a07e48db9c27fb9a281cb73583db8b003f76a740d0625d821dcf3a92eb501732bb473fa6a6826bfc1a6b3f9944d8390c5de5f4debe5367b5841076bd360dde010e9d2bd11f5300b59f0e85f8df2daf7a7fdc87f4aef7e010ea4d668"
+}

@@ -1,0 +1,36 @@
+{
+  "general_params": {
+    "model_name": "google/vit-base-patch16-224",
+    "num_epochs": 3,
+    "batch_size": 16,
+    "learning_rate": 5.5e-5,
+    "save_dir_template": "training_output_{model_slug}_v5",
+    "test_split_size": 0.2,
+    "random_seed": 42,
+    "hub_model_id": "sanali209/nsfwfilter",
+    "num_warmup_steps_ratio": 0.1,
+    "log_file": "training_runs/my_training_run.log",
+    "hf_token":  "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"
+  },
+  "data_handling": {
+    "job_name": "NSFWFilter",
+    "excluded_labels": ["questionable"],
+    "no_augment_labels": [],
+    "allowed_extensions": [".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"]
+  },
+  "augmentation": {
+    "use_random_resized_crop": true,
+    "random_resized_crop_input_size_aware": true,
+    "random_resized_crop_size": 224,
+    "random_resized_crop_scale_min": 0.8,
+    "random_resized_crop_scale_max": 1.0,
+    "use_random_horizontal_flip": true,
+    "use_color_jitter": true,
+    "color_jitter_brightness": 0.2,
+    "color_jitter_contrast": 0.2,
+    "color_jitter_saturation": 0.2,
+    "color_jitter_hue": 0.1,
+    "use_random_rotation": true,
+    "random_rotation_degrees": 15
+  }
+}

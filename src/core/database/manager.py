@@ -1,0 +1,86 @@
+from typing import TYPE_CHECKING, Optional
+from motor.motor_asyncio import AsyncIOMotorClient
+from loguru import logger
+from ..base_system import BaseSystem
+
+if TYPE_CHECKING:
+    from ..locator import ServiceLocator
+
+
+class DatabaseManager(BaseSystem):
+    """
+    Manages MongoDB connection using the foundation BaseSystem pattern.
+    
+    Access via ServiceLocator:
+        db = DatabaseManager.get_instance()
+        collection = db.get_collection("my_collection")
+    """
+    
+    @classmethod
+    def get_instance(cls) -> 'DatabaseManager':
+        """
+        Get DatabaseManager instance from ServiceLocator.
+        
+        Returns:
+            DatabaseManager instance
+            
+        Raises:
+            KeyError: If DatabaseManager not registered
+        """
+        from ..locator import sl
+        return sl.get_system(cls)
+    
+    def __init__(self, locator: 'ServiceLocator', config):
+        super().__init__(locator, config)
+        self.client: Optional[AsyncIOMotorClient] = None
+        self.db = None
+
+    async def initialize(self):
+        """Connect to database using config."""
+        try:
+            # Get config or use defaults
+            if hasattr(self.config, 'data') and hasattr(self.config.data, 'mongo'):
+                mongo_cfg = self.config.data.mongo
+                host = mongo_cfg.host
+                port = mongo_cfg.port
+                db_name = mongo_cfg.database_name
+            else:
+                # Fallback if config not loaded properly
+                host = 'localhost'
+                port = 27017
+                db_name = 'app_db'
+            
+            conn_str = f"mongodb://{host}:{port}"
+            self.client = AsyncIOMotorClient(conn_str)
+            self.db = self.client[db_name]
+            
+            # Verify connection
+            await self.client.admin.command('ping')
+            logger.info(f"Connected to MongoDB at {conn_str}, DB: {db_name}")
+            
+            await super().initialize()
+            
+        except Exception as e:
+            logger.error(f"Failed to connect to MongoDB: {e}")
+            raise
+
+    async def shutdown(self):
+        """Close database connection."""
+        if self.client:
+            self.client.close()
+            logger.info("MongoDB connection closed.")
+        await super().shutdown()
+
+    def get_collection(self, name: str):
+        """
+        Get a MongoDB collection by name.
+        
+        Args:
+            name: Collection name
+            
+        Returns:
+            Motor collection instance
+        """
+        if self.db is None:
+            raise RuntimeError("Database not connected. Call initialize() first.")
+        return self.db[name]

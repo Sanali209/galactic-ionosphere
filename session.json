@@ -1,0 +1,115 @@
+{
+  "docking": {
+    "layout_bytes": "0000052a78daad545d6f8230147ddfaf68787742918909628c8b8f5b16757b3405ee5823b4a6adee23fbf16bd13040c03d2c8440ef3d9c9ed3431bcc3ef20c1d4148cad9d4726e6d0b018b7942593ab536ebe5c0b76661f0a4e6c991b018927b1eef746ff52915e4e8b9fcd0421b09a21c6b9a05678a50a62ba61d06e5182d334e543181adebab7d4695d2e547414143544130300407a6a696db89f92e31f80f3cce3ff118cc5c00416b1215d6d0e2200498960422e237dd7fa1490a0a3d901cca2a5a645c42624c0fc36068286a446e854891543669122a20565c8b920dae1a8c64d121ef4514e4ad6a56f40b6438b2313277303c8df5f3bc2435bda38ade48f0771dff367a1d47b13bf69ada2ffa3df2689e6e4778427c7fe2fee29c561c602f220e78577124c638c2b881abd9763d1fdd79e356dba78a6f4fdabb57fe2ac7ea0c7a2ff81e84329936978cc4bb546882a4cf9c80ac984ef6812a93f4c4ae63e9f1eed8d8465d908eed4018e3a7d5689aab745a13e9da5f34a71911171bec5cee09d74467ebab4dfdb03c99f47bc74917defc00f778af30",
+    "documents": {
+      "browser_bf7bc375": {
+        "title": "Files",
+        "is_active": true,
+        "is_floating": false,
+        "is_closed": false,
+        "custom_state": {
+          "title": "Files",
+          "viewmodel_state": {
+            "doc_id": "browser_bf7bc375",
+            "title": "Untitled",
+            "view_mode": "tree",
+            "sort_field": "size",
+            "sort_ascending": true,
+            "group_by": null,
+            "current_directory": "694de30716e48e802ed78a0b",
+            "search_text": "",
+            "search_mode": "text"
+          }
+        }
+      },
+      "img_429a8893": {
+        "title": "a91OyQW_700b.jpg",
+        "is_active": false,
+        "is_floating": false,
+        "is_closed": true,
+        "custom_state": {}
+      },
+      "img_e25ba1e5": {
+        "title": "AAAABYZz9cHoPyxUzXWUq-Yonr9bq3HFPN8nVwj155l18G8FcYUEGF_sZKR2WIY-IVjJqeMMwn0EePIm7VIfusid3mMPuMgs57vnLbRF.jpg",
+        "is_active": false,
+        "is_floating": false,
+        "is_closed": true,
+        "custom_state": {}
+      },
+      "img_eac22b22": {
+        "title": "acDqe9p.jpg",
+        "is_active": false,
+        "is_floating": false,
+        "is_closed": true,
+        "custom_state": {}
+      }
+    },
+    "panels": {
+      "tags": {
+        "title": "Tags",
+        "is_visible": true,
+        "is_floating": false,
+        "is_auto_hide": false,
+        "custom_state": {}
+      },
+      "albums": {
+        "title": "Albums",
+        "is_visible": true,
+        "is_floating": false,
+        "is_auto_hide": false,
+        "custom_state": {}
+      },
+      "directories": {
+        "title": "Directories",
+        "is_visible": true,
+        "is_floating": false,
+        "is_auto_hide": false,
+        "custom_state": {}
+      },
+      "search": {
+        "title": "Search",
+        "is_visible": true,
+        "is_floating": false,
+        "is_auto_hide": false,
+        "custom_state": {}
+      },
+      "properties": {
+        "title": "Properties",
+        "is_visible": true,
+        "is_floating": false,
+        "is_auto_hide": false,
+        "custom_state": {}
+      },
+      "relations": {
+        "title": "Related Files",
+        "is_visible": false,
+        "is_floating": false,
+        "is_auto_hide": false,
+        "custom_state": {}
+      },
+      "background": {
+        "title": "Background Tasks",
+        "is_visible": false,
+        "is_floating": false,
+        "is_auto_hide": false,
+        "custom_state": {}
+      },
+      "similar": {
+        "title": "Similar Files",
+        "is_visible": false,
+        "is_floating": false,
+        "is_auto_hide": false,
+        "custom_state": {}
+      },
+      "annotation": {
+        "title": "Annotation",
+        "is_visible": false,
+        "is_floating": false,
+        "is_auto_hide": false,
+        "custom_state": {}
+      }
+    },
+    "perspectives": [],
+    "active_document": "browser_bf7bc375"
+  }
+}

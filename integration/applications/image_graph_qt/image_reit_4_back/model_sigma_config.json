@@ -1,0 +1,6 @@
+{
+  "calculated_sigma": 2.0,
+  "use_llm_sigma": true,
+  "model_error_percentage": 0.0,
+  "use_predictions": true
+}

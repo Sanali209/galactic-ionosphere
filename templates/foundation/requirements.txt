@@ -1,6 +1,0 @@
-PySide6
-PySide6-QtAds>=4.4.1.2
-motor
-pydantic
-loguru
-qasync

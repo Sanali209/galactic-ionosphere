@@ -1,0 +1,55 @@
+{
+    "general": {
+        "debug_mode": true,
+        "theme": "blue",
+        "task_workers": 3
+    },
+    "ai": {
+        "provider_id": "clip_local",
+        "device": "cpu",
+        "result_limit": 50
+    },
+    "mongo": {
+        "host": "localhost",
+        "port": 27017,
+        "database_name": "foundation_app"
+    },
+    "library_path": "./data",
+    "processing": {
+        "detection": {
+            "enabled": false,
+            "backend": "yolo",
+            "yolo": {
+                "enabled": false,
+                "model": "yolov8n.pt",
+                "confidence": 0.25,
+                "classes": null,
+                "use_gpu": true
+            },
+            "mtcnn": {
+                "enabled": false,
+                "min_face_size": 20,
+                "thresholds": [
+                    0.6,
+                    0.7,
+                    0.7
+                ],
+                "use_gpu": true
+            }
+        },
+        "embeddings": {
+            "clip": {
+                "enabled": true,
+                "model": null
+            },
+            "dino": {
+                "enabled": true,
+                "model": "vit_small_patch16_224.dino"
+            },
+            "blip": {
+                "enabled": true,
+                "model": null
+            }
+        }
+    }
+}
