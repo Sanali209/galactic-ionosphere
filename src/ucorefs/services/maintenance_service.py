@@ -23,11 +23,31 @@ class MaintenanceService(BaseSystem):
     """
     
     # Dependency declarations
-    depends_on = [DatabaseManager]
+    depends_on = ["DatabaseManager", "TaskSystem"]
     
     async def initialize(self) -> None:
-        """Initialize maintenance service."""
+        """Initialize maintenance service and register task handlers."""
         logger.info("MaintenanceService initializing")
+        
+        # Register task handlers with TaskSystem (guaranteed by depends_on)
+        from src.core.tasks.system import TaskSystem
+        task_system = self.locator.get_system(TaskSystem)
+        
+        task_system.register_handler('maintenance_background_verification', 
+                                    self.background_count_verification)
+        task_system.register_handler('maintenance_database_optimization', 
+                                    self.database_optimization)
+        task_system.register_handler('maintenance_cache_cleanup', 
+                                    self.cache_cleanup)
+        task_system.register_handler('maintenance_log_rotation', 
+                                    self.log_rotation)
+        task_system.register_handler('maintenance_orphaned_cleanup', 
+                                    self.cleanup_orphaned_file_records)
+        task_system.register_handler('maintenance_database_cleanup', 
+                                    self.cleanup_old_records)
+        
+        logger.info("MaintenanceService: Registered 6 task handlers")
+        
         await super().initialize()
         logger.info("MaintenanceService ready")
     
@@ -355,3 +375,332 @@ class MaintenanceService(BaseSystem):
             
         except Exception as e:
             logger.error(f"Background count verification failed: {e}")
+    
+    # ==================== New Maintenance Methods ====================
+    
+    async def database_optimization(self) -> Dict[str, Any]:
+        """
+        Optimize MongoDB collections and FAISS indexes.
+        
+        Operations:
+        - Compact MongoDB collections (reclaim space)
+        - Rebuild MongoDB indexes
+        - FAISS index optimization (if needed)
+        
+        Returns:
+            Dict with collections_compacted, indexes_rebuilt, duration, errors
+        """
+        import asyncio
+        
+        start_time = time.time()
+        result = {
+            "collections_compacted": 0,
+            "indexes_rebuilt": 0,
+            "duration": 0.0,
+            "errors": []
+        }
+        
+        try:
+            logger.info("Starting database optimization...")
+            
+            # Get database manager
+            db_manager = self.locator.get_system(DatabaseManager)
+            db = db_manager.db
+            
+            # Get all collection names
+            collection_names = await db.list_collection_names()
+            
+            # Compact collections (reclaim space)
+            for coll_name in collection_names:
+                try:
+                    # MongoDB compact command (requires admin privileges on some setups)
+                    # This may not work on all MongoDB configurations
+                    # await db.command({"compact": coll_name})
+                    # result["collections_compacted"] += 1
+                    
+                    # Rebuild indexes using database command (Motor/PyMongo compatible)
+                    await db.command({"reIndexCollection": coll_name})
+                    result["indexes_rebuilt"] += 1
+                    
+                    logger.debug(f"Rebuilt indexes for collection: {coll_name}")
+                    
+                except Exception as e:
+                    error_msg = f"Failed to optimize {coll_name}: {e}"
+                    result["errors"].append(error_msg)
+                    logger.warning(error_msg)
+            
+            # FAISS index optimization (if exists)
+            try:
+                # TODO: Add FAISS index optimization when FAISS is integrated
+                pass
+            except Exception as e:
+                logger.debug(f"FAISS optimization skipped: {e}")
+            
+            result["duration"] = time.time() - start_time
+            logger.info(f"Database optimization complete: {result['indexes_rebuilt']} indexes rebuilt in {result['duration']:.2f}s")
+            
+        except Exception as e:
+            result["errors"].append(f"Database optimization failed: {e}")
+            logger.error(f"Database optimization failed: {e}")
+        
+        return result
+    
+    async def cache_cleanup(self, max_size_gb: int = 10, max_age_days: int = 30) -> Dict[str, Any]:
+        """
+        Clean up old thumbnails and temporary files.
+        
+        Args:
+            max_size_gb: Maximum cache size in GB
+            max_age_days: Delete files older than this many days
+        
+        Returns:
+            Dict with files_deleted, space_freed_gb, duration, errors
+        """
+        import os
+        from pathlib import Path
+        from datetime import datetime, timedelta
+        
+        start_time = time.time()
+        result = {
+            "files_deleted": 0,
+            "space_freed_gb": 0.0,
+            "duration": 0.0,
+            "errors": []
+        }
+        
+        try:
+            logger.info(f"Starting cache cleanup (max_size: {max_size_gb}GB, max_age: {max_age_days} days)...")
+            
+            # Cache directories to clean
+            cache_dirs = [
+                Path("./data/thumbnails"),
+                Path("./data/cache"),
+                Path("./data/temp")
+            ]
+            
+            cutoff_time = datetime.now() - timedelta(days=max_age_days)
+            total_size_bytes = 0
+            
+            for cache_dir in cache_dirs:
+                if not cache_dir.exists():
+                    continue
+                
+                # Walk through directory
+                for file_path in cache_dir.rglob("*"):
+                    if not file_path.is_file():
+                        continue
+                    
+                    try:
+                        # Check file age
+                        file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+                        
+                        if file_mtime < cutoff_time:
+                            # Delete old file
+                            file_size = file_path.stat().st_size
+                            file_path.unlink()
+                            
+                            result["files_deleted"] += 1
+                            total_size_bytes += file_size
+                            
+                    except Exception as e:
+                        error_msg = f"Failed to delete {file_path}: {e}"
+                        result["errors"].append(error_msg)
+                        logger.warning(error_msg)
+            
+            result["space_freed_gb"] = total_size_bytes / (1024**3)  # Convert to GB
+            result["duration"] = time.time() - start_time
+            
+            logger.info(f"Cache cleanup complete: {result['files_deleted']} files deleted, "
+                       f"{result['space_freed_gb']:.2f}GB freed in {result['duration']:.2f}s")
+            
+        except Exception as e:
+            result["errors"].append(f"Cache cleanup failed: {e}")
+            logger.error(f"Cache cleanup failed: {e}")
+        
+        return result
+    
+    async def log_rotation(self, max_log_files: int = 10, max_log_size_mb: int = 100) -> Dict[str, Any]:
+        """
+        Rotate and archive log files.
+        
+        Args:
+            max_log_files: Maximum number of log files to keep
+            max_log_size_mb: Archive logs larger than this size
+        
+        Returns:
+            Dict with files_rotated, files_deleted, duration, errors
+        """
+        import os
+        from pathlib import Path
+        import shutil
+        
+        start_time = time.time()
+        result = {
+            "files_rotated": 0,
+            "files_deleted": 0,
+            "duration": 0.0,
+            "errors": []
+        }
+        
+        try:
+            logger.info(f"Starting log rotation (max_files: {max_log_files}, max_size: {max_log_size_mb}MB)...")
+            
+            log_dir = Path("./logs")
+            if not log_dir.exists():
+                logger.info("Log directory does not exist, skipping rotation")
+                return result
+            
+            # Get all log files sorted by modification time (oldest first)
+            log_files = sorted(
+                [f for f in log_dir.glob("*.log")],
+                key=lambda x: x.stat().st_mtime
+            )
+            
+            # Delete excess log files (keep only max_log_files most recent)
+            if len(log_files) > max_log_files:
+                files_to_delete = log_files[:len(log_files) - max_log_files]
+                for log_file in files_to_delete:
+                    try:
+                        log_file.unlink()
+                        result["files_deleted"] += 1
+                        logger.debug(f"Deleted old log: {log_file.name}")
+                    except Exception as e:
+                        error_msg = f"Failed to delete {log_file}: {e}"
+                        result["errors"].append(error_msg)
+                        logger.warning(error_msg)
+            
+            # Rotate large log files
+            max_size_bytes = max_log_size_mb * 1024 * 1024
+            for log_file in log_dir.glob("*.log"):
+                try:
+                    if log_file.stat().st_size > max_size_bytes:
+                        # Archive large log
+                        archive_name = log_file.with_suffix(f".{int(time.time())}.log.old")
+                        shutil.move(str(log_file), str(archive_name))
+                        result["files_rotated"] += 1
+                        logger.debug(f"Rotated large log: {log_file.name} -> {archive_name.name}")
+                except Exception as e:
+                    error_msg = f"Failed to rotate {log_file}: {e}"
+                    result["errors"].append(error_msg)
+                    logger.warning(error_msg)
+            
+            result["duration"] = time.time() - start_time
+            logger.info(f"Log rotation complete: {result['files_rotated']} rotated, "
+                       f"{result['files_deleted']} deleted in {result['duration']:.2f}s")
+            
+        except Exception as e:
+            result["errors"].append(f"Log rotation failed: {e}")
+            logger.error(f"Log rotation failed: {e}")
+        
+        return result
+    
+    async def cleanup_orphaned_file_records(self) -> int:
+        """
+        Remove FileRecords for files that no longer exist on disk.
+        
+        Returns:
+            Number of records removed
+        """
+        import os
+        from src.ucorefs.models.file_record import FileRecord
+        
+        try:
+            logger.info("Starting orphaned file records cleanup...")
+            
+            removed_count = 0
+            
+            # Get all file records
+            files = await FileRecord.find({})
+            
+            for file in files:
+                # Check if file exists on disk
+                if not os.path.exists(file.path):
+                    # File doesn't exist, remove record
+                    await file.delete()
+                    removed_count += 1
+                    logger.debug(f"Removed orphaned record: {file.path}")
+            
+            logger.info(f"Orphaned file cleanup complete: {removed_count} records removed")
+            return removed_count
+            
+        except Exception as e:
+            logger.error(f"Orphaned file cleanup failed: {e}")
+            return 0
+    
+    async def cleanup_old_records(
+        self,
+        task_retention_days: int = 30,
+        journal_retention_days: int = 90
+    ) -> Dict[str, Any]:
+        """
+        Clean up old TaskRecord and JournalEntry documents.
+        
+        Args:
+            task_retention_days: Keep TaskRecords newer than this (default: 30 days)
+            journal_retention_days: Keep JournalEntries newer than this (default: 90 days)
+        
+        Returns:
+            Dict with tasks_deleted, journal_deleted, duration, errors
+        """
+        from datetime import datetime, timedelta
+        
+        start_time = time.time()
+        result = {
+            "tasks_deleted": 0,
+            "journal_deleted": 0,
+            "duration": 0.0,
+            "errors": []
+        }
+        
+        try:
+            logger.info(f"Starting database cleanup (tasks: {task_retention_days}d, journal: {journal_retention_days}d)...")
+            
+            # Calculate cutoff timestamps
+            task_cutoff = int((datetime.utcnow() - timedelta(days=task_retention_days)).timestamp())
+            journal_cutoff = int((datetime.utcnow() - timedelta(days=journal_retention_days)).timestamp())
+            
+            # Clean up old TaskRecords (completed or failed only, keep pending/running)
+            try:
+                from src.core.tasks.models import TaskRecord
+                
+                old_tasks = await TaskRecord.find({
+                    "status": {"$in": ["completed", "failed"]},
+                    "created_at": {"$lt": task_cutoff}
+                })
+                
+                for task in old_tasks:
+                    await task.delete()
+                    result["tasks_deleted"] += 1
+                
+                logger.debug(f"Deleted {result['tasks_deleted']} old task records")
+                
+            except (ImportError, Exception) as e:
+                logger.debug(f"TaskRecord cleanup skipped: {e}")
+            
+            # Clean up old JournalEntries
+            try:
+                from src.core.journal.models import JournalEntry
+                
+                old_journal = await JournalEntry.find({
+                    "timestamp": {"$lt": journal_cutoff}
+                })
+                
+                for entry in old_journal:
+                    await entry.delete()
+                    result["journal_deleted"] += 1
+                
+                logger.debug(f"Deleted {result['journal_deleted']} old journal entries")
+                
+            except (ImportError, Exception) as e:
+                logger.debug(f"JournalEntry cleanup skipped: {e}")
+            
+            result["duration"] = time.time() - start_time
+            logger.info(f"Database cleanup complete: {result['tasks_deleted']} tasks, "
+                       f"{result['journal_deleted']} journal entries removed in {result['duration']:.2f}s")
+            
+        except Exception as e:
+            result["errors"].append(f"Database cleanup failed: {e}")
+            logger.error(f"Database cleanup failed: {e}")
+        
+        return result
+

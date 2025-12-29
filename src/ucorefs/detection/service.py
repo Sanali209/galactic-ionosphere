@@ -47,17 +47,13 @@ class DetectionBackend(ABC):
 
 class DetectionService(BaseSystem):
     """
-    Object detection service with configurable backends.
+    Object detection service using YOLO/MTCNN.
     
-    Features:
-    - Multiple backend support (YOLO, MTCNN)
-    - Configurable via settings
-    - Stores detections as DetectionInstance records
-    
-    Usage:
-        detection_service = locator.get_system(DetectionService)
-        detections = await detection_service.detect(file_id, backend="yolo")
+    Provides face detection and object detection capabilities.
+    Results are stored in Detection collection.
     """
+    
+    depends_on = []  # Independent service
     
     def __init__(self, locator, config):
         """

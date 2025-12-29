@@ -110,12 +110,15 @@ class ApplicationBuilder:
         
         # 3. Register default systems
         if self._use_default_systems:
+            from .scheduling import PeriodicTaskScheduler
+            
             default_systems = [
                 DatabaseManager,
                 CommandBus,
                 JournalService,
                 AssetManager,
-                TaskSystem
+                TaskSystem,
+                PeriodicTaskScheduler  # NEW: Automated maintenance scheduler
             ]
             for sys_cls in default_systems:
                 sl.register_system(sys_cls)
@@ -193,11 +196,17 @@ def run_app(
         loop = QEventLoop(app)
         asyncio.set_event_loop(loop)
         
+        # Ensure app quits when last window closes
+        app.setQuitOnLastWindowClosed(True)
+        
+        # Stop event loop when app is about to quit
+        app.aboutToQuit.connect(loop.stop)
+        
         with loop:
             # Run async initialization
             service_locator = loop.run_until_complete(async_main())
             
-            # Run event loop
+            # Run event loop (will stop when app.quit() is called)
             loop.run_forever()
             
             # Graceful shutdown

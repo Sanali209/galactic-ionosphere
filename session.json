@@ -1,6 +1,6 @@
 {
   "docking": {
-    "layout_bytes": "0000049f78daad545d6f8230147ddfaf6878778020688218e3e2e39645dd1e4d69afac115ad356f791fdf815340c14710f7b827bcfe1f4dccb49a3c9479ea10348c5041f5beebd6321e04450c6d3b1b55ace7b436b1247cf7a4a0f9813a00f826c0db6f8541a72f4527d68a1950259d5466626b8c68c9b4e01c75155a37926b02e0f704c7fb1cb98d6a6fd2419188a2e057a85c09eebb1e55de57c579cfe1f74dc7fd229385309182d71528e86667b29a180146049de0cfeca680a1a3de21caa2e9a6542012d86b6e3c82e241a425e4d883209440b63409dabd5a1a6648386b3649f7732344e55bba905fb0215fb818bfcc041917daccdf3b49986ed7ecd7622c5bb49c13ad98409f1c2c1b9f70bbcc31ecbd3b5431397b8e1e697e75eda0c7d340cdb6d1e3ba37e706b88faee7752ec40ea96d5d7900ee30926db549aacd02e9684ac4c96ea9acdf5fc111a0437edd733883917c7d09edbaf21ad675e0b35cb5986e545aa4fed0efbc5e21dd4fe6becea3a30ef57ae97f8ee07448a83be",
+    "layout_bytes": "0000046f78daad54cb6e833010bcf72b2cee2910680312218a52e5d8aa4ad21e2b636fa915b023db491feac7d79008115e69a59e6067c7b3b3eb8568f69167e8005231c1a7967bed5808381194f1746a6dd6cb5160cde2e851cfe9017302f44e90adc9ad3e95861c3d55072db45120abd8c82c04d798718314e938aa62b4cc04d66501c7e0ab5dc6b436f083646028ba141815027baea796d7cbf9ae38e35fe8b8ffa45370e612305ae3a46c0d2df65242915280257933f9674653d0e81ee750a168910905b468da8e23bb903813f26a421aa7aa29439904a28531a51a5a67349c25fb7c90518a77ba59b12f50b17feb23cf7750641f63f33c8da4b7f1448a7773fd2fc9eb2421dee4a6e9bd951f2a1f8e911fba9de58f48e08497ccd5879960b24da5b93cdab4b5936207525f9868edfc004b4256ae4a4dca6df5160601f29dc95f468b3917c7256cbaaf653a4bf62d29cb5986656b4b4ff080fb62ee0eea5e0cbbfabccd7bcfef22befa0171ce7424",
     "documents": {
       "browser_bf7bc375": {
         "title": "Files",
@@ -16,18 +16,11 @@
             "sort_field": "size",
             "sort_ascending": true,
             "group_by": null,
-            "current_directory": "6950083d2f700255d6de4ecc",
+            "current_directory": "69526f58f684b48887bb54b5",
             "search_text": "",
             "search_mode": "text"
           }
         }
-      },
-      "img_0db1c17f": {
-        "title": "3d_renders_126.jpg",
-        "is_active": false,
-        "is_floating": false,
-        "is_closed": true,
-        "custom_state": {}
       }
     },
     "panels": {
@@ -36,7 +29,11 @@
         "is_visible": true,
         "is_floating": false,
         "is_auto_hide": false,
-        "custom_state": {}
+        "custom_state": {
+          "include_tags": [
+            "69526f16f684b48887bb34de"
+          ]
+        }
       },
       "albums": {
         "title": "Albums",
@@ -50,7 +47,11 @@
         "is_visible": true,
         "is_floating": false,
         "is_auto_hide": false,
-        "custom_state": {}
+        "custom_state": {
+          "include_dirs": [
+            "D:/image_db/safe repo/asorted images/3"
+          ]
+        }
       },
       "search": {
         "title": "Search",
@@ -76,6 +77,13 @@
       "background": {
         "title": "Background Tasks",
         "is_visible": true,
+        "is_floating": false,
+        "is_auto_hide": false,
+        "custom_state": {}
+      },
+      "maintenance": {
+        "title": "Maintenance",
+        "is_visible": false,
         "is_floating": false,
         "is_auto_hide": false,
         "custom_state": {}

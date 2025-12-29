@@ -13,5 +13,45 @@
         "port": 27017,
         "database_name": "foundation_app"
     },
-    "library_path": "./data"
+    "library_path": "./data",
+    "metadata": {
+        "auto_fill_description_from_blip": true,
+        "prefer_xmp_over_existing": false
+    },
+    "maintenance": {
+        "enabled": true,
+        "schedule": {
+            "background_verification": {
+                "enabled": true,
+                "interval_minutes": 5
+            },
+            "database_optimization": {
+                "enabled": true,
+                "interval_hours": 24,
+                "initial_delay_seconds": 300
+            },
+            "cache_cleanup": {
+                "enabled": true,
+                "interval_hours": 6,
+                "max_cache_size_gb": 10,
+                "max_age_days": 30
+            },
+            "orphaned_cleanup": {
+                "enabled": true,
+                "interval_hours": 12
+            },
+            "log_rotation": {
+                "enabled": true,
+                "interval_hours": 24,
+                "max_log_files": 10,
+                "max_log_size_mb": 100
+            },
+            "database_cleanup": {
+                "enabled": true,
+                "interval_days": 7,
+                "task_retention_days": 30,
+                "journal_retention_days": 90
+            }
+        }
+    }
 }

@@ -112,7 +112,12 @@ class BLIPExtractor(Extractor):
         return results
     
     async def store(self, file_id: ObjectId, result: Any) -> bool:
-        """Store BLIP caption in FileRecord."""
+        """
+        Store BLIP caption in FileRecord.
+        
+        Stores in ai_caption field and optionally copies to description
+        if description is empty (controlled by config).
+        """
         try:
             caption = result.get("caption", "")
             if not caption:
@@ -122,8 +127,25 @@ class BLIPExtractor(Extractor):
             if not file:
                 return False
             
-            # Store caption
+            # Always store caption in ai_caption
             file.ai_caption = caption
+            logger.info(f"Stored BLIP caption for {file.name}: '{caption[:50]}...'")
+            
+            # Auto-fill description if empty (default: true)
+            # Try to get from global metadata config first
+            auto_fill = True
+            if self.locator and hasattr(self.locator, 'config'):
+                try:
+                    meta_config = self.locator.config.data.metadata
+                    auto_fill = getattr(meta_config, 'auto_fill_description_from_blip', True)
+                except Exception:
+                    pass
+            elif self.config:
+                auto_fill = self.config.get('auto_fill_description', True)
+            
+            if auto_fill and not file.description:
+                file.description = caption
+                logger.info(f"Auto-filled description from BLIP for {file.name}")
             
             # Update processing state
             if file.processing_state < ProcessingState.ANALYZED:

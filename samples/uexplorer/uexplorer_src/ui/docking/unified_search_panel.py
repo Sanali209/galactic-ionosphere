@@ -1,7 +1,7 @@
 """
 UnifiedSearchPanel - Merged Search + Filter panel with auto-execute.
 
-Combines text search, filters, and displays active filter summary.
+Combines text search, filters, and displays active filter badges.
 Auto-rebuilds and executes search when any source changes.
 """
 from typing import Optional
@@ -13,141 +13,6 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal, Qt, QTimer
 from PySide6.QtGui import QIcon
 from loguru import logger
-
-
-class FilterSummaryWidget(QWidget):
-    """Displays active filters in compact collapsible format."""
-    
-    clear_all_clicked = Signal()
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._setup_ui()
-    
-    def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
-        
-        # Header with count
-        header = QHBoxLayout()
-        self.toggle_btn = QToolButton()
-        self.toggle_btn.setArrowType(Qt.ArrowType.DownArrow)
-        self.toggle_btn.setCheckable(True)
-        self.toggle_btn.setChecked(True)
-        self.toggle_btn.toggled.connect(self._on_toggle)
-        header.addWidget(self.toggle_btn)
-        
-        self.header_label = QLabel("Active Filters (0)")
-        self.header_label.setStyleSheet("font-weight: bold; color: #aaa;")
-        header.addWidget(self.header_label)
-        
-        header.addStretch()
-        
-        self.clear_btn = QPushButton("Clear All")
-        self.clear_btn.setFixedHeight(20)
-        self.clear_btn.setStyleSheet("font-size: 10px;")
-        self.clear_btn.clicked.connect(self.clear_all_clicked.emit)
-        self.clear_btn.hide()
-        header.addWidget(self.clear_btn)
-        
-        layout.addLayout(header)
-        
-        # Content
-        self.content = QWidget()
-        self.content_layout = QVBoxLayout(self.content)
-        self.content_layout.setContentsMargins(16, 4, 4, 4)
-        self.content_layout.setSpacing(2)
-        
-        self.dir_label = QLabel()
-        self.dir_label.setStyleSheet("color: #888; font-size: 11px;")
-        self.dir_label.hide()
-        self.content_layout.addWidget(self.dir_label)
-        
-        self.tag_label = QLabel()
-        self.tag_label.setStyleSheet("color: #888; font-size: 11px;")
-        self.tag_label.hide()
-        self.content_layout.addWidget(self.tag_label)
-        
-        self.album_label = QLabel()
-        self.album_label.setStyleSheet("color: #888; font-size: 11px;")
-        self.album_label.hide()
-        self.content_layout.addWidget(self.album_label)
-        
-        self.filter_label = QLabel()
-        self.filter_label.setStyleSheet("color: #888; font-size: 11px;")
-        self.filter_label.hide()
-        self.content_layout.addWidget(self.filter_label)
-        
-        layout.addWidget(self.content)
-    
-    def _on_toggle(self, checked):
-        self.toggle_btn.setArrowType(
-            Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow
-        )
-        self.content.setVisible(checked)
-    
-    def update_from_query(self, query):
-        """Update display from UnifiedSearchQuery."""
-        count = 0
-        
-        # Directories
-        dir_parts = []
-        if hasattr(query, 'directory_include') and query.directory_include:
-            dir_parts.append(f"+{len(query.directory_include)}")
-            count += 1
-        if hasattr(query, 'directory_exclude') and query.directory_exclude:
-            dir_parts.append(f"-{len(query.directory_exclude)}")
-            count += 1
-        if dir_parts:
-            self.dir_label.setText(f"📁 Directories: {', '.join(dir_parts)}")
-            self.dir_label.show()
-        else:
-            self.dir_label.hide()
-        
-        # Tags
-        tag_parts = []
-        if hasattr(query, 'tag_include') and query.tag_include:
-            tag_parts.append(f"+{len(query.tag_include)}")
-            count += 1
-        if hasattr(query, 'tag_exclude') and query.tag_exclude:
-            tag_parts.append(f"-{len(query.tag_exclude)}")
-            count += 1
-        if tag_parts:
-            self.tag_label.setText(f"🏷️ Tags: {', '.join(tag_parts)}")
-            self.tag_label.show()
-        else:
-            self.tag_label.hide()
-        
-        # Albums
-        album_parts = []
-        if hasattr(query, 'album_include') and query.album_include:
-            album_parts.append(f"+{len(query.album_include)}")
-            count += 1
-        if hasattr(query, 'album_exclude') and query.album_exclude:
-            album_parts.append(f"-{len(query.album_exclude)}")
-            count += 1
-        if album_parts:
-            self.album_label.setText(f"📚 Albums: {', '.join(album_parts)}")
-            self.album_label.show()
-        else:
-            self.album_label.hide()
-        
-        # Filters
-        filter_parts = []
-        if hasattr(query, 'filters') and query.filters:
-            for k, v in query.filters.items():
-                if v:
-                    filter_parts.append(k)
-                    count += 1
-        if filter_parts:
-            self.filter_label.setText(f"⚙️ Filters: {', '.join(filter_parts)}")
-            self.filter_label.show()
-        else:
-            self.filter_label.hide()
-        
-        self.header_label.setText(f"Active Filters ({count})")
-        self.clear_btn.setVisible(count > 0)
 
 
 class UnifiedSearchPanel(QWidget):
@@ -235,10 +100,19 @@ class UnifiedSearchPanel(QWidget):
         
         layout.addWidget(search_group)
         
-        # === Filter Summary ===
-        self.filter_summary = FilterSummaryWidget()
-        self.filter_summary.clear_all_clicked.connect(self._on_clear_all)
-        layout.addWidget(self.filter_summary)
+        # === Active Filters (Badge Display) ===
+        try:
+            from uexplorer_src.ui.widgets.active_filters_widget import ActiveFiltersWidget
+            self.active_filters = ActiveFiltersWidget()
+            self.active_filters.clear_all_requested.connect(self._on_clear_all)
+            self.active_filters.filter_removed.connect(self._on_filter_badge_removed)
+            layout.addWidget(self.active_filters)
+        except ImportError as e:
+            logger.error(f"Failed to import ActiveFiltersWidget: {e}")
+            # Fallback to simple label
+            self.active_filters = QLabel("Filters widget unavailable")
+            self.active_filters.setStyleSheet("color: #888;")
+            layout.addWidget(self.active_filters)
         
         # === Quick Filters ===
         filter_group = QGroupBox("Quick Filters")
@@ -422,8 +296,139 @@ class UnifiedSearchPanel(QWidget):
         self._schedule_search()
     
     def _on_query_changed(self, query):
-        """Update filter summary when query changes."""
-        self.filter_summary.update_from_query(query)
+        """Update filter badges when query changes."""
+        if not hasattr(self, 'active_filters'):
+            return
+        
+        # Skip if active_filters is just a fallback label
+        if isinstance(self.active_filters, QLabel):
+            return
+        
+        # Clear all existing badges
+        self.active_filters.clear_all()
+        
+        # Add directory badges
+        if hasattr(query, 'directory_include') and query.directory_include:
+            for path in query.directory_include:
+                # Extract just the folder name for display
+                from pathlib import Path
+                display_name = Path(path).name or path
+                self.active_filters.add_badge(path, display_name, "directory", include=True)
+        
+        if hasattr(query, 'directory_exclude') and query.directory_exclude:
+            for path in query.directory_exclude:
+                from pathlib import Path
+                display_name = Path(path).name or path
+                self.active_filters.add_badge(path, display_name, "directory", include=False)
+        
+        # Add tag badges (need to resolve IDs to names)
+        if hasattr(query, 'tag_include') and query.tag_include:
+            for tag_id in query.tag_include:
+                tag_name = self._get_tag_name(tag_id)
+                self.active_filters.add_badge(tag_id, tag_name, "tag", include=True)
+        
+        if hasattr(query, 'tag_exclude') and query.tag_exclude:
+            for tag_id in query.tag_exclude:
+                tag_name = self._get_tag_name(tag_id)
+                self.active_filters.add_badge(tag_id, tag_name, "tag", include=False)
+        
+        # Add album badges (need to resolve IDs to names)
+        if hasattr(query, 'album_include') and query.album_include:
+            for album_id in query.album_include:
+                album_name = self._get_album_name(album_id)
+                self.active_filters.add_badge(album_id, album_name, "album", include=True)
+        
+        if hasattr(query, 'album_exclude') and query.album_exclude:
+            for album_id in query.album_exclude:
+                album_name = self._get_album_name(album_id)
+                self.active_filters.add_badge(album_id, album_name, "album", include=False)
+    
+    def _get_tag_name(self, tag_id: str) -> str:
+        """Resolve tag ID to display name."""
+        if not self._locator:
+            return tag_id[:8]
+        
+        try:
+            from src.core.database.manager import DatabaseManager
+            from bson import ObjectId
+            
+            db_manager = self._locator.get_system(DatabaseManager)
+            if not db_manager:
+                return tag_id[:8]
+            
+            # Query tag directly from database
+            try:
+                tag_obj_id = ObjectId(tag_id)
+                tag = db_manager.db.tags.find_one({"_id": tag_obj_id})
+                if tag:
+                    # Return the name field
+                    return tag.get('name', tag_id[:8])
+            except Exception as e:
+                logger.debug(f"Failed to get tag from database: {e}")
+            
+            return tag_id[:8]
+        except Exception as e:
+            logger.debug(f"Failed to resolve tag name: {e}")
+            return tag_id[:8]
+    
+    def _get_album_name(self, album_id: str) -> str:
+        """Resolve album ID to display name."""
+        if not self._locator:
+            return album_id[:8]
+        
+        try:
+            from src.core.database.manager import DatabaseManager
+            from bson import ObjectId
+            
+            db_manager = self._locator.get_system(DatabaseManager)
+            if not db_manager:
+                return album_id[:8]
+            
+            # Query album directly from database
+            try:
+                album_obj_id = ObjectId(album_id)
+                album = db_manager.db.albums.find_one({"_id": album_obj_id})
+                if album:
+                    # Return the name field
+                    return album.get('name', album_id[:8])
+            except Exception as e:
+                logger.debug(f"Failed to get album from database: {e}")
+            
+            return album_id[:8]
+        except Exception as e:
+            logger.debug(f"Failed to resolve album name: {e}")
+            return album_id[:8]
+    
+    def _on_filter_badge_removed(self, filter_type: str, filter_id: str):
+        """Handle filter badge removal - update query builder."""
+        if not self._query_builder:
+            logger.warning("No query builder connected")
+            return
+        
+        logger.debug(f"Badge removed: {filter_type} - {filter_id}")
+        
+        # Get current query
+        query = self._query_builder.get_current_query()
+        
+        # Remove from appropriate list
+        if filter_type == "tag":
+            if filter_id in query.tag_include:
+                query.tag_include.remove(filter_id)
+            if filter_id in query.tag_exclude:
+                query.tag_exclude.remove(filter_id)
+        elif filter_type == "album":
+            if filter_id in query.album_include:
+                query.album_include.remove(filter_id)
+            if filter_id in query.album_exclude:
+                query.album_exclude.remove(filter_id)
+        elif filter_type == "directory":
+            if filter_id in query.directory_include:
+                query.directory_include.remove(filter_id)
+            if filter_id in query.directory_exclude:
+                query.directory_exclude.remove(filter_id)
+        
+        # Trigger query update
+        self._query_builder._emit_query()
     
     def _on_clear_all(self):
         """Clear all filters."""

@@ -1,0 +1,274 @@
+"""
+Active Filters Widget - Display container for filter badges.
+
+Shows all active filters grouped by category with flow layout.
+Replaces FilterSummaryWidget with badge-based display.
+"""
+from typing import Dict, List, Tuple
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QFrame, QScrollArea
+)
+from PySide6.QtCore import Signal, Qt
+from loguru import logger
+
+from uexplorer_src.ui.widgets.filter_badge import FilterBadge
+
+
+class FlowLayout(QHBoxLayout):
+    """Simple flow layout that wraps widgets."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setSpacing(6)
+        self.setContentsMargins(0, 0, 0, 0)
+
+
+class ActiveFiltersWidget(QWidget):
+    """
+    Container displaying active filters as removable badges.
+    
+    Organizes badges by category (directories, tags, albums) with
+    collapsible sections.
+    
+    Signals:
+        filter_removed(filter_type, filter_id): Badge X button clicked
+        clear_all_requested(): Clear All button clicked
+    """
+    
+    filter_removed = Signal(str, str)  # (filter_type, filter_id)
+    clear_all_requested = Signal()
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        # Storage for badges by category
+        self._badges: Dict[str, List[Tuple[str, FilterBadge]]] = {
+            "directory": [],
+            "tag": [],
+            "album": []
+        }
+        
+        self._setup_ui()
+    
+    def _setup_ui(self):
+        """Build the widget UI."""
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(4, 4, 4, 4)
+        main_layout.setSpacing(8)
+        
+        # Header with "Active Filters" title and Clear All button
+        header = QHBoxLayout()
+        
+        self.title_label = QLabel("Active Filters (0)")
+        self.title_label.setStyleSheet("font-weight: bold; color: #ffffff; font-size: 13px;")
+        header.addWidget(self.title_label)
+        
+        header.addStretch()
+        
+        self.clear_all_btn = QPushButton("Clear All")
+        self.clear_all_btn.setFixedHeight(22)
+        self.clear_all_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #5a5a5a;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 4px 12px;
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                background-color: #6a6a6a;
+            }
+            QPushButton:pressed {
+                background-color: #4a4a4a;
+            }
+        """)
+        self.clear_all_btn.clicked.connect(self.clear_all_requested.emit)
+        self.clear_all_btn.hide()
+        header.addWidget(self.clear_all_btn)
+        
+        main_layout.addLayout(header)
+        
+        # Separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setStyleSheet("background-color: #4a4a4a;")
+        separator.setFixedHeight(1)
+        main_layout.addWidget(separator)
+        
+        # Scroll area for badge sections
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setStyleSheet("""
+            QScrollArea { 
+                border: none; 
+                background-color: #2b2b2b;
+            }
+            QWidget {
+                background-color: #2b2b2b;
+            }
+        """)
+        
+        scroll_content = QWidget()
+        self.sections_layout = QVBoxLayout(scroll_content)
+        self.sections_layout.setContentsMargins(0, 0, 0, 0)
+        self.sections_layout.setSpacing(12)
+        
+        # Create sections for each filter type
+        self.directory_section = self._create_section("📁 Directories")
+        self.tag_section = self._create_section("🏷️ Tags")
+        self.album_section = self._create_section("📚 Albums")
+        
+        self.sections_layout.addWidget(self.directory_section)
+        self.sections_layout.addWidget(self.tag_section)
+        self.sections_layout.addWidget(self.album_section)
+        self.sections_layout.addStretch()
+        
+        scroll.setWidget(scroll_content)
+        main_layout.addWidget(scroll)
+    
+    def _create_section(self, title: str) -> QWidget:
+        """Create a collapsible section for a filter category."""
+        section = QWidget()
+        layout = QVBoxLayout(section)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        
+        # Section title
+        title_label = QLabel(title)
+        title_label.setStyleSheet("color: #aaa; font-size: 11px; font-weight: bold;")
+        layout.addWidget(title_label)
+        
+        # Badge container with flow layout
+        badge_container = QWidget()
+        badge_container.setObjectName(f"{title}_badges")
+        
+        # Use a simple wrapping layout
+        badge_layout = FlowLayout()
+        badge_container.setLayout(badge_layout)
+        layout.addWidget(badge_container)
+        
+        section.hide()  # Hidden until badges added
+        return section
+    
+    def add_badge(self, filter_id: str, text: str, filter_type: str, include: bool = True):
+        """
+        Add a filter badge to the appropriate section.
+        
+        Args:
+            filter_id: Unique identifier for this filter (tag_id, path, album_id)
+            text: Display text for the badge
+            filter_type: "tag", "directory", "album"
+            include: True for include (+), False for exclude (-)
+        """
+        # Create badge
+        badge = FilterBadge(text, filter_type, include)
+        badge.removed.connect(lambda: self._on_badge_removed(filter_id, filter_type))
+        
+        # Add to appropriate section
+        section_map = {
+            "directory": self.directory_section,
+            "tag": self.tag_section,
+            "album": self.album_section
+        }
+        
+        section = section_map.get(filter_type)
+        if not section:
+            logger.warning(f"Unknown filter type: {filter_type}")
+            return
+        
+        # Find badge container in section
+        badge_container = section.findChild(QWidget, f"{section.findChild(QLabel).text()}_badges")
+        if badge_container:
+            badge_container.layout().addWidget(badge)
+            section.show()
+        
+        # Store badge reference
+        self._badges[filter_type].append((filter_id, badge))
+        
+        self._update_count()
+    
+    def remove_badge(self, filter_id: str, filter_type: str):
+        """Remove a specific badge."""
+        badges = self._badges.get(filter_type, [])
+        
+        for i, (stored_id, badge) in enumerate(badges):
+            if stored_id == filter_id:
+                # Remove widget
+                badge.setParent(None)
+                badge.deleteLater()
+                
+                # Remove from list
+                del self._badges[filter_type][i]
+                
+                # Hide section if empty
+                if not self._badges[filter_type]:
+                    section_map = {
+                        "directory": self.directory_section,
+                        "tag": self.tag_section,
+                        "album": self.album_section
+                    }
+                    section_map[filter_type].hide()
+                
+                break
+        
+        self._update_count()
+    
+    def clear_all(self):
+        """Remove all badges from all sections."""
+        for filter_type in ["directory", "tag", "album"]:
+            # Remove all badges
+            for filter_id, badge in self._badges[filter_type]:
+                badge.setParent(None)
+                badge.deleteLater()
+            
+            self._badges[filter_type].clear()
+            
+            # Hide section
+            section_map = {
+                "directory": self.directory_section,
+                "tag": self.tag_section,
+                "album": self.album_section
+            }
+            section_map[filter_type].hide()
+        
+        self._update_count()
+    
+    def clear_section(self, filter_type: str):
+        """Clear all badges from a specific section."""
+        if filter_type not in self._badges:
+            return
+        
+        for filter_id, badge in self._badges[filter_type]:
+            badge.setParent(None)
+            badge.deleteLater()
+        
+        self._badges[filter_type].clear()
+        
+        # Hide section
+        section_map = {
+            "directory": self.directory_section,
+            "tag": self.tag_section,
+            "album": self.album_section
+        }
+        section_map[filter_type].hide()
+        
+        self._update_count()
+    
+    def _on_badge_removed(self, filter_id: str, filter_type: str):
+        """Handle badge removal."""
+        self.remove_badge(filter_id, filter_type)
+        self.filter_removed.emit(filter_type, filter_id)
+    
+    def _update_count(self):
+        """Update title with total badge count."""
+        total = sum(len(badges) for badges in self._badges.values())
+        
+        self.title_label.setText(f"Active Filters ({total})")
+        self.clear_all_btn.setVisible(total > 0)
+    
+    def get_badge_count(self) -> int:
+        """Get total number of active badges."""
+        return sum(len(badges) for badges in self._badges.values())

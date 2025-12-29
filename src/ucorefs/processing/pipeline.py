@@ -8,6 +8,7 @@ from typing import List, Optional, Set
 from bson import ObjectId
 from loguru import logger
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from src.core.base_system import BaseSystem
 from src.core.tasks.system import TaskSystem
@@ -25,6 +26,9 @@ class ProcessingPipeline(BaseSystem):
     - Phase 2: 20 items (thumbnails, metadata, embeddings)
     - Phase 3: 1 item (AI detection, descriptions)
     """
+    
+    # Dependencies for task submission
+    depends_on = ["TaskSystem", "DatabaseManager"]
     
     PHASE2_BATCH_SIZE = 20
     PHASE3_BATCH_SIZE = 1
@@ -44,6 +48,17 @@ class ProcessingPipeline(BaseSystem):
         self._phase2_pending: Set[str] = set()
         self._phase3_pending: Set[str] = set()
         
+        # SAN-14 Phase 2: Create dedicated AI thread pool for CPU-heavy preprocessing
+        ai_workers = 4  # default
+        if hasattr(self.config, 'data') and hasattr(self.config.data, 'processing'):
+            ai_workers = getattr(self.config.data.processing, 'ai_workers', 4)
+        
+        self._ai_executor = ThreadPoolExecutor(
+            max_workers=ai_workers,
+            thread_name_prefix="ai-cpu"
+        )
+        logger.info(f"Created dedicated AI thread pool with {ai_workers} workers")
+        
         # Subscribe to ChangeMonitor for auto-processing
         try:
             from src.core.commands.bus import CommandBus
@@ -61,17 +76,33 @@ class ProcessingPipeline(BaseSystem):
     async def shutdown(self) -> None:
         """Shutdown pipeline."""
         logger.info("ProcessingPipeline shutting down")
+        
+        # SAN-14 Phase 2: Shutdown AI executor
+        if hasattr(self, '_ai_executor') and self._ai_executor:
+            logger.info("Shutting down AI thread pool...")
+            self._ai_executor.shutdown(wait=True)
+        
         await super().shutdown()
+    
+    def get_ai_executor(self):
+        """
+        Get the dedicated AI thread pool executor.
+        
+        Returns:
+            ThreadPoolExecutor for CPU-heavy AI preprocessing tasks, or None
+        """
+        return getattr(self, '_ai_executor', None)
     
     # ==================== Enqueue Methods ====================
     
-    async def enqueue_phase2(self, file_ids: List[ObjectId], force: bool = False) -> Optional[str]:
+    async def enqueue_phase2(self, file_ids: List[ObjectId], force: bool = False, priority: int = None) -> Optional[str]:
         """
         Enqueue files for Phase 2 processing.
         
         Args:
             file_ids: List of file ObjectIds to process
             force: If True, ignore pending check and always process
+            priority: Task priority (0=HIGH, 1=NORMAL, 2=LOW). Default: NORMAL
             
         Returns:
             Task ID if submitted, None if already pending (and not forced)
@@ -96,11 +127,14 @@ class ProcessingPipeline(BaseSystem):
         
         for i in range(0, len(new_ids), self.PHASE2_BATCH_SIZE):
             batch = new_ids[i:i + self.PHASE2_BATCH_SIZE]
+            batch_str = ",".join(str(fid) for fid in batch)
             
+            # SAN-14 Phase 3: Pass priority through
             task_id = await self.task_system.submit(
                 "process_phase2_batch",
                 f"Phase 2: Process {len(batch)} files",
-                ",".join(str(fid) for fid in batch)
+                batch_str,
+                priority=priority  # Pass priority
             )
             last_task_id = task_id
             count_queued += 1
@@ -220,17 +254,31 @@ class ProcessingPipeline(BaseSystem):
         
         # Get Phase 2 extractors
         extractors = ExtractorRegistry.get_for_phase(2, locator=self.locator)
+        total_extractors = len(extractors)
         
-        for extractor in extractors:
+        # SAN-14 Phase 2: Track progress per extractor
+        for i, extractor in enumerate(extractors):
             try:
                 # Filter to files this extractor can process
                 processable = [f for f in files if extractor.can_process(f)]
                 
                 if processable:
+                    logger.info(f"Running {extractor.name} on {len(processable)} files")
+                    
                     extractor_results = await extractor.process(processable)
                     success_count = sum(1 for v in extractor_results.values() if v)
                     results["by_extractor"][extractor.name] = success_count
                     results["processed"] += success_count
+                    
+                    # SAN-14 Phase 2: Publish per-extractor progress
+                    progress_percent = int((i + 1) / total_extractors * 100)
+                    await self._publish_progress("phase2.extractor.complete", {
+                        "extractor": extractor.name,
+                        "processed": len(processable),
+                        "success": success_count,
+                        "progress": progress_percent,
+                        "batch_size": len(files)
+                    })
                     
             except Exception as e:
                 logger.error(f"Extractor {extractor.name} failed: {e}")

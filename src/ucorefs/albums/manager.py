@@ -22,6 +22,8 @@ class AlbumManager(BaseSystem):
     - Add/remove files from albums
     """
     
+    depends_on = ["DatabaseManager"]
+    
     async def initialize(self) -> None:
         """Initialize album manager."""
         logger.info("AlbumManager initializing")

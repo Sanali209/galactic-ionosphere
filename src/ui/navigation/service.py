@@ -33,6 +33,8 @@ class NavigationService(BaseSystem):
         nav.navigate(file_record, source_id="browser_1")
     """
     
+    depends_on = []  # Independent UI service
+    
     def __init__(self, locator, config):
         super().__init__(locator, config)
         self._handlers: List['NavigationHandler'] = []

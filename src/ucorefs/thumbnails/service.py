@@ -26,6 +26,8 @@ class ThumbnailService(BaseSystem):
     - Lazy generation (create on first request)
     """
     
+    depends_on = ["DatabaseManager"]
+    
     async def initialize(self) -> None:
         """Initialize thumbnail service."""
         logger.info("ThumbnailService initializing")

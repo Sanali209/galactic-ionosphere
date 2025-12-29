@@ -13,16 +13,6 @@ from src.ucorefs.tags.models import Tag
 
 
 class TagManager(BaseSystem):
-    """
-    Tag management service.
-    
-    Features:
-    - Hierarchical tag creation
-    - Synonym/antonym relationships
-    - Tag search with synonym expansion
-    - Batch tagging
-    """
-    
     # Dependency declarations for topological startup order
     depends_on = [DatabaseManager]
     

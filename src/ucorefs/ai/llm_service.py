@@ -15,11 +15,12 @@ from src.ucorefs.types.registry import registry
 
 class LLMService(BaseSystem):
     """
-    LLM-powered description generation service.
+    LLM integration service for natural language queries.
     
-    Uses vision models to generate descriptions from images.
-    Integrates with file drivers for type-specific handling.
+    Provides semantic search and file descriptions using language models.
     """
+    
+    depends_on = []  # Independent service
     
     async def initialize(self) -> None:
         """Initialize LLM service."""

@@ -32,6 +32,8 @@ class VectorService(BaseSystem):
     - Metadata filtering via MongoDB
     """
     
+    depends_on = ["FAISSIndexService", "DatabaseManager"]
+    
     PROVIDERS = ["clip", "blip", "mobilenet", "thumb"]
     
     async def initialize(self) -> None:

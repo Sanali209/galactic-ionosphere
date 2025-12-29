@@ -34,6 +34,8 @@ class XMPExtractor:
         """
         Extract XMP metadata from file.
         
+        Supports non-English file paths via in-memory fallback.
+        
         Args:
             file_path: Path to image file
             
@@ -46,9 +48,19 @@ class XMPExtractor:
         try:
             import pyexiv2
             
-            img = pyexiv2.Image(file_path)
-            xmp_data = img.read_xmp()
-            img.close()
+            # Try direct path access first
+            try:
+                img = pyexiv2.Image(file_path)
+                xmp_data = img.read_xmp()
+                img.close()
+            except (UnicodeDecodeError, OSError) as e:
+                # Fallback for non-English paths (Cyrillic, Chinese, etc.)
+                logger.debug(f"Path-based XMP failed for {file_path}, using in-memory fallback: {e}")
+                with open(file_path, 'rb') as f:
+                    data = f.read()
+                img = pyexiv2.ImageData(data)
+                xmp_data = img.read_xmp()
+                img.close()
             
             result = {
                 "tags": [],
@@ -81,7 +93,7 @@ class XMPExtractor:
                         result["tags"].extend(self._parse_hierarchical_tags(lr_tags))
                     break  # Use first available format
             
-            # Extract label
+            # Extract label (text label, not color)
             if "Xmp.xmp.Label" in xmp_data:
                 result["label"] = xmp_data["Xmp.xmp.Label"]
             

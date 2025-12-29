@@ -24,12 +24,15 @@ class Extractor(ABC):
         phase: Processing phase (2 or 3)
         priority: Execution order (higher = first)
         batch_supported: Whether batch processing is supported
+        is_cpu_heavy: Whether this extractor does CPU-intensive work (SAN-14)
+                     If True, implementations should use thread pool offloading
     """
     
     name: str = "base_extractor"
     phase: int = 2
     priority: int = 0
     batch_supported: bool = True
+    is_cpu_heavy: bool = False  # SAN-14: Flag for CPU-intensive extractors
     
     def __init__(self, locator=None, config: Dict[str, Any] = None):
         """

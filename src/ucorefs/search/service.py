@@ -54,19 +54,6 @@ class SearchQuery:
 
 class SearchService(BaseSystem):
     """
-    Unified search service for files.
-    
-    Architecture:
-    1. Apply MongoDB filters first (fast, indexed)
-    2. Apply text search if text query provided
-    3. Apply vector similarity if enabled
-    4. Merge and rank results
-    
-    Usage:
-        query = SearchQuery(
-            text="cat",
-            filters={"file_type": "image"},
-            vector_search=True,
             vector_provider="clip"
         )
         results = await search_service.search(query)

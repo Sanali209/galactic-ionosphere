@@ -4,15 +4,18 @@ FileBrowserDocument - CardView-based file browser document.
 Uses Foundation's CardView + BrowseViewModel for MVVM file browsing.
 Replaces the old 3-view FilePaneWidget with a single CardView.
 """
-from typing import Optional, List
+from typing import Optional, List, Set
+from collections import OrderedDict
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QComboBox, QSlider, QPushButton
 )
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QTimer
 from loguru import logger
 import asyncio
 import uuid
+import time
+from bson import ObjectId
 
 from src.ui.cardview.card_view import CardView
 from src.ui.cardview.card_viewmodel import CardViewModel
@@ -68,7 +71,16 @@ class FileBrowserDocument(QWidget):
         # Services
         self._thumbnail_service = None
         self._search_service = None
+        self._processing_pipeline = None
         self._init_services()
+        
+        # Viewport priority detection (SAN-14 Phase 3)
+        self._viewport_timer = QTimer()
+        self._viewport_timer.setSingleShot(True)
+        self._viewport_timer.setInterval(500)  # 500ms debounce
+        self._viewport_timer.timeout.connect(self._queue_visible_files)
+        self._last_queued_ids: OrderedDict[ObjectId, float] = OrderedDict()  # LRU cache: {file_id: timestamp}
+        self._priority_enabled = True  # TODO:make configurable
         
         # Build UI
         self._setup_ui()
@@ -91,6 +103,12 @@ class FileBrowserDocument(QWidget):
             self._search_service = self.locator.get_system(SearchService)
         except (KeyError, ImportError):
             logger.debug("SearchService not available")
+        
+        try:
+            from src.ucorefs.processing.pipeline import ProcessingPipeline
+            self._processing_pipeline = self.locator.get_system(ProcessingPipeline)
+        except (KeyError, ImportError):
+            logger.debug("ProcessingPipeline not available")
     
     def _setup_ui(self):
         """Build the document UI."""
@@ -114,6 +132,11 @@ class FileBrowserDocument(QWidget):
         # Connect CardView signals
         self._card_view.selection_changed.connect(self._on_card_selection)
         self._card_view.item_double_clicked.connect(self._on_item_double_clicked)
+        
+        # Connect viewport events for priority queue (SAN-14)
+        scroll_bar = self._card_view.scroll_area.verticalScrollBar()
+        scroll_bar.valueChanged.connect(self._on_viewport_changed)
+        self._card_view.scroll_area.viewport().installEventFilter(self)
         
         layout.addWidget(self._card_view, 1)
         
@@ -180,6 +203,9 @@ class FileBrowserDocument(QWidget):
         self._viewmodel.sort_changed.connect(self._on_vm_sort_changed)
         self._viewmodel.group_changed.connect(self._on_vm_group_changed)
         self._viewmodel.directory_changed.connect(self._on_vm_directory_changed)
+        
+        # Also trigger viewport check when results change
+        self._viewmodel.results_changed.connect(lambda _: self._on_viewport_changed())
     
     # --- ViewModel Event Handlers ---
     
@@ -498,3 +524,136 @@ class FileBrowserDocument(QWidget):
         self._title = state.get("title", "Files")
         if self._viewmodel and "viewmodel_state" in state:
             self._viewmodel.restore_state(state["viewmodel_state"])
+    
+    # --- Viewport Priority Detection (SAN-14 Phase 3) ---
+    
+    def _on_viewport_changed(self):
+        """
+        Handle viewport changes (scroll, resize, results change).
+        Debounces and triggers priority queue update.
+        """
+        if not self._priority_enabled or not self._processing_pipeline:
+            return
+        
+        # Restart debounce timer
+        self._viewport_timer.start()
+    
+    def get_visible_file_ids(self) -> List[ObjectId]:
+        """
+        Get file IDs currently visible in viewport.
+        
+        Returns:
+            List of ObjectId for visible files
+        """
+        # Defensive null checks
+        if not self._card_view or not self._card_viewmodel:
+            logger.debug("CardView not initialized, skipping visibility detection")
+            return []
+        
+        try:
+            # Get visible range from CardView
+            start_idx, end_idx = self._card_view._get_visible_range()
+            
+            # Get items in visible range
+            all_items = self._card_viewmodel._items
+            visible_items = all_items[start_idx:end_idx]
+            
+            # Extract file IDs (convert from string to ObjectId)
+            file_ids = []
+            for item in visible_items:
+                try:
+                    file_ids.append(ObjectId(item.id))
+                except Exception as e:
+                    logger.debug(f"Invalid ObjectId: {item.id} - {e}")
+            
+            return file_ids
+            
+        except Exception as e:
+            logger.error(f"Failed to get visible file IDs: {e}")
+            return []
+    
+    def _queue_visible_files(self):
+        """
+        Queue visible files with HIGH priority for processing.
+        Called after debounce timer expires.
+        """
+        if not self._processing_pipeline:
+            return
+        
+        visible_ids = self.get_visible_file_ids()
+        
+        if not visible_ids:
+            return
+        
+        # Only queue files we haven't queued recently
+        new_ids = [fid for fid in visible_ids if fid not in self._last_queued_ids]
+        
+        if not new_ids:
+            return  # All visible files already queued
+        
+        # Queue with HIGH priority (0)
+        asyncio.create_task(self._async_queue_priority(new_ids, priority=0))
+        
+        # Update LRU tracking with current timestamp
+        now = time.time()
+        for fid in new_ids:
+            self._last_queued_ids[fid] = now
+        
+        # Maintain LRU cache size (keep most recent 1000 entries)
+        while len(self._last_queued_ids) > 1000:
+            self._last_queued_ids.popitem(last=False)  # Remove oldest entry
+        
+        logger.info(f"🎯 Queued {len(new_ids)} visible files with HIGH priority")
+    
+    async def _async_queue_priority(self, file_ids: List[ObjectId], priority: int):
+        """
+        Async helper to queue files with priority.
+        
+        Args:
+            file_ids: List of file ObjectIds
+            priority: Task priority (0=HIGH, 1=NORMAL, 2=LOW)
+        """
+        try:
+            from src.ucorefs.models.file_record import FileRecord
+            from src.ucorefs.models.base import ProcessingState
+            
+            # Filter to files needing processing
+            pending_ids = []
+            for file_id in file_ids:
+                file = await FileRecord.get(file_id)
+                if file and file.processing_state < ProcessingState.INDEXED:
+                    pending_ids.append(file_id)
+            
+            if not pending_ids:
+                return  # All files already processed
+            
+            # Enqueue with specified priority
+            task_id = await self._processing_pipeline.enqueue_phase2(
+                pending_ids,
+                priority=priority
+            )
+            
+            if task_id:
+                priority_name = ["HIGH", "NORMAL", "LOW"][priority]
+                logger.debug(f"Priority queue: {len(pending_ids)} files ({priority_name}) - Task {task_id}")
+        
+        except Exception as e:
+            logger.error(f"Failed to queue priority files: {e}")
+    
+    def eventFilter(self, source, event):
+        """
+        Event filter for viewport resize detection.
+        
+        Args:
+            source: Event source
+            event: QEvent
+        
+        Returns:
+            False to allow event propagation
+        """
+        # Detect viewport resize
+        if event.type() == event.Type.Resize:
+            if source == self._card_view.scroll_area.viewport():
+                self._on_viewport_changed()
+        
+        return super().eventFilter(source, event)

@@ -33,6 +33,9 @@ class WDTaggerService(BaseSystem):
         wd_tagger.character_threshold: float - Character tag threshold
     """
     
+    # No dependencies - loads model independently
+    depends_on = []
+    
     # Model configuration defaults
     DEFAULT_MODEL_REPO = "SmilingWolf/wd-vit-tagger-v3"
     DEFAULT_GENERAL_THRESHOLD = 0.35
@@ -168,14 +171,15 @@ class WDTaggerService(BaseSystem):
             Dict with tags, characters, rating, scores
             None if service not ready or error
         """
-        if not self.is_ready or self._model is None:
-            logger.warning("WDTaggerService not ready")
+        # Comprehensive readiness check for graceful degradation during startup/shutdown
+        if not self.is_ready or self._model is None or self._transform is None:
+            logger.debug(f"WDTaggerService not ready, skipping {image_path.name}")
             return None
         
         try:
             return await asyncio.to_thread(self._inference_sync, image_path)
         except Exception as e:
-            logger.error(f"WDTaggerService.tag_image failed: {e}")
+            logger.warning(f"WDTaggerService.tag_image failed: {e}")  # Warning, not error
             return None
     
     def _inference_sync(self, image_path: Path) -> Dict[str, Any]:

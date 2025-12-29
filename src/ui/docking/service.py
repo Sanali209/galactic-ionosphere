@@ -710,3 +710,7 @@ class DockingService(QObject):
             "bottom": QtAds.SideBarBottom,
         }
         return sidebar_map.get(sidebar, QtAds.SideBarRight)
+    
+    async def shutdown(self):
+        """Cleanup docking manager."""
+        logger.info("DockingService shutting down")

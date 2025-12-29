@@ -17,13 +17,13 @@ from src.ucorefs.models.file_record import FileRecord
 
 class RulesEngine(BaseSystem):
     """
-    Rules execution engine.
+    Rules-based automation engine.
     
-    Features:
-    - Evaluate rules on triggers
-    - Execute actions when conditions match
-    - Track execution statistics
+    Applies user-defined rules to files for automatic tagging, moving, etc.
+    Triggered by file events (creation, modification).
     """
+    
+    depends_on = ["DatabaseManager", "TagManager"]
     
     async def initialize(self) -> None:
         """Initialize rules engine."""

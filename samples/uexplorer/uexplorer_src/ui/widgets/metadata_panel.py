@@ -93,7 +93,13 @@ class MetadataPanel(QWidget):
         # 3. Description
         self._init_description()
         
-        # 4. EXIF / Details
+        # 4. AI-Generated Caption (NEW)
+        self._init_ai_section()
+        
+        # 5. XMP Metadata Buttons (NEW)
+        self._init_xmp_buttons()
+        
+        # 6. EXIF / Details
         self._init_details()
         
         self.layout.addStretch()
@@ -162,6 +168,47 @@ class MetadataPanel(QWidget):
         
         layout.addWidget(self.desc_edit)
         self.layout.addWidget(group)
+    
+    def _init_ai_section(self):
+        """AI-generated caption display section."""
+        group = QGroupBox("AI-Generated Content")
+        group.setStyleSheet("QGroupBox { color: #cccccc; background-color: #2d2d2d; border: 1px solid #3d3d3d; border-radius: 4px; padding: 10px; margin-top: 10px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }")
+        layout = QVBoxLayout(group)
+        
+        self.ai_caption_label = QLabel("(No AI description yet)")
+        self.ai_caption_label.setWordWrap(True)
+        self.ai_caption_label.setStyleSheet("color: #9a8a5a; font-style: italic; padding: 5px;")
+        self.ai_caption_label.setMinimumHeight(40)
+        layout.addWidget(self.ai_caption_label)
+        
+        # Button to generate/regenerate description
+        from PySide6.QtWidgets import QPushButton
+        btn_generate = QPushButton("Generate Description (BLIP)")
+        btn_generate.setStyleSheet("QPushButton { background-color: #3d3d3d; padding: 5px; }")
+        btn_generate.clicked.connect(self._trigger_blip)
+        layout.addWidget(btn_generate)
+        
+        self.layout.addWidget(group)
+    
+    def _init_xmp_buttons(self):
+        """XMP metadata read/write buttons."""
+        group = QGroupBox("XMP Metadata")
+        group.setStyleSheet("QGroupBox { color: #cccccc; background-color: #2d2d2d; border: 1px solid #3d3d3d; border-radius: 4px; padding: 10px; margin-top: 10px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }")
+        layout = QHBoxLayout(group)
+        
+        from PySide6.QtWidgets import QPushButton
+        
+        btn_read_xmp = QPushButton("Read from XMP")
+        btn_read_xmp.setStyleSheet("QPushButton { background-color: #3d3d3d; padding: 5px; }")
+        btn_read_xmp.clicked.connect(self._read_xmp_metadata)
+        layout.addWidget(btn_read_xmp)
+        
+        btn_write_xmp = QPushButton("Write to XMP")
+        btn_write_xmp.setStyleSheet("QPushButton { background-color: #3d3d3d; padding: 5px; }")
+        btn_write_xmp.clicked.connect(self._write_xmp_metadata)
+        layout.addWidget(btn_write_xmp)
+        
+        self.layout.addWidget(group)
         
     def _init_details(self):
         self.details_group = QGroupBox("Details")
@@ -224,6 +271,15 @@ class MetadataPanel(QWidget):
         # Update Details
         mod_time = getattr(record, 'modified_at', None)
         self.modified_label.setText(mod_time.strftime("%Y-%m-%d %H:%M") if mod_time else "-")
+        
+        # Update AI Caption display (NEW)
+        ai_caption = getattr(record, 'ai_caption', '')
+        if ai_caption:
+            self.ai_caption_label.setText(ai_caption)
+            self.ai_caption_label.setStyleSheet("color: #5aca5a; font-style: italic; padding: 5px;")
+        else:
+            self.ai_caption_label.setText("(No AI description yet)")
+            self.ai_caption_label.setStyleSheet("color: #888888; font-style: italic; padding: 5px;")
         
         # Update ProcessingState - demonstrates UCoreFS pipeline status
         self._update_processing_state(record)
@@ -389,4 +445,109 @@ class MetadataPanel(QWidget):
         except Exception as e:
             logger.debug(f"Failed to get detections: {e}")
             self.detections_label.setText("-")
+    
+    def _trigger_blip(self):
+        """Manually trigger BLIP caption generation for current file."""
+        if not self.current_file:
+            return
+        
+        try:
+            from src.ucorefs.processing.pipeline import ProcessingPipeline
+            pipeline = self.locator.get_system(ProcessingPipeline)
+            asyncio.ensure_future(pipeline.enqueue_phase3(self.current_file._id))
+            logger.info(f"Queued Phase 3 (BLIP) processing for {self.current_file.name}")
+        except Exception as e:
+            logger.error(f"Failed to queue BLIP processing: {e}")
+    
+    async def _read_xmp_metadata(self):
+        """Re-extract XMP metadata from file and force update FileRecord."""
+        if not self.current_file:
+            return
+        
+        try:
+            from src.ucorefs.extractors.xmp import xmp_extractor
+            from src.ucorefs.extractors.metadata import MetadataExtractor
+            
+            if not xmp_extractor.is_available():
+                logger.warning("pyexiv2 not available")
+                return
+            
+            # Force re-extract XMP
+            xmp_data = xmp_extractor.extract(self.current_file.path)
+            
+            if xmp_data:
+                # Force update even if fields not empty
+                if xmp_data.get("label"):
+                    self.current_file.label = xmp_data["label"]
+                
+                if xmp_data.get("description"):
+                    self.current_file.description = xmp_data["description"]
+                
+                # Extract rating
+                raw_xmp = xmp_data.get("raw_xmp", {})
+                if "Xmp.xmp.Rating" in raw_xmp:
+                    try:
+                        self.current_file.rating = int(raw_xmp["Xmp.xmp.Rating"])
+                    except (ValueError, TypeError):
+                        pass
+                
+                # Update tags
+                if xmp_data.get("tags"):
+                    extractor = MetadataExtractor(self.locator)
+                    resolved_ids = await extractor._resolve_tags(xmp_data["tags"])
+                    existing = set(self.current_file.tag_ids)
+                    existing.update(resolved_ids)
+                    self.current_file.tag_ids = list(existing)
+                
+                await self.current_file.save()
+                logger.info(f"Re-imported XMP metadata for {self.current_file.name}")
+                
+                # Refresh display
+                self.set_file(self.current_file)
+            else:
+                logger.info(f"No XMP data found in {self.current_file.path}")
+                
+        except Exception as e:
+            logger.error(f"Failed to read XMP metadata: {e}")
+    
+    async def _write_xmp_metadata(self):
+        """Write FileRecord metadata back to XMP sidecar file."""
+        if not self.current_file:
+            return
+        
+        try:
+            import pyexiv2
+            from pathlib import Path
+            
+            # Create XMP sidecar path (filename.ext.xmp)
+            sidecar_path = str(Path(self.current_file.path) + Path('.xmp'))
+            
+            # Prepare XMP data
+            xmp_dict = {}
+            
+            if self.current_file.label:
+                xmp_dict["Xmp.xmp.Label"] = self.current_file.label
+            
+            if self.current_file.description:
+                xmp_dict["Xmp.dc.description"] = {"x-default": self.current_file.description}
+            
+            if self.current_file.rating > 0:
+                xmp_dict["Xmp.xmp.Rating"] = str(self.current_file.rating)
+            
+            # TODO: Export tags to Xmp.dc.subject
+            # Would need to get tag names from TagManager
+            
+            # Write XMP sidecar
+            img = pyexiv2.ImageData()
+            img.modify_xmp(xmp_dict)
+            with open(sidecar_path, 'wb') as f:
+                f.write(img.get_bytes())
+            img.close()
+            
+            logger.info(f"Wrote XMP sidecar to {sidecar_path}")
+            
+        except ImportError:
+            logger.warning("pyexiv2 not available for XMP write")
+        except Exception as e:
+            logger.error(f"Failed to write XMP metadata: {e}")
 

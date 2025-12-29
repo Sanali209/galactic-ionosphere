@@ -42,6 +42,7 @@ class DirectoryPanel(PanelBase):
         self._dir_cache = {}  # id -> DirectoryRecord
         self._include_dirs: set = set()  # paths to include
         self._exclude_dirs: set = set()  # paths to exclude
+        self._last_source_path = None  # Track source changes
         super().__init__(locator, parent)
         
         # Get FSService from locator
@@ -83,6 +84,24 @@ class DirectoryPanel(PanelBase):
         """)
         self.btn_refresh.clicked.connect(self._on_refresh)
         header.addWidget(self.btn_refresh)
+        
+        # Expand All button
+        self.btn_expand = QPushButton("⊕")
+        self.btn_expand.setFixedSize(24, 24)
+        self.btn_expand.setToolTip("Expand All Visible")
+        self.btn_expand.setStyleSheet("""
+            QPushButton {
+                background-color: #5a7aaa;
+                color: white;
+                border: none;
+                border-radius: 12px;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            QPushButton:hover { background-color: #6a8aba; }
+        """)
+        self.btn_expand.clicked.connect(self._on_expand_all)
+        header.addWidget(self.btn_expand)
         
         layout.addLayout(header)
         
@@ -133,14 +152,58 @@ class DirectoryPanel(PanelBase):
         return self._tree
     
     def on_update(self, context=None):
-        """Refresh tree when panel updated."""
+        """Refresh tree when panel updated and check for source changes."""
+        if self._fs_service:
+            # Check if source path changed
+            current_source = self._get_current_source_path()
+            if current_source and current_source != self._last_source_path:
+                logger.info(f"Source changed: {self._last_source_path} -> {current_source}")
+                self._last_source_path = current_source
+                asyncio.ensure_future(self._refresh_and_expand(current_source))
+                return
+        
+        # Normal refresh
         asyncio.ensure_future(self._load_roots())
     
     def _on_refresh(self):
         """Refresh button clicked."""
         self._tree.clear()
         self._dir_cache.clear()
-        asyncio.ensure_future(self._load_roots())
+        # Reset source tracking to force re-expansion
+        current_source = self._get_current_source_path()
+        if current_source:
+            self._last_source_path = current_source
+            asyncio.ensure_future(self._refresh_and_expand(current_source))
+        else:
+            asyncio.ensure_future(self._load_roots())
+    
+    def _on_expand_all(self):
+        """Expand All button clicked."""
+        self._tree.expandAll()
+        logger.debug("Expanded all visible tree nodes")
+    
+    def _get_current_source_path(self) -> Optional[str]:
+        """Get current source path from FSService or config."""
+        if not self._fs_service:
+            return None
+        
+        # Try to get source path from FSService attributes
+        source = getattr(self._fs_service, 'source_path', None) or \
+                getattr(self._fs_service, '_source_path', None)
+        
+        if source:
+            return str(source)
+        
+        # Fallback: get from config
+        try:
+            if hasattr(self.locator, 'config') and hasattr(self.locator.config, 'data'):
+                config_data = self.locator.config.data
+                if hasattr(config_data, 'library') and hasattr(config_data.library, 'source_path'):
+                    return str(config_data.library.source_path)
+        except Exception:
+            pass
+        
+        return None
     
     async def _load_roots(self):
         """Load library roots as top-level items."""
@@ -162,6 +225,82 @@ class DirectoryPanel(PanelBase):
             
         except Exception as e:
             logger.error(f"Failed to load directory roots: {e}")
+    
+    async def _refresh_and_expand(self, target_path: str):
+        """Refresh tree and auto-expand to target path."""
+        # Load roots first
+        await self._load_roots()
+        
+        # Find and expand path to target
+        await self._expand_to_path(target_path)
+    
+    async def _expand_to_path(self, target_path: str):
+        """Auto-expand tree to show target path."""
+        from pathlib import Path
+        
+        target = Path(target_path)
+        target_str = target.as_posix() if hasattr(target, 'as_posix') else str(target)
+        
+        # Find root that contains this path
+        for i in range(self._tree.topLevelItemCount()):
+            root_item = self._tree.topLevelItem(i)
+            root_path = root_item.data(0, Qt.ItemDataRole.UserRole + 1)
+            
+            if not root_path:
+                continue
+            
+            # Check if target is under this root
+            if target_str.startswith(root_path) or target_str == root_path:
+                logger.debug(f"Expanding root: {root_path}")
+                
+                # Expand root
+                if not root_item.isExpanded():
+                    # Trigger lazy load
+                    dir_id = root_item.data(0, Qt.ItemDataRole.UserRole)
+                    if dir_id:
+                        await self._load_children(root_item, dir_id)
+                root_item.setExpanded(True)
+                
+                # Walk down to target
+                if target_str != root_path:
+                    await self._expand_path_recursive(root_item, target_str, root_path)
+                else:
+                    # Target IS the root, just select it
+                    self._tree.setCurrentItem(root_item)
+                
+                break
+    
+    async def _expand_path_recursive(self, parent_item: QTreeWidgetItem, 
+                                     target_path: str, current_path: str):
+        """Recursively expand tree nodes to reach target path."""
+        # Check each child
+        for i in range(parent_item.childCount()):
+            child = parent_item.child(i)
+            child_path = child.data(0, Qt.ItemDataRole.UserRole + 1)
+            
+            if not child_path:
+                continue
+            
+            # If target starts with child path, expand it
+            if target_path.startswith(child_path) or target_path == child_path:
+                logger.debug(f"Expanding: {child_path}")
+                
+                # Load children if not loaded
+                if child.childCount() == 1 and child.child(0).text(0) == "Loading...":
+                    dir_id = child.data(0, Qt.ItemDataRole.UserRole)
+                    if dir_id:
+                        await self._load_children(child, dir_id)
+                
+                child.setExpanded(True)
+                
+                # Continue down the tree if not at target yet
+                if child_path != target_path:
+                    await self._expand_path_recursive(child, target_path, child_path)
+                else:
+                    # Found target, select it
+                    self._tree.setCurrentItem(child)
+                
+                break
     
     def _create_dir_item(self, dir_record) -> QTreeWidgetItem:
         """Create tree item for a directory."""
@@ -204,8 +343,18 @@ class DirectoryPanel(PanelBase):
             logger.debug(f"Directory selected: {path}")
             # Navigation
             self.directory_selected.emit(dir_id, path)
-            # Unified Search Filter inclusion
-            self.toggle_include(path)
+            
+            # Check if Ctrl is pressed - if so, add to filter instead of replacing
+            from PySide6.QtWidgets import QApplication
+            from PySide6.QtCore import Qt as QtCore
+            
+            modifiers = QApplication.keyboardModifiers()
+            if modifiers & QtCore.KeyboardModifier.ControlModifier:
+                # Add to filter without replacing (toggle)
+                self.toggle_include(path)
+            else:
+                # Replace entire directory filter section with this directory
+                self.replace_directory_filter(path)
     
     def _on_item_expanded(self, item: QTreeWidgetItem):
         """Lazy load children when expanded."""
@@ -266,6 +415,18 @@ class DirectoryPanel(PanelBase):
     def exclude_ids(self) -> List[str]:
         """Get list of excluded directory paths."""
         return list(self._exclude_dirs)
+    
+    def replace_directory_filter(self, path: str):
+        """Replace all directory filters with just this directory."""
+        # Clear existing directory filters
+        self._include_dirs.clear()
+        self._exclude_dirs.clear()
+        
+        # Set only this directory as included
+        self._include_dirs.add(path)
+        
+        # Emit change
+        self._emit_filter_changed()
     
     def toggle_include(self, path: str):
         """Toggle directory in include list."""

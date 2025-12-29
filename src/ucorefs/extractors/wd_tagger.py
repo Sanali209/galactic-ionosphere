@@ -35,6 +35,7 @@ class WDTaggerExtractor(Extractor):
     phase: int = 2
     priority: int = 50  # Run after thumbnails, before embeddings
     batch_supported: bool = False  # Process one at a time (GPU memory)
+    is_cpu_heavy: bool = True  # SAN-14: AI inference with image preprocessing (PIL operations)
     
     # Model configuration (passed to service via config)
     DEFAULT_MODEL_REPO = "SmilingWolf/wd-vit-tagger-v3"
@@ -61,6 +62,11 @@ class WDTaggerExtractor(Extractor):
     def can_process(self, file: FileRecord) -> bool:
         """Check if file is a processable image."""
         if not self.enabled:
+            return False
+        
+        # Check if service is ready (don't queue files if model still loading)
+        service = self._get_tagger_service()
+        if not service or not service.is_ready:
             return False
         
         ext = (file.extension or "").lower().lstrip(".")

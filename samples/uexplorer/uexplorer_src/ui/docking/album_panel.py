@@ -118,6 +118,10 @@ class AlbumPanel(PanelBase):
         # Connect include/exclude signals
         self._tree.include_requested.connect(self.toggle_include)
         self._tree.exclude_requested.connect(self.toggle_exclude)
+        
+        # Connect single-click to replace filter
+        if hasattr(self._tree, 'itemClicked'):
+            self._tree.itemClicked.connect(self._on_album_clicked)
     
     @property
     def tree(self) -> AlbumTreeWidget:
@@ -132,6 +136,40 @@ class AlbumPanel(PanelBase):
     def exclude_ids(self) -> List[str]:
         """Get list of excluded album IDs."""
         return list(self._exclude_albums)
+    
+    def _on_album_clicked(self, item, column):
+        """Handle album item clicked - replace filter section with this album."""
+        if not item:
+            return
+        
+        # Get album ID from item
+        album_id = item.data(0, 0x0100)  # Qt.UserRole
+        if not album_id:
+            return
+        
+        from PySide6.QtWidgets import QApplication
+        from PySide6.QtCore import Qt
+        
+        # Check if Ctrl is pressed - if so, add to filter instead of replacing
+        modifiers = QApplication.keyboardModifiers()
+        if modifiers & Qt.KeyboardModifier.ControlModifier:
+            # Add to filter without replacing
+            self.toggle_include(album_id)
+        else:
+            # Replace entire album filter section with this album
+            self.replace_album_filter(album_id)
+    
+    def replace_album_filter(self, album_id: str):
+        """Replace all album filters with just this album."""
+        # Clear existing album filters
+        self._include_albums.clear()
+        self._exclude_albums.clear()
+        
+        # Set only this album as included
+        self._include_albums.add(album_id)
+        
+        # Emit change
+        self._emit_filter_changed()
     
     def toggle_include(self, album_id: str):
         """Toggle album in include list."""

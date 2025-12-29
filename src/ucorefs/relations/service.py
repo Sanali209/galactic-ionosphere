@@ -13,14 +13,12 @@ from src.ucorefs.relations.models import Relation, RelationType
 
 class RelationService(BaseSystem):
     """
-    Service for managing file-to-file relations.
+    File relationship tracking service.
     
-    Features:
-    - Create/query relations
-    - Mark wrong relations
-    - Extensible relation types
-    - Batch operations
+    Manages relationships between files (duplicates, parents, variations, etc).
     """
+    
+    depends_on = ["DatabaseManager", "ThumbnailService"]
     
     async def initialize(self) -> None:
         """Initialize relation service."""

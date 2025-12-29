@@ -30,8 +30,18 @@ class MetadataExtractor(Extractor):
     priority = 90  # After thumbnails
     batch_supported = True
     
-    # File types that support XMP
-    XMP_TYPES = {"image", "pdf"}
+    # Supported file types - expanded to all pyexiv2-compatible formats
+    # Images: JPG, PNG, TIFF, WebP, GIF, BMP
+    # RAW: CR2, NEF, ARW, DNG, RAF, ORF, etc.
+    # Others: PSD, PDF, EPS
+    SUPPORTED_EXTENSIONS = {
+        # Standard images
+        'jpg', 'jpeg', 'png', 'tiff', 'tif', 'webp', 'gif', 'bmp',
+        # RAW formats
+        'cr2', 'cr3', 'nef', 'arw', 'dng', 'raf', 'orf', 'rw2', 'pef', 'srw',
+        # Professional formats
+        'psd', 'pdf', 'eps'
+    }
     
     async def extract(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
         """
@@ -52,8 +62,8 @@ class MetadataExtractor(Extractor):
             metadata = {}
             
             try:
-                # Extract XMP metadata
-                if file.file_type in self.XMP_TYPES and xmp_extractor.is_available():
+                # Extract XMP metadata (works with all supported file types)
+                if xmp_extractor.is_available():
                     xmp_data = xmp_extractor.extract(file.path)
                     
                     if xmp_data:
@@ -81,6 +91,7 @@ class MetadataExtractor(Extractor):
         """
         Store extracted metadata to FileRecord.
         
+        Optionally fills empty fields or overwrites based on config.
         Also resolves raw tags to TagManager with synonym support.
         """
         try:
@@ -88,15 +99,30 @@ class MetadataExtractor(Extractor):
             if not file:
                 return False
             
-            # Apply basic metadata
+            # Get metadata config from global system
+            prefer_xmp = False
+            if self.locator and hasattr(self.locator, 'config'):
+                try:
+                    meta_config = self.locator.config.data.metadata
+                    prefer_xmp = getattr(meta_config, 'prefer_xmp_over_existing', False)
+                except Exception:
+                    pass
+
+            # Update Metadata fields
             if "label" in result and result["label"]:
-                file.label = result["label"]
+                if prefer_xmp or not file.label:
+                    file.label = result["label"]
+                    logger.debug(f"Set label='{file.label}' from XMP for {file.name}")
             
             if "description" in result and result["description"]:
-                file.description = result["description"]
+                if prefer_xmp or not file.description:
+                    file.description = result["description"]
+                    logger.debug(f"Set description from XMP for {file.name}")
             
-            if "rating" in result:
-                file.rating = result["rating"]
+            if "rating" in result and result["rating"]:
+                if prefer_xmp or file.rating == 0:
+                    file.rating = result["rating"]
+                    logger.debug(f"Set rating={file.rating} from XMP for {file.name}")
             
             # Resolve tags with synonym support
             raw_tags = result.get("raw_tags", [])
@@ -106,6 +132,7 @@ class MetadataExtractor(Extractor):
                 existing = set(file.tag_ids)
                 existing.update(resolved_ids)
                 file.tag_ids = list(existing)
+                logger.debug(f"Added {len(resolved_ids)} tags from XMP for {file.name}")
             
             # Update processing state
             if file.processing_state < ProcessingState.METADATA_READY:
@@ -168,5 +195,7 @@ class MetadataExtractor(Extractor):
         return resolved_ids
     
     def can_process(self, file: FileRecord) -> bool:
-        """Process files that may have metadata."""
-        return file.file_type in self.XMP_TYPES
+        """Process files with XMP-compatible extensions."""
+        if not file.extension:
+            return False
+        return file.extension.lower().lstrip('.') in self.SUPPORTED_EXTENSIONS

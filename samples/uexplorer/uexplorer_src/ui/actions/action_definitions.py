@@ -153,6 +153,15 @@ def register_all_actions(registry: 'ActionRegistry', window: 'MainWindow'):
         checkable=True
     )
     
+    registry.register_action(
+        "view.panel.maintenance",
+        "&Maintenance",
+        lambda: window._toggle_panel("maintenance"),
+        shortcut="Ctrl+Shift+M",
+        tooltip="Toggle Maintenance panel",
+        checkable=True
+    )
+    
     # ============================================================
     # VIEW MENU - SPLITS
     # ============================================================
@@ -306,10 +315,11 @@ def register_all_actions(registry: 'ActionRegistry', window: 'MainWindow'):
 
 def _sync_panel_states(registry: 'ActionRegistry', window: 'MainWindow'):
     """Sync panel toggle action states with actual panel visibility."""
-    panel_names = ["tags", "albums", "directories", "relations", "properties", "filters", "search", "background", "similar", "annotation"]
+    panel_names = ["tags", "albums", "directories", "relations", "properties", "filters", "search", "background", "similar", "annotation", "maintenance"]
     
     for name in panel_names:
         action_name = f"view.panel.{name}"
         # Check actual visibility from docking_service
         is_visible = window.docking_service.is_panel_visible(name)
         registry.set_checked(action_name, is_visible)
+

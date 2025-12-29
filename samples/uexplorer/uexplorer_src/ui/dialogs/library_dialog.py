@@ -79,27 +79,39 @@ class LibraryDialog(QDialog):
         self.apply_theme()
     
     
-    @asyncSlot()
-    async def load_roots(self):
-        """Load current library roots using asyncSlot."""
-        try:
-            roots = await self.fs_service.get_roots()
-            
-            self.root_list.clear()
-            for root in roots:
-                item = QListWidgetItem(root.path)
-                item.setData(Qt.UserRole, str(root._id))
-                self.root_list.addItem(item)
-            
-            logger.debug(f"Loaded {len(roots)} library roots")
-        except Exception as e:
-            logger.error(f"Failed to load roots: {e}")
+    def load_roots(self):
+        """Load current library roots."""
+        from PySide6.QtCore import QTimer
+        import asyncio
+        
+        async def _load():
+            try:
+                roots = await self.fs_service.get_roots()
+                
+                # Update UI via QTimer callback
+                def _update_ui():
+                    self.root_list.clear()
+                    for root in roots:
+                        item = QListWidgetItem(root.path)
+                        item.setData(Qt.UserRole, str(root._id))
+                        self.root_list.addItem(item)
+                    logger.debug(f"Loaded {len(roots)} library roots")
+                
+                QTimer.singleShot(0, _update_ui)
+                
+            except Exception as e:
+                logger.error(f"Failed to load roots: {e}")
+        
+        # Schedule async work
+        QTimer.singleShot(0, lambda: asyncio.create_task(_load()))
     
     
-    @asyncSlot()
-    async def add_root(self):
-        """Add new library root using asyncSlot."""
-        # Open directory picker
+    def add_root(self):
+        """Add new library root."""
+        from PySide6.QtCore import QTimer
+        import asyncio
+        
+        # Open directory picker (synchronous)
         folder = QFileDialog.getExistingDirectory(
             self,
             "Select Library Folder",
@@ -110,34 +122,43 @@ class LibraryDialog(QDialog):
         if not folder:
             return
         
-        try:
-            # Add to database via FSService
-            root = await self.fs_service.add_library_root(
-                folder,
-                watch_extensions=["jpg", "jpeg", "png", "gif", "webp", "bmp", "txt", "md"],
-                blacklist_paths=[]
-            )
-            
-            # Add to list
-            item = QListWidgetItem(root.path)
-            item.setData(Qt.UserRole, str(root._id))
-            self.root_list.addItem(item)
-            
-            logger.info(f"Added library root: {folder}")
-            
-            # Trigger background scan
+        # Schedule async work
+        async def _add():
             try:
-                from src.ucorefs.discovery.service import DiscoveryService
-                discovery = self.locator.get_system(DiscoveryService)
-                if discovery:
-                    await discovery.scan_root(root._id, background=True)
-                    logger.info(f"Triggered background scan for {folder}")
+                # Add to database
+                root = await self.fs_service.add_library_root(
+                    folder,
+                    watch_extensions=["jpg", "jpeg", "png", "gif", "webp", "bmp", "txt", "md"],
+                    blacklist_paths=[]
+                )
+                
+                # Update UI via QTimer callback
+                def _update_ui():
+                    item = QListWidgetItem(root.path)
+                    item.setData(Qt.UserRole, str(root._id))
+                    self.root_list.addItem(item)
+                    logger.info(f"Added library root: {folder}")
+                
+                QTimer.singleShot(0, _update_ui)
+                
+                # Trigger background scan
+                try:
+                    from src.ucorefs.discovery.service import DiscoveryService
+                    discovery = self.locator.get_system(DiscoveryService)
+                    if discovery:
+                        asyncio.create_task(discovery.scan_root(root._id, background=True))
+                        logger.info(f"Triggered background scan for {folder}")
+                except Exception as e:
+                    logger.error(f"Failed to trigger scan: {e}")
+                    
             except Exception as e:
-                logger.error(f"Failed to trigger scan: {e}")
-            
-        except Exception as e:
-            logger.error(f"Failed to add root: {e}")
-            QMessageBox.warning(self, "Error", f"Failed to add library root:\n{e}")
+                logger.error(f"Failed to add root: {e}")
+                # Show error via QTimer callback
+                def _show_error():
+                    QMessageBox.warning(self, "Error", f"Failed to add library root:\n{e}")
+                QTimer.singleShot(0, _show_error)
+        
+        QTimer.singleShot(0, lambda: asyncio.create_task(_add()))
     
     def remove_root(self):
         """Remove selected library root."""
@@ -171,10 +192,12 @@ class LibraryDialog(QDialog):
                 for item in selected:
                     root_id = ObjectId(item.data(Qt.UserRole))
                     
-                    # Find and delete the root directory record
+                    
+                    # Cascade delete the root and all its children
                     root = await DirectoryRecord.get(root_id)
                     if root:
-                        await root.delete()
+                        stats = await root.cascade_delete()
+                        logger.info(f"Removed root {root.path}: {stats['directories_deleted']} dirs, {stats['files_deleted']} files")
                     
                     # Remove from list
                     self.root_list.takeItem(self.root_list.row(item))

@@ -54,12 +54,17 @@ class ProcessingSettings(BaseModel):
     detection: DetectionSettings = Field(default_factory=DetectionSettings)
     embeddings: EmbeddingsSettings = Field(default_factory=EmbeddingsSettings)
 
+class MetadataSettings(BaseModel):
+    auto_fill_description_from_blip: bool = True
+    prefer_xmp_over_existing: bool = False
+
 class AppConfig(BaseModel):
     general: GeneralSettings = Field(default_factory=GeneralSettings)
     ai: AISettings = Field(default_factory=AISettings)
     mongo: MongoSettings = Field(default_factory=MongoSettings)
     library_path: str = "./data"
     processing: ProcessingSettings = Field(default_factory=ProcessingSettings)
+    metadata: MetadataSettings = Field(default_factory=MetadataSettings)
 
 # --- Manager ---
 class ConfigManager:

@@ -24,6 +24,7 @@ class ThumbnailExtractor(Extractor):
     phase = 2
     priority = 100  # High priority - thumbnails first
     batch_supported = True
+    is_cpu_heavy = True  # SAN-14: PIL operations (already thread-offloaded in ThumbnailService)
     
     # Supported file types for thumbnails
     SUPPORTED_TYPES = {"image", "video", "pdf"}

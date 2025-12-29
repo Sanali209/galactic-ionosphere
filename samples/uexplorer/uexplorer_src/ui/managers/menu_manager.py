@@ -74,6 +74,7 @@ class MenuManager:
         panels_menu.addSeparator()
         panels_menu.addAction(self.action_registry.get_action("view.panel.search"))
         panels_menu.addAction(self.action_registry.get_action("view.panel.background"))
+        panels_menu.addAction(self.action_registry.get_action("view.panel.maintenance"))
         
         view_menu.addSeparator()
         

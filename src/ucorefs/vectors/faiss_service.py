@@ -14,16 +14,6 @@ from src.core.base_system import BaseSystem
 
 class FAISSIndexService(BaseSystem):
     """
-    FAISS-based vector similarity search.
-    
-    Architecture:
-    - Vectors stored in MongoDB (EmbeddingRecord)
-    - FAISS builds in-memory index on startup
-    - Supports multiple providers (clip, blip, etc.)
-    - Automatic index rebuild on updates
-    
-    Features:
-    - Inner product similarity (cosine after normalization)
     - Batch queries for efficiency
     - Lazy index building (on first search)
     """

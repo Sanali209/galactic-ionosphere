@@ -55,8 +55,13 @@ Assumptions & TODOs:
 - Assumptions: The project is being refactored for enterprise standards (SAN-19).
 - Open questions: Best migration strategy for removing ChromaDB?
 - TODOs (with priority):
+  - [High] Implement PeriodicTaskScheduler for automated maintenance (2025-12-28)
+    - Research complete: See [maintenance_periodic_execution.md](maintenance_periodic_execution.md)
+    - Decision: Simple asyncio loop (no external deps), configurable intervals
+    - Tasks: background_verification (5min), database_optimization (24hr), cache_cleanup (6hr)
   - [High] Complete analysis of `src/` subdirectories.
   - [Med] Map dependencies between modules.
+  - [Med] Add missing maintenance tasks (database optimization, cache cleanup, log rotation)
   - [Low] Update out-of-date documentation.
   - [Linear] Address `SAN-31`: Remove obsolete ChromaDB references.
 [/DESIGN_DOC]

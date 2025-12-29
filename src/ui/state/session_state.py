@@ -18,17 +18,6 @@ from src.core.base_system import BaseSystem
 
 class SessionState(BaseSystem):
     """
-    Persists and restores UI session state.
-    
-    Saves:
-    - Open documents and their states
-    - Active document ID
-    - Panel visibility and auto-hide states
-    - Docking layout (positions, sizes)
-    - Perspectives (named layouts)
-    
-    Usage:
-        # Get session service
         session = locator.get_system(SessionState)
         
         # Set docking service reference

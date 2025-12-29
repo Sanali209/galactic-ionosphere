@@ -18,14 +18,16 @@ from src.ucorefs.discovery.sync import SyncManager
 
 class DiscoveryService(BaseSystem):
     """
-    Orchestrates filesystem discovery and database synchronization.
+    File discovery and monitoring service.
     
-    Coordinates the scanning, diff detection, and database sync processes.
-    Integrates with TaskSystem for background scanning.
+    Scans directories for new files and queues them for processing.
+    Monitors filesystem for changes using watchdog.
     """
     
-    # Dependency declarations for topological startup order
-    depends_on = [FSService, TaskSystem]
+    depends_on = ["ProcessingPipeline", "DatabaseManager"]
+    
+    def __init__(self, locator, config):
+        super().__init__(locator, config)
     
     async def initialize(self) -> None:
         """Initialize discovery service and dependencies."""

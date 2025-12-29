@@ -260,6 +260,45 @@ class ProcessingSettingsPage(QWidget):
         layout.addStretch()
 
 
+class MetadataSettingsPage(QWidget):
+    """Metadata extraction and mapping settings."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        
+        # Automatic Processes
+        auto_group = QGroupBox("Automatic Processes")
+        auto_layout = QVBoxLayout(auto_group)
+        
+        self.auto_fill_blip = QCheckBox("Auto-fill description from AI caption (BLIP)")
+        self.auto_fill_blip.setToolTip("Automatically copies generated AI captions to the file description if it's empty.")
+        auto_layout.addWidget(self.auto_fill_blip)
+        
+        layout.addWidget(auto_group)
+        
+        # Conflict Resolution
+        conflict_group = QGroupBox("Conflict Resolution")
+        conflict_layout = QVBoxLayout(conflict_group)
+        
+        self.prefer_xmp = QCheckBox("Prefer XMP metadata over existing data")
+        self.prefer_xmp.setToolTip("If enabled, XMP metadata will overwrite existing FileRecord data. If disabled, it only fills empty fields.")
+        conflict_layout.addWidget(self.prefer_xmp)
+        
+        layout.addWidget(conflict_group)
+        
+        # Info
+        info_label = QLabel(
+            "Note: These settings control how metadata is processed during Phase 2 (Metadata) "
+            "and Phase 3 (AI) of the extraction pipeline."
+        )
+        info_label.setWordWrap(True)
+        info_label.setStyleSheet("color: #888888; font-style: italic; margin-top: 10px;")
+        layout.addWidget(info_label)
+        
+        layout.addStretch()
+
+
 class SettingsDialog(QDialog):
     """
     Centralized settings dialog integrated with ConfigManager.
@@ -307,6 +346,7 @@ class SettingsDialog(QDialog):
             ("General", "⚙️"),
             ("Thumbnails", "🖼️"),
             ("AI / Embeddings", "🤖"),
+            ("Metadata", "🔖"),
             ("Search", "🔍"),
             ("Processing", "⚡"),
         ]
@@ -324,12 +364,14 @@ class SettingsDialog(QDialog):
         self.general_page = GeneralSettingsPage()
         self.thumbnail_page = ThumbnailSettingsPage()
         self.ai_page = AISettingsPage()
+        self.metadata_page = MetadataSettingsPage()
         self.search_page = SearchSettingsPage()
         self.processing_page = ProcessingSettingsPage()
         
         self.stack.addWidget(self.general_page)
         self.stack.addWidget(self.thumbnail_page)
         self.stack.addWidget(self.ai_page)
+        self.stack.addWidget(self.metadata_page)
         self.stack.addWidget(self.search_page)
         self.stack.addWidget(self.processing_page)
         
@@ -429,6 +471,16 @@ class SettingsDialog(QDialog):
                         self.ai_page.enable_dino.setChecked(getattr(emb.dino, 'enabled', True))
                     if hasattr(emb, 'blip'):
                         self.ai_page.enable_blip.setChecked(getattr(emb.blip, 'enabled', True))
+            
+            # Metadata settings
+            if hasattr(data, 'metadata'):
+                meta = data.metadata
+                self.metadata_page.auto_fill_blip.setChecked(
+                    getattr(meta, 'auto_fill_description_from_blip', True)
+                )
+                self.metadata_page.prefer_xmp.setChecked(
+                    getattr(meta, 'prefer_xmp_over_existing', False)
+                )
             
             logger.info("Settings loaded from ConfigManager")
             
@@ -555,6 +607,10 @@ class SettingsDialog(QDialog):
             logger.info(f"CLIP enabled: {self.ai_page.enable_clip.isChecked()}")
             logger.info(f"DINO enabled: {self.ai_page.enable_dino.isChecked()}")
             logger.info(f"BLIP enabled: {self.ai_page.enable_blip.isChecked()}")
+            
+            # Metadata settings
+            self._config.update('metadata', 'auto_fill_description_from_blip', self.metadata_page.auto_fill_blip.isChecked())
+            self._config.update('metadata', 'prefer_xmp_over_existing', self.metadata_page.prefer_xmp.isChecked())
             
             logger.info("Settings saved to ConfigManager")
             

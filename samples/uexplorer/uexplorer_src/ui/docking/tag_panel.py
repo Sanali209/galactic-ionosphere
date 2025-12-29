@@ -90,8 +90,12 @@ class TagPanel(PanelBase):
         self._tree.include_requested.connect(self.toggle_include)
         self._tree.exclude_requested.connect(self.toggle_exclude)
         
+        # Connect single-click to replace filter
+        if hasattr(self._tree, 'itemClicked'):
+            self._tree.itemClicked.connect(self._on_tag_clicked)
+        
         # Hint label
-        hint = QLabel("Right-click: Include (I) / Exclude (E)")
+        hint = QLabel("Click to filter | Right-click: Add/Exclude")
         hint.setStyleSheet("color: #666; font-size: 10px;")
         layout.addWidget(hint)
     
@@ -108,6 +112,40 @@ class TagPanel(PanelBase):
     def exclude_ids(self) -> List[str]:
         """Get list of excluded tag IDs."""
         return list(self._exclude_tags)
+    
+    def _on_tag_clicked(self, item, column):
+        """Handle tag item clicked - replace filter section with this tag."""
+        if not item:
+            return
+        
+        # Get tag ID from item
+        tag_id = item.data(0, 0x0100)  # Qt.UserRole
+        if not tag_id:
+            return
+        
+        from PySide6.QtWidgets import QApplication
+        from PySide6.QtCore import Qt
+        
+        # Check if Ctrl is pressed - if so, add to filter instead of replacing
+        modifiers = QApplication.keyboardModifiers()
+        if modifiers & Qt.KeyboardModifier.ControlModifier:
+            # Add to filter without replacing
+            self.toggle_include(tag_id)
+        else:
+            # Replace entire tag filter section with this tag
+            self.replace_tag_filter(tag_id)
+    
+    def replace_tag_filter(self, tag_id: str):
+        """Replace all tag filters with just this tag."""
+        # Clear existing tag filters
+        self._include_tags.clear()
+        self._exclude_tags.clear()
+        
+        # Set only this tag as included
+        self._include_tags.add(tag_id)
+        
+        # Emit change
+        self._emit_filter_changed()
     
     def toggle_include(self, tag_id: str):
         """Toggle tag in include list."""

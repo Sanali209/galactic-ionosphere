@@ -7,11 +7,22 @@ from .models import TaskRecord
 
 class TaskSystem(BaseSystem):
     """
-    Manages background tasks with persistence and crash recovery.
+    Background task execution system.
+    
+    Manages task queue and worker pool for async task execution.
+    Integrated with Foundation's ServiceLocator and event bus.
     """
+    
+    # Shutdown sentinel for PriorityQueue (must be comparable with tuples)
+    SHUTDOWN_SENTINEL = (-1, None)
+    # SAN-14 Phase 3: Priority constants
+    PRIORITY_HIGH = 0
+    PRIORITY_NORMAL = 1
+    PRIORITY_LOW = 2
+    
     def __init__(self, locator, config):
         super().__init__(locator, config)
-        self._queue = asyncio.Queue()
+        self._queue = asyncio.PriorityQueue()  # SAN-14 Phase 3: Priority queue
         self._workers = []
         self._running = False
         self._handlers: Dict[str, Callable] = {}
@@ -36,9 +47,9 @@ class TaskSystem(BaseSystem):
         logger.info(f"Loaded {len(pending_tasks)} pending tasks.")
 
         # 3. Start Workers (read count from config)
-        worker_count = 3  # default
+        worker_count = 8  # default (increased from 3 for better concurrency - SAN-14)
         if hasattr(self.config, 'data') and hasattr(self.config.data, 'general'):
-            worker_count = getattr(self.config.data.general, 'task_workers', 3)
+            worker_count = getattr(self.config.data.general, 'task_workers', 8)
         
         self._running = True
         for i in range(worker_count):
@@ -54,8 +65,9 @@ class TaskSystem(BaseSystem):
 
     async def shutdown(self):
         self._running = False
+        # Send shutdown sentinel to each worker (must be comparable with tuples in PriorityQueue)
         for _ in self._workers:
-            self._queue.put_nowait(None)
+            self._queue.put_nowait(self.SHUTDOWN_SENTINEL)
         await asyncio.gather(*self._workers)
         await super().shutdown()
 
@@ -71,22 +83,27 @@ class TaskSystem(BaseSystem):
         self._handlers[name] = func
         logger.debug(f"Registered task handler: {name}")
 
-    async def submit(self, handler_name: str, task_name: str, *args):
+    async def submit(self, handler_name: str, task_name: str, *args, priority: int = None):
         """
         Submit a new task.
-        :param handler_name: Registered name of the function to call.
-        :param task_name: Human readable title.
-        :param args: Arguments to pass to the handler (must be serializable).
+        
+        Args:
+            handler_name: Registered name of the function to call
+            task_name: Human readable title
+            *args: Arguments to pass to the handler (must be serializable)
+            priority: Task priority (0=HIGH, 1=NORMAL, 2=LOW). Default: NORMAL
+        
+        Returns:
+            Task ID
         """
         if handler_name not in self._handlers:
             raise ValueError(f"Unknown handler: {handler_name}")
-            
-        # Serialize args (assuming simple types for this template)
-        # For complex types, one might use pickle or json dumps
-        # Here we just store them as is if ORM ListField supports it, 
-        # but our defined ListField(StringField()) only supports strings.
-        # Let's assume generic ListField for mixed types or convert to str.
-        # Implemented TaskRecord defines ListField(StringField()), so args must be strings.
+        
+        # SAN-14 Phase 3: Default priority
+        if priority is None:
+            priority = self.PRIORITY_NORMAL
+        
+        # Serialize args
         str_args = [str(a) for a in args]
 
         record = TaskRecord(
@@ -96,28 +113,42 @@ class TaskSystem(BaseSystem):
             status="pending"
         )
         await record.save()
-        await self._queue_task(record)
-        logger.info(f"Task submitted: {task_name} ({record.id})")
+        
+        # SAN-14 Phase 3: Queue with priority
+        await self._queue.put((priority, record.id))
+        
+        logger.info(f"Task submitted: {task_name} ({record.id}) [priority={priority}]")
         return record.id
 
-    async def _queue_task(self, record: TaskRecord):
-        await self._queue.put(record.id)
+    async def _queue_task(self, record: TaskRecord, priority: int = None):
+        """Queue a task with optional priority (used for recovery)."""
+        if priority is None:
+            priority = self.PRIORITY_NORMAL
+        await self._queue.put((priority, record.id))
 
     async def _worker(self, worker_id: int):
-        logger.debug(f"Worker {worker_id} started.")
+        """Worker task that processes items from the queue."""
+        logger.debug(f"TaskSystem worker {worker_id} started")
         consecutive_failures = 0
         max_consecutive_failures = 5
         base_backoff_seconds = 1.0
         
         while self._running:
             try:
-                task_id = await self._queue.get()
-                if task_id is None: break
+                # Get next item (blocks until available)
+                queue_item = await self._queue.get()
+                
+                # Check for shutdown sentinel (comparable tuple)
+                if queue_item == self.SHUTDOWN_SENTINEL or queue_item[1] is None:
+                    break
+                
+                # Unpack priority tuple
+                priority, task_id = queue_item
                 
                 record = await TaskRecord.get(task_id)
                 if not record or record.status != "pending":
                     self._queue.task_done()
-                    consecutive_failures = 0  # Reset on successful queue operation
+                    consecutive_failures = 0
                     continue
                 
                 handler = self._handlers.get(record.handler_name)
@@ -136,25 +167,27 @@ class TaskSystem(BaseSystem):
                     if asyncio.iscoroutinefunction(handler):
                         result = await handler(*record.task_args)
                     else:
-                        # Offload synchronous handler to thread
                         loop = asyncio.get_running_loop()
-                        result = await loop.run_in_executor(
-                            None,  # Use default executor
-                            partial(handler, *record.task_args)
-                        )
-                    
-                    record.result = str(result)
+                        from functools import partial
+                        result = await loop.run_in_executor(None, partial(handler, *record.task_args))
+
                     record.status = "completed"
-                    record.progress = 100
+                    record.result = result
+                    consecutive_failures = 0
                 except Exception as e:
-                    logger.exception(f"Task {task_id} failed")
-                    record.error = str(e)
+                    import traceback
                     record.status = "failed"
-                
+                    record.error = str(e)
+                    logger.error(f"Task {record.id} failed: {e}\n{traceback.format_exc()}")
+                    
+                    consecutive_failures += 1
+                    if consecutive_failures >= max_consecutive_failures:
+                        backoff_time = base_backoff_seconds * (2 ** (consecutive_failures - max_consecutive_failures))
+                        logger.warning(f"Worker {worker_id} backing off for {backoff_time}s due to consecutive failures")
+                        await asyncio.sleep(backoff_time)
+
                 await record.save()
                 self._queue.task_done()
-                consecutive_failures = 0  # Reset on successful task processing
-                
             except asyncio.CancelledError:
                 break
             except Exception as e:

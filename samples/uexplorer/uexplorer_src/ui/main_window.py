@@ -819,65 +819,57 @@ class MainWindow(QMainWindow):
         asyncio.ensure_future(self._rebuild_counts_async())
     
     async def _rebuild_counts_async(self):
-        """Execute count rebuild with progress feedback."""
-        from PySide6.QtWidgets import QProgressDialog, QMessageBox
+        """Execute count rebuild with non-blocking progress feedback."""
         from src.ucorefs.services.maintenance_service import MaintenanceService
         
         try:
             maintenance = self.locator.get_system(MaintenanceService)
             if not maintenance:
-                QMessageBox.warning(self, "Error", "MaintenanceService not available")
+                self._show_error("MaintenanceService not available")
                 return
             
-            # Show progress dialog
-            progress = QProgressDialog("Rebuilding file counts...", "Cancel", 0, 3, self)
-            progress.setWindowModality(Qt.WindowModal)
-            progress.setMinimumDuration(0)
-            progress.show()
+            # Show non-blocking progress in status bar
+            self.show_progress(True, 0, 100)
+            self.status_label.setText("Rebuilding file counts...")
             
             try:
-                progress.setValue(1)
-                progress.setLabelText("Recalculating file counts across all systems...")
+                # Await without blocking event loop
                 result = await maintenance.rebuild_all_counts()
                 
-                if progress.wasCanceled():
-                    return
-                
-                progress.setValue(3)
-                
-                # Show results
+                # Calculate totals
                 total_updated = (result.get("tags_updated", 0) + 
                                result.get("albums_updated", 0) + 
                                result.get("directories_updated", 0))
                 
+                # Build message
                 message = (
                     f"Count rebuild complete!\n\n"
-                    f"Tags updated: {result.get('tags_updated', 0)}\n"
-                    f"Albums updated: {result.get('albums_updated', 0)}\n"
-                    f"Directories updated: {result.get('directories_updated', 0)}\n"
+                    f"Tags: {result.get('tags_updated', 0)} | "
+                    f"Albums: {result.get('albums_updated', 0)} | "
+                    f"Dirs: {result.get('directories_updated', 0)}\n"
                     f"Duration: {result.get('duration', 0):.2f}s"
                 )
                 
                 if result.get("errors"):
                     message += f"\n\nErrors: {len(result['errors'])}"
                 
-                QMessageBox.information(self, "Rebuild Complete", message)
-                
-                # Refresh all panels
+                # Refresh panels (event loop not blocked, safe to schedule)
                 if hasattr(self, 'tags_panel') and self.tags_panel:
-                    asyncio.ensure_future(self.tags_panel._tree.refresh_tags())
+                    asyncio.create_task(self.tags_panel._tree.refresh_tags())
                 if hasattr(self, 'albums_panel') and self.albums_panel:
-                    asyncio.ensure_future(self.albums_panel._tree.refresh_albums())
+                    asyncio.create_task(self.albums_panel._tree.refresh_albums())
                 if hasattr(self, 'directory_panel') and self.directory_panel:
-                    asyncio.ensure_future(self.directory_panel.on_update())
+                    asyncio.create_task(self.directory_panel.on_update())
                 
+                self._show_success(message)
                 logger.info(f"Count rebuild complete: {total_updated} records updated")
                 
             finally:
-                progress.close()
+                self.show_progress(False)
+                self.status_label.setText("Ready")
                 
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Rebuild failed: {e}")
+            self._show_error(f"Rebuild failed: {e}")
             logger.error(f"Count rebuild failed: {e}")
     
     def verify_references(self):
@@ -885,54 +877,49 @@ class MainWindow(QMainWindow):
         asyncio.ensure_future(self._verify_references_async())
     
     async def _verify_references_async(self):
-        """Verify ObjectId references with progress feedback."""
-        from PySide6.QtWidgets import QProgressDialog, QMessageBox
+        """Verify ObjectId references with non-blocking progress feedback."""
         from src.ucorefs.services.maintenance_service import MaintenanceService
         
         try:
             maintenance = self.locator.get_system(MaintenanceService)
             if not maintenance:
-                QMessageBox.warning(self, "Error", "MaintenanceService not available")
+                self._show_error("MaintenanceService not available")
                 return
             
-            # Show progress dialog
-            progress = QProgressDialog("Verifying data integrity...", "Cancel", 0, 0, self)
-            progress.setWindowModality(Qt.WindowModal)
-            progress.setMinimumDuration(0)
-            progress.show()
+            # Show non-blocking progress
+            self.show_progress(True, 0, 0)  # Indeterminate
+            self.status_label.setText("Verifying data integrity...")
             
             try:
                 result = await maintenance.verify_references()
                 
-                if progress.wasCanceled():
-                    return
-                
-                # Show results
+                # Calculate totals
                 total_broken = (result.get("broken_tag_refs", 0) + 
                               result.get("broken_album_refs", 0) + 
                               result.get("broken_dir_refs", 0))
                 
                 if total_broken == 0:
-                    message = f"All references are valid!\n\nFiles checked: {result.get('files_checked', 0)}"
-                    QMessageBox.information(self, "Verification Complete", message)
+                    message = f"✓ All references valid! ({result.get('files_checked', 0)} files checked)"
+                    self._show_success(message)
                 else:
                     message = (
-                        f"Found broken references:\n\n"
-                        f"Broken tag references: {result.get('broken_tag_refs', 0)}\n"
-                        f"Broken album references: {result.get('broken_album_refs', 0)}\n"
-                        f"Broken directory references: {result.get('broken_dir_refs', 0)}\n"
+                        f"⚠ Found {total_broken} broken references:\n\n"
+                        f"Tags: {result.get('broken_tag_refs', 0)} | "
+                        f"Albums: {result.get('broken_album_refs', 0)} | "
+                        f"Dirs: {result.get('broken_dir_refs', 0)}\n"
                         f"Files checked: {result.get('files_checked', 0)}\n\n"
                         f"Run 'Cleanup Orphaned Records' to fix."
                     )
-                    QMessageBox.warning(self, "Broken References Found", message)
+                    self._show_warning(message)
                 
                 logger.info(f"Reference verification complete: {total_broken} broken references")
                 
             finally:
-                progress.close()
+                self.show_progress(False)
+                self.status_label.setText("Ready")
                 
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Verification failed: {e}")
+            self._show_error(f"Verification failed: {e}")
             logger.error(f"Reference verification failed: {e}")
     
     def cleanup_orphaned_records(self):
@@ -941,11 +928,11 @@ class MainWindow(QMainWindow):
     
     async def _cleanup_orphaned_async(self):
         """Cleanup orphaned records with confirmation."""
-        from PySide6.QtWidgets import QProgressDialog, QMessageBox
+        from PySide6.QtWidgets import QMessageBox
         from src.ucorefs.services.maintenance_service import MaintenanceService
         
         try:
-            # Confirm action
+            # Confirm action (non-blocking dialog is OK here - user must respond)
             reply = QMessageBox.question(
                 self,
                 "Cleanup Orphaned Records",
@@ -960,43 +947,55 @@ class MainWindow(QMainWindow):
             
             maintenance = self.locator.get_system(MaintenanceService)
             if not maintenance:
-                QMessageBox.warning(self, "Error", "MaintenanceService not available")
+                self._show_error("MaintenanceService not available")
                 return
             
-            # Show progress dialog
-            progress = QProgressDialog("Cleaning up orphaned records...", "Cancel", 0, 0, self)
-            progress.setWindowModality(Qt.WindowModal)
-            progress.setMinimumDuration(0)
-            progress.show()
+            # Show non-blocking progress
+            self.show_progress(True, 0, 0)  # Indeterminate
+            self.status_label.setText("Cleaning up orphaned records...")
             
             try:
                 result = await maintenance.cleanup_orphaned_records()
                 
-                if progress.wasCanceled():
-                    return
-                
-                # Show results
+                # Build message
                 message = (
-                    f"Cleanup complete!\n\n"
+                    f"✓ Cleanup complete!\n\n"
                     f"Files cleaned: {result.get('files_cleaned', 0)}\n"
-                    f"Tag references removed: {result.get('tags_removed', 0)}\n"
-                    f"Album references removed: {result.get('albums_removed', 0)}"
+                    f"Tag refs removed: {result.get('tags_removed', 0)}\n"
+                    f"Album refs removed: {result.get('albums_removed', 0)}"
                 )
                 
                 if result.get("errors"):
                     message += f"\n\nErrors: {len(result['errors'])}"
                 
-                QMessageBox.information(self, "Cleanup Complete", message)
+                self._show_success(message)
                 logger.info(f"Cleanup complete: {result.get('files_cleaned', 0)} files cleaned")
                 
             finally:
-                progress.close()
+                self.show_progress(False)
+                self.status_label.setText("Ready")
                 
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Cleanup failed: {e}")
+            self._show_error(f"Cleanup failed: {e}")
             logger.error(f"Cleanup failed: {e}")
     
     # ==================== End Maintenance Actions ====================
+    
+    # Helper methods for non-blocking messages
+    def _show_error(self, message: str):
+        """Show error message without blocking event loop."""
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.critical(self, "Error", message)
+    
+    def _show_warning(self, message: str):
+        """Show warning message without blocking event loop."""
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.warning(self, "Warning", message)
+    
+    def _show_success(self, message: str):
+        """Show success message without blocking event loop."""
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(self, "Success", message)
     
     def show_settings_dialog(self):
 
@@ -1270,6 +1269,32 @@ class MainWindow(QMainWindow):
             title="Background Tasks",
             area="bottom",
             closable=False
+        )
+        
+        # MAINTENANCE PANEL (Bottom, next to background)
+        from uexplorer_src.ui.docking.maintenance_panel import MaintenancePanel
+        self.maintenance_panel = MaintenancePanel()
+        
+        # Initialize with services
+        try:
+            from src.ucorefs.services.maintenance_service import MaintenanceService
+            from src.core.scheduling import PeriodicTaskScheduler
+            
+            maintenance_service = self.locator.get_system(MaintenanceService)
+            scheduler = self.locator.get_system(PeriodicTaskScheduler)
+            
+            if maintenance_service and scheduler:
+                self.maintenance_panel.set_services(maintenance_service, scheduler)
+                logger.info("MaintenancePanel connected to services")
+        except Exception as e:
+            logger.warning(f"Failed to connect MaintenancePanel to services: {e}")
+        
+        self.docking_service.add_panel(
+            panel_id="maintenance",
+            widget=self.maintenance_panel,
+            title="Maintenance",
+            area="bottom",
+            closable=True
         )
         
         # SIMILAR ITEMS PANEL (Bottom, next to relations)

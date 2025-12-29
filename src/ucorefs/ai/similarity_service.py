@@ -14,11 +14,12 @@ from src.ucorefs.models.file_record import FileRecord
 
 class SimilarityService(BaseSystem):
     """
-    Service for finding similar files using vector embeddings.
+    AI-powered similarity search service.
     
-    Automatically creates relation records between similar files.
-    Runs in background via TaskSystem integration.
+    Finds similar files using CLIP/BLIP embeddings and FAISS.
     """
+    
+    depends_on = ["VectorService"]
     
     async def initialize(self) -> None:
         """Initialize similarity service."""
