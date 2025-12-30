@@ -49,9 +49,17 @@ class ProcessingPipeline(BaseSystem):
         self._phase3_pending: Set[str] = set()
         
         # SAN-14 Phase 2: Create dedicated AI thread pool for CPU-heavy preprocessing
-        ai_workers = 4  # default
+        # Default to same count as general task workers (often 8) to maximize throughput
+        default_workers = 8
+        if hasattr(self.config, 'data') and hasattr(self.config.data, 'general'):
+             default_workers = getattr(self.config.data.general, 'task_workers', 8)
+
+        ai_workers = default_workers
         if hasattr(self.config, 'data') and hasattr(self.config.data, 'processing'):
-            ai_workers = getattr(self.config.data.processing, 'ai_workers', 4)
+            # Override if specifically set in processing config, otherwise use general count
+            configured = getattr(self.config.data.processing, 'ai_workers', None)
+            if configured:
+                ai_workers = configured
         
         self._ai_executor = ThreadPoolExecutor(
             max_workers=ai_workers,
@@ -164,7 +172,8 @@ class ProcessingPipeline(BaseSystem):
         task_id = await self.task_system.submit(
             "process_phase3_item",
             f"Phase 3: Process file {file_id_str[:8]}...",
-            file_id_str
+            file_id_str,
+            priority=0 # TaskSystem.PRIORITY_HIGH
         )
         
         logger.info(f"Enqueued Phase 3 task {task_id} for {file_id_str}")
@@ -284,6 +293,30 @@ class ProcessingPipeline(BaseSystem):
                 logger.error(f"Extractor {extractor.name} failed: {e}")
                 results["errors"] += 1
         
+        # Update state and queue for Phase 3
+        from src.ucorefs.models.base import ProcessingState
+        
+        for file in files:
+            # If at least one extractor succeeded, or if no extractors failed critically
+            # For now, we assume if it passed Phase 2 extractors, it's ready for Phase 3
+            # We can be more strict if needed (e.g. check "processed" count)
+            
+            try:
+                # Update state
+                # Note: We re-fetch or assume file object is fresh enough. 
+                # Ideally we should use atomic updates if multiple workers touch same file, 
+                # but currently pipelines are linear per file.
+                
+                # We set to INDEXED (40), which implies Phase 2 complete
+                file.processing_state = ProcessingState.INDEXED
+                await file.save()
+                
+                # Queue Phase 3
+                await self.enqueue_phase3(file._id)
+                
+            except Exception as e:
+                logger.error(f"Failed to transition {file._id} to Phase 3: {e}")
+        
         # Remove from pending
         for file_id in file_ids:
             self._phase2_pending.discard(str(file_id))
@@ -341,6 +374,24 @@ class ProcessingPipeline(BaseSystem):
             if file:
                 file.processing_state = ProcessingState.COMPLETE
                 await file.save()
+                
+                # SAN-14 Phase 3: Update Vector Index immediately
+                if "clip" in file.embeddings:
+                    try:
+                        from src.ucorefs.vectors.faiss_service import FAISSIndexService
+                        faiss_service = self.locator.get_system(FAISSIndexService)
+                        
+                        vector_data = file.embeddings["clip"]
+                        # We need the vector itself. FileRecord.embeddings usually stores metadata, 
+                        # actual vector is in EmbeddingRecord.
+                        
+                        from src.ucorefs.vectors.models import EmbeddingRecord
+                        emb_record = await EmbeddingRecord.find_one({"file_id": file._id, "provider": "clip"})
+                        if emb_record:
+                            await faiss_service.add_vector("clip", file._id, emb_record.vector)
+                            
+                    except Exception as ve:
+                        logger.warning(f"Failed to update vector index for {file._id}: {ve}")
             
             results["processed"] = True
             
@@ -372,9 +423,14 @@ class ProcessingPipeline(BaseSystem):
             
             # Check if detection is enabled in config
             config = self.locator.config
-            detection_config = config.get("processing.detection", {})
+            # Access Pydantic models directly via .data
+            try:
+                detection_config = config.data.processing.detection
+            except AttributeError:
+                # Fallback if config structure invalid
+                return 0
             
-            if not detection_config.get("enabled", False):
+            if not detection_config.enabled:
                 return 0
             
             # Get DetectionService
@@ -391,7 +447,7 @@ class ProcessingPipeline(BaseSystem):
                 return 0
             
             # Run detection with configured backend
-            backend = detection_config.get("backend", "yolo")
+            backend = detection_config.backend
             detections = await detection_service.detect(file._id, backend=backend)
             
             return len(detections)

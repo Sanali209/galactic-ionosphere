@@ -17,6 +17,8 @@ from PySide6.QtCore import QObject, Signal
 from bson import ObjectId
 from loguru import logger
 
+from .query_types import TagRef, AlbumRef
+
 
 @dataclass
 class UnifiedSearchQuery:
@@ -49,13 +51,21 @@ class UnifiedSearchQuery:
     # Similar search (Image → Vector)
     similar_file_id: Optional[ObjectId] = None
     
-    # Tag filters
+    # Tag filters (legacy - IDs only)
     tag_include: List[str] = field(default_factory=list)
     tag_exclude: List[str] = field(default_factory=list)
     
-    # Album filters
+    # Tag filters (new - with refs)
+    tag_refs_include: List[TagRef] = field(default_factory=list)
+    tag_refs_exclude: List[TagRef] = field(default_factory=list)
+    
+    # Album filters (legacy - IDs only)
     album_include: List[str] = field(default_factory=list)
     album_exclude: List[str] = field(default_factory=list)
+    
+    # Album filters (new - with refs)
+    album_refs_include: List[AlbumRef] = field(default_factory=list)
+    album_refs_exclude: List[AlbumRef] = field(default_factory=list)
     
     # Directory filters
     directory_include: List[str] = field(default_factory=list)
@@ -81,27 +91,44 @@ class UnifiedSearchQuery:
         """Build MongoDB filter dict from query."""
         mongo = {}
         
-        # Tag filters
-        if self.tag_include:
-            # Files must have ALL included tags
+        # Tag filters - prefer refs, fallback to legacy IDs
+        if self.tag_refs_include:
+            # Use TagRef objects (new way)
+            mongo["tag_ids"] = {"$all": [t.id for t in self.tag_refs_include]}
+        elif self.tag_include:
+            # Fallback to legacy IDs
             mongo["tag_ids"] = {"$all": [ObjectId(t) for t in self.tag_include]}
         
-        if self.tag_exclude:
+        if self.tag_refs_exclude:
             # Files must NOT have ANY excluded tags
-            # Use $nor to properly exclude files containing any excluded tag
+            if "$nor" not in mongo:
+                mongo["$nor"] = []
+            for tag_ref in self.tag_refs_exclude:
+                mongo["$nor"].append({"tag_ids": tag_ref.id})
+        elif self.tag_exclude:
+            # Fallback to legacy
             if "$nor" not in mongo:
                 mongo["$nor"] = []
             for tag_id in self.tag_exclude:
                 mongo["$nor"].append({"tag_ids": ObjectId(tag_id)})
         
-        # Album filters
-        if self.album_include:
-            # Files must have ALL included albums
+        
+        # Album filters - prefer refs, fallback to legacy IDs
+        if self.album_refs_include:
+            # Use AlbumRef objects (new way)
+            mongo["album_ids"] = {"$all": [a.id for a in self.album_refs_include]}
+        elif self.album_include:
+            # Fallback to legacy IDs
             mongo["album_ids"] = {"$all": [ObjectId(a) for a in self.album_include]}
         
-        if self.album_exclude:
+        if self.album_refs_exclude:
             # Files must NOT have ANY excluded albums
-            # Use $nor to properly exclude files containing any excluded album
+            if "$nor" not in mongo:
+                mongo["$nor"] = []
+            for album_ref in self.album_refs_exclude:
+                mongo["$nor"].append({"album_ids": album_ref.id})
+        elif self.album_exclude:
+            # Fallback to legacy
             if "$nor" not in mongo:
                 mongo["$nor"] = []
             for album_id in self.album_exclude:
@@ -231,16 +258,150 @@ class UnifiedQueryBuilder(QObject):
         self._emit_query()
     
     def _on_tag_filter_changed(self, include: list, exclude: list):
-        """Handle tag filter change."""
-        self._current_query.tag_include = include
-        self._current_query.tag_exclude = exclude
-        self._emit_query()
+        """
+        Handle tag filter change from Tag Panel.
+        
+        Upgraded to load tag objects and create TagRefs for new architecture.
+        Falls back to legacy ID-based method if tag loading fails.
+        """
+        import asyncio
+        from bson import ObjectId
+        from src.ucorefs.tags.models import Tag
+        
+        # Clear existing tag filters (both refs and legacy)
+        self._current_query.tag_refs_include.clear()
+        self._current_query.tag_refs_exclude.clear()
+        self._current_query.tag_include.clear()
+        self._current_query.tag_exclude.clear()
+        
+        async def load_and_add_tags():
+            """Load tags from DB and add as refs."""
+            # Load include tags
+            for tag_id_str in include:
+                try:
+                    tag_obj_id = ObjectId(tag_id_str)
+                    tag = await Tag.get(tag_obj_id)
+                    
+                    if tag:
+                        # Create TagRef with loaded data
+                        tag_ref = TagRef(
+                            id=tag.id,
+                            name=tag.name,
+                            full_path=tag.full_path,
+                            color=tag.color if hasattr(tag, 'color') else ""
+                        )
+                        # Add using new method (also updates legacy fields)
+                        if tag_ref not in self._current_query.tag_refs_include:
+                            self._current_query.tag_refs_include.append(tag_ref)
+                            self._current_query.tag_include.append(tag_id_str)
+                    else:
+                        # Fallback: tag not found, use legacy ID
+                        logger.warning(f"Tag not found: {tag_id_str}, using legacy ID")
+                        self._current_query.tag_include.append(tag_id_str)
+                except Exception as e:
+                    logger.error(f"Failed to load tag {tag_id_str}: {e}, using legacy ID")
+                    self._current_query.tag_include.append(tag_id_str)
+            
+            # Load exclude tags
+            for tag_id_str in exclude:
+                try:
+                    tag_obj_id = ObjectId(tag_id_str)
+                    tag = await Tag.get(tag_obj_id)
+                    
+                    if tag:
+                        tag_ref = TagRef(
+                            id=tag.id,
+                            name=tag.name,
+                            full_path=tag.full_path,
+                            color=tag.color if hasattr(tag, 'color') else ""
+                        )
+                        if tag_ref not in self._current_query.tag_refs_exclude:
+                            self._current_query.tag_refs_exclude.append(tag_ref)
+                            self._current_query.tag_exclude.append(tag_id_str)
+                    else:
+                        logger.warning(f"Tag not found: {tag_id_str}, using legacy ID")
+                        self._current_query.tag_exclude.append(tag_id_str)
+                except Exception as e:
+                    logger.error(f"Failed to load tag {tag_id_str}: {e}, using legacy ID")
+                    self._current_query.tag_exclude.append(tag_id_str)
+            
+            # Emit after all tags loaded
+            self._emit_query()
+        
+        # Run async loading
+        asyncio.ensure_future(load_and_add_tags())
     
     def _on_album_filter_changed(self, include: list, exclude: list):
-        """Handle album filter change."""
-        self._current_query.album_include = include
-        self._current_query.album_exclude = exclude
-        self._emit_query()
+        """
+        Handle album filter change from Album Panel.
+        
+        Upgraded to load album objects and create AlbumRefs for new architecture.
+        Falls back to legacy ID-based method if album loading fails.
+        """
+        import asyncio
+        from bson import ObjectId
+        from src.ucorefs.albums.models import Album
+        
+        # Clear existing album filters (both refs and legacy)
+        self._current_query.album_refs_include.clear()
+        self._current_query.album_refs_exclude.clear()
+        self._current_query.album_include.clear()
+        self._current_query.album_exclude.clear()
+        
+        async def load_and_add_albums():
+            """Load albums from DB and add as refs."""
+            # Load include albums
+            for album_id_str in include:
+                try:
+                    album_obj_id = ObjectId(album_id_str)
+                    album = await Album.get(album_obj_id)
+                    
+                    if album:
+                        # Create AlbumRef with loaded data
+                        album_ref = AlbumRef(
+                            id=album.id,
+                            name=album.name,
+                            description=album.description if hasattr(album, 'description') else "",
+                            is_smart=album.is_smart if hasattr(album, 'is_smart') else False
+                        )
+                        if album_ref not in self._current_query.album_refs_include:
+                            self._current_query.album_refs_include.append(album_ref)
+                            self._current_query.album_include.append(album_id_str)
+                    else:
+                        logger.warning(f"Album not found: {album_id_str}, using legacy ID")
+                        self._current_query.album_include.append(album_id_str)
+                except Exception as e:
+                    logger.error(f"Failed to load album {album_id_str}: {e}, using legacy ID")
+                    self._current_query.album_include.append(album_id_str)
+            
+            # Load exclude albums
+            for album_id_str in exclude:
+                try:
+                    album_obj_id = ObjectId(album_id_str)
+                    album = await Album.get(album_obj_id)
+                    
+                    if album:
+                        album_ref = AlbumRef(
+                            id=album.id,
+                            name=album.name,
+                            description=album.description if hasattr(album, 'description') else "",
+                            is_smart=album.is_smart if hasattr(album, 'is_smart') else False
+                        )
+                        if album_ref not in self._current_query.album_refs_exclude:
+                            self._current_query.album_refs_exclude.append(album_ref)
+                            self._current_query.album_exclude.append(album_id_str)
+                    else:
+                        logger.warning(f"Album not found: {album_id_str}, using legacy ID")
+                        self._current_query.album_exclude.append(album_id_str)
+                except Exception as e:
+                    logger.error(f"Failed to load album {album_id_str}: {e}, using legacy ID")
+                    self._current_query.album_exclude.append(album_id_str)
+            
+            # Emit after all albums loaded
+            self._emit_query()
+        
+        # Run async loading
+        asyncio.ensure_future(load_and_add_albums())
     
     def _on_directory_filter_changed(self, include: list, exclude: list):
         """Handle directory filter change."""
@@ -274,6 +435,106 @@ class UnifiedQueryBuilder(QObject):
         """Set field filters from UnifiedSearchPanel."""
         # Merge with existing filters
         self._current_query.filters.update(filters)
+        self._emit_query()
+    
+    def add_tag_ref(self, tag_ref: TagRef, include: bool = True):
+        """
+        Add tag using TagRef object (preferred method).
+        
+        Args:
+            tag_ref: TagRef instance with id and name
+            include: True to include, False to exclude
+        """
+        if include:
+            if tag_ref not in self._current_query.tag_refs_include:
+                self._current_query.tag_refs_include.append(tag_ref)
+                # Also add to legacy field for compatibility
+                tag_id_str = str(tag_ref.id)
+                if tag_id_str not in self._current_query.tag_include:
+                    self._current_query.tag_include.append(tag_id_str)
+        else:
+            if tag_ref not in self._current_query.tag_refs_exclude:
+                self._current_query.tag_refs_exclude.append(tag_ref)
+                tag_id_str = str(tag_ref.id)
+                if tag_id_str not in self._current_query.tag_exclude:
+                    self._current_query.tag_exclude.append(tag_id_str)
+        
+        self._emit_query()
+    
+    def remove_tag_ref(self, tag_id: ObjectId):
+        """
+        Remove tag by ID from both include and exclude lists.
+        
+        Args:
+            tag_id: ObjectId of tag to remove
+        """
+        # Remove from refs
+        self._current_query.tag_refs_include = [
+            t for t in self._current_query.tag_refs_include if t.id != tag_id
+        ]
+        self._current_query.tag_refs_exclude = [
+            t for t in self._current_query.tag_refs_exclude if t.id != tag_id
+        ]
+        
+        # Also remove from legacy fields
+        tag_id_str = str(tag_id)
+        self._current_query.tag_include = [
+            t for t in self._current_query.tag_include if t != tag_id_str
+        ]
+        self._current_query.tag_exclude = [
+            t for t in self._current_query.tag_exclude if t != tag_id_str
+        ]
+        
+        self._emit_query()
+    
+    def add_album_ref(self, album_ref: AlbumRef, include: bool = True):
+        """
+        Add album using AlbumRef object (preferred method).
+        
+        Args:
+            album_ref: AlbumRef instance with id and name
+            include: True to include, False to exclude
+        """
+        if include:
+            if album_ref not in self._current_query.album_refs_include:
+                self._current_query.album_refs_include.append(album_ref)
+                # Also add to legacy field for compatibility
+                album_id_str = str(album_ref.id)
+                if album_id_str not in self._current_query.album_include:
+                    self._current_query.album_include.append(album_id_str)
+        else:
+            if album_ref not in self._current_query.album_refs_exclude:
+                self._current_query.album_refs_exclude.append(album_ref)
+                album_id_str = str(album_ref.id)
+                if album_id_str not in self._current_query.album_exclude:
+                    self._current_query.album_exclude.append(album_id_str)
+        
+        self._emit_query()
+    
+    def remove_album_ref(self, album_id: ObjectId):
+        """
+        Remove album by ID from both include and exclude lists.
+        
+        Args:
+            album_id: ObjectId of album to remove
+        """
+        # Remove from refs
+        self._current_query.album_refs_include = [
+            a for a in self._current_query.album_refs_include if a.id != album_id
+        ]
+        self._current_query.album_refs_exclude = [
+            a for a in self._current_query.album_refs_exclude if a.id != album_id
+        ]
+        
+        # Also remove from legacy fields
+        album_id_str = str(album_id)
+        self._current_query.album_include = [
+            a for a in self._current_query.album_include if a != album_id_str
+        ]
+        self._current_query.album_exclude = [
+            a for a in self._current_query.album_exclude if a != album_id_str
+        ]
+        
         self._emit_query()
     
     def _emit_query(self):

@@ -168,6 +168,14 @@ def register_all_actions(registry: 'ActionRegistry', window: 'MainWindow'):
 
     
     registry.register_action(
+        "view.dashboard",
+        "&Dashboard",
+        window.open_dashboard,
+        shortcut="Ctrl+Home",
+        tooltip="Open System Dashboard"
+    )
+
+    registry.register_action(
         "view.split_horizontal",
         "Split &Horizontal",
         window._split_horizontal,

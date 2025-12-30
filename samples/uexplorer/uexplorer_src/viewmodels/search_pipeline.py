@@ -54,20 +54,36 @@ class SearchPipeline(QObject):
         """
         self.search_started.emit()
         
+        # Enhanced logging for search mode detection
+        logger.info(f"========== SEARCH EXECUTION START ==========")
+        logger.info(f"Query Mode: {query.mode}")
+        logger.info(f"Query Text: '{query.text}'")
+        logger.info(f"Is Image Search: {query.is_image_search()}")
+        logger.info(f"Is Vector Search: {query.is_vector_search()}")
+        logger.info(f"Is Text Search: {query.is_text_search()}")
+        logger.info(f"Filters: {query.filters}")
+        logger.info(f"Limit: {query.limit}")
+        
         try:
             if query.is_image_search():
+                logger.info(">>> Routing to IMAGE SEARCH")
                 results = await self._image_search(query)
             elif query.is_vector_search():
+                logger.info(">>> Routing to VECTOR/SEMANTIC SEARCH")
                 results = await self._vector_search(query)
             else:
+                logger.info(">>> Routing to TEXT SEARCH")
                 results = await self._text_search(query)
             
+            logger.info(f"========== SEARCH COMPLETE: {len(results)} results ==========")
             self.search_completed.emit(results)
             return results
             
         except Exception as e:
             error_msg = str(e)
-            logger.error(f"Search failed: {error_msg}")
+            logger.error(f"========== SEARCH FAILED: {error_msg} ==========")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             self.search_failed.emit(error_msg)
             return []
     
@@ -129,10 +145,16 @@ class SearchPipeline(QObject):
         from src.ucorefs.search.service import SearchService, SearchQuery as SvcSearchQuery
         from src.ucorefs.models import FileRecord
         
+        logger.info(f"[VECTOR_SEARCH] Starting semantic/vector search")
+        logger.info(f"[VECTOR_SEARCH] Query text: '{query.text}'")
+        logger.info(f"[VECTOR_SEARCH] Filters: {query.filters}")
+        
         try:
             search_service = self._locator.get_system(SearchService)
-        except KeyError:
-            logger.warning("SearchService not available, falling back to VectorService")
+            logger.info(f"[VECTOR_SEARCH] ✓ SearchService available")
+        except KeyError as e:
+            logger.warning(f"[VECTOR_SEARCH] ✗ SearchService not available: {e}")
+            logger.warning(f"[VECTOR_SEARCH] Falling back to VectorService")
             return await self._vector_search_fallback(query)
         
         try:
@@ -145,21 +167,40 @@ class SearchPipeline(QObject):
                 limit=query.limit
             )
             
+            logger.info(f"[VECTOR_SEARCH] Built SearchService query:")
+            logger.info(f"[VECTOR_SEARCH]   - text: '{svc_query.text}'")
+            logger.info(f"[VECTOR_SEARCH]   - vector_search: {svc_query.vector_search}")
+            logger.info(f"[VECTOR_SEARCH]   - vector_provider: {svc_query.vector_provider}")
+            logger.info(f"[VECTOR_SEARCH]   - limit: {svc_query.limit}")
+            
             # Execute unified search
+            logger.info(f"[VECTOR_SEARCH] Executing SearchService.search()...")
             results = await search_service.search(svc_query)
             
+            logger.info(f"[VECTOR_SEARCH] SearchService returned {len(results)} SearchResults")
+            
+            if results:
+                # Log sample results with scores
+                for i, r in enumerate(results[:3]):
+                    logger.info(f"[VECTOR_SEARCH] Result {i+1}: file_id={r.file_id}, score={r.score:.4f}, "
+                               f"match_type={r.match_type}, vector_score={r.vector_score}, text_score={r.text_score}")
+            
             if not results:
+                logger.warning(f"[VECTOR_SEARCH] No results returned from SearchService")
                 return []
             
             # Get FileRecords from result IDs
             file_ids = [r.file_id for r in results]
+            logger.info(f"[VECTOR_SEARCH] Retrieving {len(file_ids)} FileRecords from database")
             files = await FileRecord.find({"_id": {"$in": file_ids}})
             
-            logger.info(f"Vector search (via SearchService) found {len(files)} results")
+            logger.info(f"[VECTOR_SEARCH] ✓ Vector search complete: {len(files)} FileRecords retrieved")
             return files
             
         except Exception as e:
-            logger.error(f"Vector search failed: {e}")
+            logger.error(f"[VECTOR_SEARCH] ✗ Vector search failed: {e}")
+            import traceback
+            logger.error(f"[VECTOR_SEARCH] Traceback: {traceback.format_exc()}")
             return []
     
     async def _vector_search_fallback(self, query: SearchQuery) -> List:
@@ -167,20 +208,39 @@ class SearchPipeline(QObject):
         from src.ucorefs.vectors.service import VectorService
         from src.ucorefs.models import FileRecord
         
-        vector_service = self._locator.get_system(VectorService)
+        logger.info(f"[VECTOR_FALLBACK] Attempting VectorService fallback")
+        
+        try:
+            vector_service = self._locator.get_system(VectorService)
+            logger.info(f"[VECTOR_FALLBACK] ✓ VectorService available")
+        except KeyError:
+            logger.error(f"[VECTOR_FALLBACK] ✗ VectorService not available either")
+            return []
+        
         if not vector_service:
+            logger.error(f"[VECTOR_FALLBACK] ✗ VectorService is None")
             return []
         
         try:
+            logger.info(f"[VECTOR_FALLBACK] Calling VectorService.search_by_text('{query.text}', limit={query.limit})")
             results = await vector_service.search_by_text(query.text, limit=query.limit)
+            
+            logger.info(f"[VECTOR_FALLBACK] VectorService returned {len(results) if results else 0} results")
+            
             if not results:
+                logger.warning(f"[VECTOR_FALLBACK] No results from VectorService")
                 return []
             
             file_ids = [ObjectId(r["file_id"]) for r in results if "file_id" in r]
+            logger.info(f"[VECTOR_FALLBACK] Extracting {len(file_ids)} file IDs")
+            
             files = await FileRecord.find({"_id": {"$in": file_ids}})
+            logger.info(f"[VECTOR_FALLBACK] ✓ Fallback complete: {len(files)} FileRecords retrieved")
             return files
         except Exception as e:
-            logger.error(f"Vector fallback failed: {e}")
+            logger.error(f"[VECTOR_FALLBACK] ✗ Fallback failed: {e}")
+            import traceback
+            logger.error(f"[VECTOR_FALLBACK] Traceback: {traceback.format_exc()}")
             return []
     
     async def _image_search(self, query: SearchQuery) -> List:

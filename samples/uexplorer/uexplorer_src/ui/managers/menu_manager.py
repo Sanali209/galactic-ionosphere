@@ -62,6 +62,9 @@ class MenuManager:
         """Build View menu with panels submenu."""
         view_menu = menubar.addMenu("&View")
         
+        # Dashboard
+        view_menu.addAction(self.action_registry.get_action("view.dashboard"))
+        
         # Panels submenu
         panels_menu = view_menu.addMenu("&Panels")
         panels_menu.addAction(self.action_registry.get_action("view.panel.tags"))

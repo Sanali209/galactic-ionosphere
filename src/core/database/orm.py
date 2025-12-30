@@ -423,3 +423,30 @@ class CollectionRecord(metaclass=DbRecordMeta):
     async def delete(self):
         coll = self.get_collection()
         await coll.delete_one({'_id': self._id})
+    
+    @classmethod
+    async def delete_many(cls, query: Dict) -> Any:
+        """
+        Delete multiple documents matching query.
+        
+        Args:
+            query: MongoDB query dict
+            
+        Returns:
+            DeleteResult from motor/pymongo
+        """
+    @classmethod
+    async def count(cls, query: Dict = None) -> int:
+        """
+        Count documents matching query.
+        
+        Args:
+            query: MongoDB query dict (optional)
+            
+        Returns:
+            Number of documents matching query
+        """
+        coll = cls.get_collection()
+        if query:
+            return await coll.count_documents(query)
+        return await coll.estimated_document_count()

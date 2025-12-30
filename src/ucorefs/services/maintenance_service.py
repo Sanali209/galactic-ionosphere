@@ -425,9 +425,13 @@ class MaintenanceService(BaseSystem):
                     logger.debug(f"Rebuilt indexes for collection: {coll_name}")
                     
                 except Exception as e:
-                    error_msg = f"Failed to optimize {coll_name}: {e}"
-                    result["errors"].append(error_msg)
-                    logger.warning(error_msg)
+                    # Check for CommandNotFound (code 59)
+                    if hasattr(e, 'code') and e.code == 59:
+                        logger.warning(f"Optimization skipped for {coll_name}: Command not supported (reIndexCollection)")
+                    else:
+                        error_msg = f"Failed to optimize {coll_name}: {e}"
+                        result["errors"].append(error_msg)
+                        logger.warning(error_msg)
             
             # FAISS index optimization (if exists)
             try:

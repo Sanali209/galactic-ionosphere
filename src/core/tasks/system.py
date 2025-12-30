@@ -31,23 +31,52 @@ class TaskSystem(BaseSystem):
         logger.info("TaskSystem initializing...")
         
         # 1. Recovery: Reset 'running' tasks to 'pending'
-        # In a real app we might want to check if they are actually dead or on another node
+        # Bulk update for performance with large queues
         running_tasks = await TaskRecord.find({"status": "running"})
         if running_tasks:
-            logger.warning(f"Found {len(running_tasks)} interrupted tasks. Rescheduling...")
-            for task in running_tasks:
-                task.status = "pending"
-                task.error = "Interrupted by system restart"
-                await task.save()
+            logger.info(f"Found {len(running_tasks)} interrupted tasks. Rescheduling...")
+            
+            # Use raw collection update for speed
+            try:
+                coll = TaskRecord.get_collection()
+                result = await coll.update_many(
+                    {"status": "running"},
+                    {"$set": {
+                        "status": "pending", 
+                        "error": "Interrupted by system restart"
+                    }}
+                )
+                logger.info(f"Recovery: Rescheduled {result.modified_count} tasks to pending")
+            except Exception as e:
+                logger.error(f"Recovery failed during bulk update: {e}")
+                # Fallback to slower loop if bulk fails
+                for task in running_tasks:
+                    task.status = "pending"
+                    task.error = "Interrupted by system restart"
+                    await task.save()
 
         # 2. Reload 'pending' tasks
-        pending_tasks = await TaskRecord.find({"status": "pending"})
-        for task in pending_tasks:
-            await self._queue_task(task)
-        logger.info(f"Loaded {len(pending_tasks)} pending tasks.")
+        # Use simple count first to avoid loading massive objects if not needed immediately
+        # The workers pull from DB as needed, we just need to queue IDs
+        pending_cursor = TaskRecord.get_collection().find({"status": "pending"})
+        # Sort by priority (0=High) then creation time
+        pending_cursor.sort([("priority", 1), ("created_at", 1)])
+        
+        count = 0
+        async for task_data in pending_cursor:
+            # We only need ID and priority for the queue
+            tid = task_data["_id"]
+            # Default priority 1 (Normal) if missing
+            # Note: TaskRecord doesn't have explicit priority field in model yet, 
+            # so we assume Normal(1) unless we add it to model later.
+            # Ideally we should store priority in DB. For now, treat restored as Normal.
+            await self._queue.put((self.PRIORITY_NORMAL, tid))
+            count += 1
+            
+        logger.info(f"Restored {count} pending tasks to execution queue.")
 
         # 3. Start Workers (read count from config)
-        worker_count = 8  # default (increased from 3 for better concurrency - SAN-14)
+        worker_count = 8
         if hasattr(self.config, 'data') and hasattr(self.config.data, 'general'):
             worker_count = getattr(self.config.data.general, 'task_workers', 8)
         

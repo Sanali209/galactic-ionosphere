@@ -19,7 +19,7 @@ class MongoSettings(BaseModel):
 class GeneralSettings(BaseModel):
     debug_mode: bool = True
     theme: str = "dark"
-    task_workers: int = 3  # Number of background task workers
+    task_workers: int = 8  # Number of background task workers (orchestrators)
 
 # --- Detection/Processing Settings ---
 class YOLOSettings(BaseModel):
@@ -51,6 +51,7 @@ class EmbeddingsSettings(BaseModel):
     blip: EmbeddingModelSettings = Field(default_factory=EmbeddingModelSettings)
 
 class ProcessingSettings(BaseModel):
+    ai_workers: int = 4  # Number of concurrent AI threads (CPU heavy)
     detection: DetectionSettings = Field(default_factory=DetectionSettings)
     embeddings: EmbeddingsSettings = Field(default_factory=EmbeddingsSettings)
 

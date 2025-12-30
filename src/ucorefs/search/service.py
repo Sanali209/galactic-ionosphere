@@ -99,6 +99,13 @@ class SearchService(BaseSystem):
         """
         from src.ucorefs.models.file_record import FileRecord
         
+        logger.info(f"[SearchService] ========== SEARCH START ==========")
+        logger.info(f"[SearchService] Text: '{query.text}'")
+        logger.info(f"[SearchService] Vector Search: {query.vector_search}")
+        logger.info(f"[SearchService] Vector Provider: {query.vector_provider}")
+        logger.info(f"[SearchService] Filters: {query.filters}")
+        logger.info(f"[SearchService] Limit: {query.limit}")
+        
         results_map: Dict[str, SearchResult] = {}
         
         # Step 1: MongoDB filter search
@@ -112,11 +119,18 @@ class SearchService(BaseSystem):
                 {"ai_description": {"$regex": query.text, "$options": "i"}},
             ]
         
+        logger.info(f"[SearchService] MongoDB Filter: {mongo_filter}")
+        
         # Execute MongoDB query
+        mongo_limit = query.limit * 2 if query.vector_search else query.limit
+        logger.info(f"[SearchService] Executing MongoDB query (limit={mongo_limit})...")
+        
         files = await FileRecord.find(
             mongo_filter,
-            limit=query.limit * 2 if query.vector_search else query.limit
-        ).to_list()
+            limit=mongo_limit
+        )
+        
+        logger.info(f"[SearchService] MongoDB returned {len(files)} FileRecords")
         
         # Add to results
         for file in files:
@@ -134,37 +148,65 @@ class SearchService(BaseSystem):
                 match_type="text" if query.text else "filter"
             )
         
+        logger.info(f"[SearchService] Initial results_map has {len(results_map)} entries")
+        
         # Step 2: Vector similarity search
-        if query.vector_search and self._faiss_service:
-            vector_results = await self._vector_search(query, list(results_map.keys()))
-            
-            # Merge vector scores
-            for file_id, vector_score in vector_results:
-                file_id_str = str(file_id)
+        if query.vector_search:
+            if not self._faiss_service:
+                logger.warning(f"[SearchService] Vector search requested but FAISS service NOT AVAILABLE")
+                logger.warning(f"[SearchService] This is likely why you're getting same results as text search!")
+            else:
+                logger.info(f"[SearchService] ✓ FAISS service available, executing vector search")
+                vector_results = await self._vector_search(query, list(results_map.keys()))
                 
-                if file_id_str in results_map:
-                    # Hybrid: combine text and vector scores
-                    existing = results_map[file_id_str]
-                    existing.vector_score = vector_score
-                    existing.score = (existing.text_score or 1.0) * 0.4 + vector_score * 0.6
-                    existing.match_type = "hybrid"
-                else:
-                    # Vector-only result
-                    results_map[file_id_str] = SearchResult(
-                        file_id=file_id,
-                        score=vector_score,
-                        vector_score=vector_score,
-                        match_type="vector"
-                    )
+                logger.info(f"[SearchService] Vector search returned {len(vector_results)} results")
+                
+                # Merge vector scores
+                for file_id, vector_score in vector_results:
+                    file_id_str = str(file_id)
+                    
+                    if file_id_str in results_map:
+                        # Hybrid: combine text and vector scores
+                        existing = results_map[file_id_str]
+                        existing.vector_score = vector_score
+                        existing.score = (existing.text_score or 1.0) * 0.4 + vector_score * 0.6
+                        existing.match_type = "hybrid"
+                        logger.debug(f"[SearchService] Hybrid result: {file_id_str[:8]}... "
+                                   f"text_score={existing.text_score:.4f}, vector_score={vector_score:.4f}, "
+                                   f"final_score={existing.score:.4f}")
+                    else:
+                        # Vector-only result
+                        results_map[file_id_str] = SearchResult(
+                            file_id=file_id,
+                            score=vector_score,
+                            vector_score=vector_score,
+                            match_type="vector"
+                        )
+                        logger.debug(f"[SearchService] Vector-only result: {file_id_str[:8]}... score={vector_score:.4f}")
+                
+                logger.info(f"[SearchService] After vector merge: {len(results_map)} total results")
+        else:
+            logger.info(f"[SearchService] Skipping vector search (vector_search={query.vector_search})")
         
         # Step 3: Sort and paginate
         results = list(results_map.values())
         
+        logger.info(f"[SearchService] Sorting {len(results)} results by {query.sort_by}")
+        
         if query.sort_by == "score":
             results.sort(key=lambda r: r.score, reverse=query.sort_desc)
         
+        # Log top results
+        if results:
+            logger.info(f"[SearchService] Top 5 results:")
+            for i, r in enumerate(results[:5]):
+                logger.info(f"[SearchService]   {i+1}. file_id={str(r.file_id)[:12]}... score={r.score:.4f} "
+                           f"type={r.match_type} vector={r.vector_score} text={r.text_score}")
+        
         # Apply offset/limit
-        return results[query.offset:query.offset + query.limit]
+        final_results = results[query.offset:query.offset + query.limit]
+        logger.info(f"[SearchService] ========== SEARCH COMPLETE: {len(final_results)} results ==========")
+        return final_results
     
     async def search_similar(
         self,
@@ -229,43 +271,81 @@ class SearchService(BaseSystem):
         filtered_ids: List[str]
     ) -> List[tuple]:
         """Execute vector similarity search."""
+        logger.info(f"[SearchService._vector_search] Starting vector search")
+        
         if not self._faiss_service:
+            logger.error(f"[SearchService._vector_search] FAISS service is None - cannot execute vector search!")
             return []
+        
+        logger.info(f"[SearchService._vector_search] FAISS service available")
         
         # Get query embedding
         query_vector = query.vector_query
         
         if not query_vector and query.text:
             # Generate embedding from text (requires embedding service)
+            logger.info(f"[SearchService._vector_search] No pre-computed embedding, generating from text: '{query.text}'")
             query_vector = await self._get_text_embedding(query.text, query.vector_provider)
+            
+            if query_vector:
+                logger.info(f"[SearchService._vector_search] ✓ Generated embedding vector (dim={len(query_vector)})")
+            else:
+                logger.error(f"[SearchService._vector_search] ✗ Failed to generate text embedding")
         
         if not query_vector:
+            logger.error(f"[SearchService._vector_search] No query vector available - cannot search!")
             return []
+        
+        logger.info(f"[SearchService._vector_search] Query vector ready (dim={len(query_vector)})")
         
         # Search with optional filtering
         file_ids = [ObjectId(fid) for fid in filtered_ids] if filtered_ids else None
+        logger.info(f"[SearchService._vector_search] Searching with filter: {len(file_ids) if file_ids else 0} file IDs")
         
-        return await self._faiss_service.search(
-            query.vector_provider,
-            query_vector,
-            k=query.limit,
-            file_ids=file_ids
-        )
+        logger.info(f"[SearchService._vector_search] Calling FAISS.search(provider='{query.vector_provider}', k={query.limit})")
+        
+        try:
+            results = await self._faiss_service.search(
+                query.vector_provider,
+                query_vector,
+                k=query.limit,
+                file_ids=file_ids
+            )
+            logger.info(f"[SearchService._vector_search] ✓ FAISS returned {len(results)} results")
+            return results
+        except Exception as e:
+            logger.error(f"[SearchService._vector_search] ✗ FAISS search failed: {e}")
+            import traceback
+            logger.error(f"[SearchService._vector_search] Traceback: {traceback.format_exc()}")
+            return []
     
     async def _get_text_embedding(self, text: str, provider: str) -> Optional[List[float]]:
         """Get embedding for text query using CLIPExtractor."""
+        logger.info(f"[SearchService._get_text_embedding] Generating embedding for text: '{text}' using {provider}")
+        
         if provider == "clip":
             try:
                 from src.ucorefs.extractors.clip_extractor import CLIPExtractor
                 
+                logger.info(f"[SearchService._get_text_embedding] Initializing CLIPExtractor...")
                 extractor = CLIPExtractor(self.locator)
+                
+                logger.info(f"[SearchService._get_text_embedding] Encoding text with CLIP...")
                 embedding = await extractor.encode_text(text)
+                
                 if embedding:
+                    logger.info(f"[SearchService._get_text_embedding] ✓ Successfully encoded text (dim={len(embedding)})")
                     return embedding
+                else:
+                    logger.warning(f"[SearchService._get_text_embedding] ✗ CLIP encoding returned None")
             except Exception as e:
-                logger.error(f"CLIP text encoding failed: {e}")
+                logger.error(f"[SearchService._get_text_embedding] ✗ CLIP text encoding failed: {e}")
+                import traceback
+                logger.error(f"[SearchService._get_text_embedding] Traceback: {traceback.format_exc()}")
+        else:
+            logger.warning(f"[SearchService._get_text_embedding] Unsupported provider: {provider}")
         
-        logger.debug(f"Text embedding not available for {provider}")
+        logger.debug(f"[SearchService._get_text_embedding] Text embedding not available for {provider}")
         return None
     
     def _build_mongo_filter(self, query: SearchQuery) -> Dict[str, Any]:

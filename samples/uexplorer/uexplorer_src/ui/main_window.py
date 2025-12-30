@@ -360,62 +360,7 @@ class MainWindow(QMainWindow):
         
         logger.info("Menu bar created via MenuManager")
     
-    def _build_custom_menus(self):
-        """Build UExplorer-specific menu structure."""
-        menubar = self.menuBar()
-        
-        # FILE MENU
-        file_menu = menubar.addMenu("&File")
-        file_menu.addAction(self.action_registry.get_action("file.new_window"))
-        file_menu.addAction(self.action_registry.get_action("file.new_browser"))
-        file_menu.addSeparator()
-        file_menu.addAction(self.action_registry.get_action("file.exit"))
-        
-        # EDIT MENU
-        edit_menu = menubar.addMenu("&Edit")
-        edit_menu.addAction(self.action_registry.get_action("edit.settings"))
-        
-        # VIEW MENU
-        view_menu = menubar.addMenu("&View")
-        
-        # Panels submenu
-        panels_menu = view_menu.addMenu("&Panels")
-        panels_menu.addAction(self.action_registry.get_action("view.panel.tags"))
-        panels_menu.addAction(self.action_registry.get_action("view.panel.albums"))
-        panels_menu.addAction(self.action_registry.get_action("view.panel.relations"))
-        panels_menu.addAction(self.action_registry.get_action("view.panel.properties"))
-        panels_menu.addSeparator()
-        panels_menu.addAction(self.action_registry.get_action("view.panel.filters"))
-        panels_menu.addAction(self.action_registry.get_action("view.panel.search"))
-        panels_menu.addAction(self.action_registry.get_action("view.panel.background"))
-        
-        view_menu.addSeparator()
-        
-        # Split actions
-        view_menu.addAction(self.action_registry.get_action("view.split_horizontal"))
-        view_menu.addAction(self.action_registry.get_action("view.split_vertical"))
-        view_menu.addAction(self.action_registry.get_action("view.close_split"))
-        
-        view_menu.addSeparator()
-        view_menu.addAction(self.action_registry.get_action("view.reset_layout"))
-        
-        view_menu.addSeparator()
-        view_menu.addAction(self.action_registry.get_action("view.thumbnails"))
-        
-        # TOOLS MENU
-        tools_menu = menubar.addMenu("&Tools")
-        tools_menu.addAction(self.action_registry.get_action("tools.scan"))
-        tools_menu.addSeparator()
-        tools_menu.addAction(self.action_registry.get_action("tools.library"))
-        tools_menu.addAction(self.action_registry.get_action("tools.rules"))
-        tools_menu.addSeparator()
-        tools_menu.addAction(self.action_registry.get_action("tools.command_palette"))
-        
-        # HELP MENU
-        help_menu = menubar.addMenu("&Help")
-        help_menu.addAction(self.action_registry.get_action("help.shortcuts"))
-        help_menu.addSeparator()
-        help_menu.addAction(self.action_registry.get_action("help.about"))
+
     
     def create_toolbar(self):
         """Create toolbar using ToolbarManager."""
@@ -675,6 +620,30 @@ class MainWindow(QMainWindow):
         """Update progress bar value."""
         self.progress_bar.setValue(value)
     
+    def open_dashboard(self):
+        """Open the System Dashboard."""
+        from uexplorer_src.ui.documents.dashboard_document import DashboardDocument
+        
+        # Check if already open
+        for doc_id, doc in self.docking_service.documents.items():
+            if isinstance(doc, DashboardDocument):
+                self.docking_service.activate_document(doc_id)
+                self.status_label.setText("Dashboard activated")
+                return
+                
+        # Create new
+        doc = DashboardDocument(self.locator)
+        self.docking_service.add_document(
+            doc_id=doc.id, 
+            widget=doc, 
+            title="Dashboard", 
+            area="center", 
+            closable=True
+        )
+        self.docking_service.activate_document(doc.id)
+        self.status_label.setText("Dashboard opened")
+        logger.info("Dashboard opened")
+
     def new_window(self):
         """Open a new UExplorer window."""
         # TODO: Implement multi-window support
@@ -1471,14 +1440,23 @@ class MainWindow(QMainWindow):
         """Execute search with unified query from all panels."""
         from uexplorer_src.viewmodels.search_query import SearchQuery
         
-        logger.info(f"Unified search: mode={unified_query.mode}, "
-                   f"text='{unified_query.text[:30]}...', "
-                   f"filters={unified_query.has_filters()}")
+        logger.info(f"[MainWindow] ========== UNIFIED SEARCH START ==========")
+        logger.info(f"[MainWindow] Unified Query Mode: {unified_query.mode}")
+        logger.info(f"[MainWindow] Text: '{unified_query.text[:30]}...' (truncated)")
+        logger.info(f"[MainWindow] Text Fields: {unified_query.text_fields}")
+        logger.info(f"[MainWindow] Has Filters: {unified_query.has_filters()}")
+        logger.info(f"[MainWindow] Limit: {unified_query.limit}")
+        
+        # Mode conversion: "semantic" → "vector" for SearchPipeline
+        converted_mode = unified_query.mode
+        if unified_query.mode == "semantic":
+            converted_mode = "vector"
+            logger.info(f"[MainWindow] >>> Converting mode 'semantic' → 'vector' for SearchPipeline")
         
         # Build SearchQuery from UnifiedSearchQuery
         search_query = SearchQuery(
             text=unified_query.text,
-            mode=unified_query.mode,
+            mode=converted_mode,
             fields=unified_query.text_fields if unified_query.text_fields else ["name"],
             limit=unified_query.limit,
             # Pass through include/exclude filters
@@ -1493,12 +1471,22 @@ class MainWindow(QMainWindow):
             }
         )
         
+        logger.info(f"[MainWindow] Built SearchQuery:")
+        logger.info(f"[MainWindow]   - mode: {search_query.mode}")
+        logger.info(f"[MainWindow]   - text: '{search_query.text}'")
+        logger.info(f"[MainWindow]   - fields: {search_query.fields}")
+        logger.info(f"[MainWindow]   - filters: {search_query.filters}")
+        
         # For similar mode, set file_id
         if unified_query.mode == "similar" and unified_query.similar_file_id:
             search_query.file_id = unified_query.similar_file_id
+            logger.info(f"[MainWindow] Similar mode: file_id={unified_query.similar_file_id}")
         
         if hasattr(self, 'search_pipeline'):
+            logger.info(f"[MainWindow] Executing SearchPipeline...")
             await self.search_pipeline.execute(search_query)
+        else:
+            logger.error(f"[MainWindow] No search_pipeline available!")
     
     def _on_filters_applied(self):
         """Handle filters applied - execute filter-only search."""

@@ -34,7 +34,7 @@ class WDTaggerExtractor(Extractor):
     name: str = "wd_tagger"
     phase: int = 2
     priority: int = 50  # Run after thumbnails, before embeddings
-    batch_supported: bool = False  # Process one at a time (GPU memory)
+    batch_supported: bool = True  # Supports batching via parallelism
     is_cpu_heavy: bool = True  # SAN-14: AI inference with image preprocessing (PIL operations)
     
     # Model configuration (passed to service via config)
@@ -76,14 +76,9 @@ class WDTaggerExtractor(Extractor):
         """
         Extract tags from images using WDTaggerService.
         
-        Returns:
-            Dict mapping file_id -> {
-                "tags": List[str],
-                "characters": List[str],
-                "rating": str,
-                "scores": Dict[str, float]
-            }
+        Using parallelism to maximize throughput.
         """
+        import asyncio
         results = {}
         
         # Get service from locator
@@ -92,14 +87,33 @@ class WDTaggerExtractor(Extractor):
             logger.warning("WDTaggerService not available, skipping tagging")
             return {f._id: None for f in files}
         
-        for file in files:
+        # Get concurrency limit from config
+        ai_workers = 4
+        if self.locator and self.locator.config:
             try:
-                tags_result = await service.tag_image(Path(file.path))
-                results[file._id] = tags_result
-                
-            except Exception as e:
-                logger.error(f"WD-Tagger failed for {file.path}: {e}")
-                results[file._id] = None
+                ai_workers = self.locator.config.data.processing.ai_workers
+            except Exception:
+                pass
+        
+        semaphore = asyncio.Semaphore(ai_workers)
+        logger.debug(f"WDTagger: Processing batch of {len(files)} with concurrency {ai_workers}")
+
+        async def _process_single(file_record):
+            async with semaphore:
+                try:
+                    tags_result = await service.tag_image(Path(file_record.path))
+                    return file_record._id, tags_result
+                except Exception as e:
+                    logger.error(f"WD-Tagger failed for {file_record.path}: {e}")
+                    return file_record._id, None
+
+        # Execute in parallel
+        tasks = [_process_single(f) for f in files]
+        batch_results = await asyncio.gather(*tasks)
+        
+        # Map results
+        for fid, res in batch_results:
+            results[fid] = res
         
         return results
     

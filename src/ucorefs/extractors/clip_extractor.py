@@ -37,33 +37,42 @@ class CLIPExtractor(Extractor):
     
     def __init__(self, locator=None, config: Dict[str, Any] = None):
         super().__init__(locator, config)
-        self._model = None
-        self._preprocess = None
-        self._device = "cpu"
-        self._available = False
+    # Class-level storage for singleton model loading
+    _shared_model = None
+    _shared_preprocess = None
+    _shared_device = "cpu"
+    _shared_available = False
+    
+    def __init__(self, locator=None, config: Dict[str, Any] = None):
+        super().__init__(locator, config)
     
     async def _ensure_model(self) -> bool:
-        """Lazy load CLIP model."""
-        if self._model is not None:
-            return self._available
+        """Lazy load CLIP model (Singleton)."""
+        if CLIPExtractor._shared_model is not None:
+            return CLIPExtractor._shared_available
         
         try:
             import torch
             import clip
             
-            self._device = "cuda" if torch.cuda.is_available() else "cpu"
-            self._model, self._preprocess = clip.load(self.MODEL_NAME, device=self._device)
-            self._available = True
-            logger.info(f"CLIP model loaded on {self._device}")
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            model, preprocess = clip.load(self.MODEL_NAME, device=device)
+            
+            CLIPExtractor._shared_device = device
+            CLIPExtractor._shared_model = model
+            CLIPExtractor._shared_preprocess = preprocess
+            CLIPExtractor._shared_available = True
+            
+            logger.info(f"CLIP model loaded on {device} (Singleton)")
             
         except ImportError:
             logger.warning("CLIP not available - pip install git+https://github.com/openai/CLIP.git")
-            self._available = False
+            CLIPExtractor._shared_available = False
         except Exception as e:
             logger.error(f"Failed to load CLIP model: {e}")
-            self._available = False
+            CLIPExtractor._shared_available = False
         
-        return self._available
+        return CLIPExtractor._shared_available
     
     async def extract(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
         """
@@ -98,66 +107,75 @@ class CLIPExtractor(Extractor):
                 except (KeyError, AttributeError):
                     pass  # Fall back to default pool
             
-            for file in files:
-                if not self.can_process(file):
-                    continue
-                
-                try:
-                    # SAN-14: Offload PIL preprocessing to thread pool (dedicated or default)
-                    image_tensor = await loop.run_in_executor(
-                        executor,  # Use dedicated pool if available, else default
-                        self._preprocess_image_sync,
-                        file.path
-                    )
-                    
-                    if image_tensor is None:
-                        continue
-                    
-                    # Move to device and generate embedding (GPU releases GIL)
-                    image_input = image_tensor.unsqueeze(0).to(self._device)
-                    
-                    with torch.no_grad():
-                        embedding = self._model.encode_image(image_input)
-                        embedding = embedding.cpu().numpy().flatten().tolist()
-                    
-                    results[file._id] = {
-                        "vector": embedding,
-                        "model": self.MODEL_NAME,
-                        "dimension": len(embedding)
-                    }
-                    
-                except Exception as e:
-                    logger.error(f"CLIP embedding failed for {file._id}: {e}")
-        
+            # SAN-14: Offload ENTIRE batch processing to thread pool
+            # This prevents model inference from blocking the main thread event loop
+            results = await loop.run_in_executor(
+                executor,  # Use dedicated pool if available, else default
+                self._extract_batch_sync,
+                files
+            )
+            
         except Exception as e:
             logger.error(f"CLIP extraction batch failed: {e}")
         
         return results
-    
-    def _preprocess_image_sync(self, image_path: str):
+
+    def _extract_batch_sync(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
         """
-        Synchronous image preprocessing (runs in thread pool).
+        Synchronous batch extraction (runs in thread pool).
         
-        This method offloads PIL operations to prevent event loop blocking.
-        
-        Args:
-            image_path: Path to image file
-            
-        Returns:
-            Preprocessed image tensor or None on error
+        Performs both preprocessing and inference off main thread.
         """
+        results = {}
         try:
+            import torch
             from PIL import Image
             
-            # PIL operations run in thread pool
-            image = Image.open(image_path).convert("RGB")
-            image_tensor = self._preprocess(image)
+            # Prepare batch
+            valid_files = []
+            images = []
             
-            return image_tensor
+            for file in files:
+                if not self.can_process(file):
+                    continue
+                    
+                try:
+                    image = Image.open(file.path).convert("RGB")
+                    image_tensor = CLIPExtractor._shared_preprocess(image)
+                    images.append(image_tensor)
+                    valid_files.append(file)
+                except Exception as e:
+                    logger.error(f"Image preprocessing failed for {file._id}: {e}")
             
+            if not images:
+                return {}
+            
+            # Stack images
+            image_input = torch.stack(images).to(CLIPExtractor._shared_device)
+            
+            # Inference
+            with torch.no_grad():
+                image_features = CLIPExtractor._shared_model.encode_image(image_input)
+                image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+                image_features = image_features.cpu().numpy()
+            
+            # Map results
+            for i, file in enumerate(valid_files):
+                embedding = image_features[i].tolist()
+                results[file._id] = {
+                    "vector": embedding,
+                    "model": self.MODEL_NAME,
+                    "dimension": len(embedding)
+                }
+                
         except Exception as e:
-            logger.error(f"Image preprocessing failed for {image_path}: {e}")
-            return None
+            logger.error(f"CLIP synchronous batch failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            
+        return results
+    
+
     
     async def store(self, file_id: ObjectId, result: Any) -> bool:
         """Store CLIP embedding in MongoDB + FAISS."""
@@ -231,10 +249,10 @@ class CLIPExtractor(Extractor):
             import clip
             
             # Tokenize and encode text
-            text_tokens = clip.tokenize([text]).to(self._device)
+            text_tokens = clip.tokenize([text]).to(CLIPExtractor._shared_device)
             
             with torch.no_grad():
-                embedding = self._model.encode_text(text_tokens)
+                embedding = CLIPExtractor._shared_model.encode_text(text_tokens)
                 embedding = embedding.cpu().numpy().flatten().tolist()
             
             logger.debug(f"CLIP text encoding: '{text[:50]}...' -> dim={len(embedding)}")

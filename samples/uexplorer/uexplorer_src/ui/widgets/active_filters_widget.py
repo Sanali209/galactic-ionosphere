@@ -7,21 +7,148 @@ Replaces FilterSummaryWidget with badge-based display.
 from typing import Dict, List, Tuple
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QScrollArea
+    QFrame, QScrollArea, QLayout, QSizePolicy
 )
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QRect, QSize, QPoint
 from loguru import logger
 
 from uexplorer_src.ui.widgets.filter_badge import FilterBadge
 
 
-class FlowLayout(QHBoxLayout):
-    """Simple flow layout that wraps widgets."""
+from PySide6.QtCore import Qt, QRect, QSize, QPoint
+
+
+class QFlowLayout(QLayout):
+    """Flow layout that wraps widgets to new lines when they exceed container width."""
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, margin=0, spacing=-1):
         super().__init__(parent)
-        self.setSpacing(6)
-        self.setContentsMargins(0, 0, 0, 0)
+        self._items = []
+        self._spacing = spacing
+        
+        if parent is not None:
+            self.setContentsMargins(margin, margin, margin, margin)
+    
+    def __del__(self):
+        item = self.takeAt(0)
+        while item:
+            item = self.takeAt(0)
+    
+    def addItem(self, item):
+        """Add item to layout."""
+        self._items.append(item)
+    
+    def count(self):
+        """Return number of items in layout."""
+        return len(self._items)
+    
+    def itemAt(self, index):
+        """Get item at index."""
+        if 0 <= index < len(self._items):
+            return self._items[index]
+        return None
+    
+    def takeAt(self, index):
+        """Remove and return item at index."""
+        if 0 <= index < len(self._items):
+            return self._items.pop(index)
+        return None
+    
+    def expandingDirections(self):
+        """Layout expands horizontally."""
+        return Qt.Orientation(0)
+    
+    def hasHeightForWidth(self):
+        """Layout height depends on width (for wrapping)."""
+        return True
+    
+    def heightForWidth(self, width):
+        """Calculate height needed for given width."""
+        height = self._do_layout(QRect(0, 0, width, 0), True)
+        return height
+    
+    def setGeometry(self, rect):
+        """Position all widgets in the layout."""
+        super().setGeometry(rect)
+        self._do_layout(rect, False)
+    
+    def sizeHint(self):
+        """Return preferred size."""
+        return self.minimumSize()
+    
+    def minimumSize(self):
+        """Calculate minimum size needed."""
+        size = QSize()
+        
+        for item in self._items:
+            size = size.expandedTo(item.minimumSize())
+        
+        margins = self.contentsMargins()
+        size += QSize(margins.left() + margins.right(), 
+                     margins.top() + margins.bottom())
+        return size
+    
+    def _do_layout(self, rect, test_only):
+        """
+        Layout widgets in flow pattern.
+        
+        Args:
+            rect: Rectangle to layout within
+            test_only: If True, only calculate height without positioning
+            
+        Returns:
+            Height needed for layout
+        """
+        left = rect.x()
+        top = rect.y()
+        line_height = 0
+        
+        spacing = self.spacing()
+        if spacing == -1:
+            spacing = 6  # Default spacing
+        
+        x = left
+        y = top
+        
+        for item in self._items:
+            widget = item.widget()
+            if widget is None:
+                continue
+                
+            space_x = spacing
+            space_y = spacing
+            
+            next_x = x + item.sizeHint().width() + space_x
+            
+            # Check if we need to wrap to next line
+            if next_x - space_x > rect.right() and line_height > 0:
+                x = left
+                y = y + line_height + space_y
+                next_x = x + item.sizeHint().width() + space_x
+                line_height = 0
+            
+            if not test_only:
+                item.setGeometry(QRect(QPoint(x, y), item.sizeHint()))
+            
+            x = next_x
+            line_height = max(line_height, item.sizeHint().height())
+        
+        return y + line_height - rect.y()
+    
+    def spacing(self):
+        """Get spacing between items."""
+        if self._spacing >= 0:
+            return self._spacing
+        else:
+            # Get default spacing from parent
+            parent = self.parent()
+            if parent:
+                return parent.style().layoutSpacing(
+                    QSizePolicy.ControlType.PushButton,
+                    QSizePolicy.ControlType.PushButton,
+                    Qt.Orientation.Horizontal
+                )
+            return 6  # Fallback default
 
 
 class ActiveFiltersWidget(QWidget):
@@ -101,6 +228,7 @@ class ActiveFiltersWidget(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setMinimumHeight(250)  # 3x typical height for better visibility
         scroll.setStyleSheet("""
             QScrollArea { 
                 border: none; 
@@ -145,8 +273,8 @@ class ActiveFiltersWidget(QWidget):
         badge_container = QWidget()
         badge_container.setObjectName(f"{title}_badges")
         
-        # Use a simple wrapping layout
-        badge_layout = FlowLayout()
+        # Use proper wrapping flow layout
+        badge_layout = QFlowLayout(spacing=6)
         badge_container.setLayout(badge_layout)
         layout.addWidget(badge_container)
         

@@ -310,93 +310,155 @@ class UnifiedSearchPanel(QWidget):
         # Add directory badges
         if hasattr(query, 'directory_include') and query.directory_include:
             for path in query.directory_include:
-                # Extract just the folder name for display
-                from pathlib import Path
-                display_name = Path(path).name or path
+                # Resolve directory name from database
+                display_name = self._get_directory_name(path)
                 self.active_filters.add_badge(path, display_name, "directory", include=True)
         
         if hasattr(query, 'directory_exclude') and query.directory_exclude:
             for path in query.directory_exclude:
-                from pathlib import Path
-                display_name = Path(path).name or path
+                # Resolve directory name from database
+                display_name = self._get_directory_name(path)
                 self.active_filters.add_badge(path, display_name, "directory", include=False)
         
-        # Add tag badges (need to resolve IDs to names)
-        if hasattr(query, 'tag_include') and query.tag_include:
+        # === TAGS - Prefer refs (no DB query!), fallback to legacy ===
+        if hasattr(query, 'tag_refs_include') and query.tag_refs_include:
+            # NEW WAY: Use TagRef objects - names already available!
+            for tag_ref in query.tag_refs_include:
+                self.active_filters.add_badge(
+                    tag_ref.to_id_str(),
+                    tag_ref.name,  # ← NO database query!
+                    "tag",
+                    include=True
+                )
+        elif hasattr(query, 'tag_include') and query.tag_include:
+            # FALLBACK: Legacy IDs - need database query
             for tag_id in query.tag_include:
                 tag_name = self._get_tag_name(tag_id)
                 self.active_filters.add_badge(tag_id, tag_name, "tag", include=True)
         
-        if hasattr(query, 'tag_exclude') and query.tag_exclude:
+        if hasattr(query, 'tag_refs_exclude') and query.tag_refs_exclude:
+            for tag_ref in query.tag_refs_exclude:
+                self.active_filters.add_badge(tag_ref.to_id_str(), tag_ref.name, "tag", include=False)
+        elif hasattr(query, 'tag_exclude') and query.tag_exclude:
             for tag_id in query.tag_exclude:
                 tag_name = self._get_tag_name(tag_id)
                 self.active_filters.add_badge(tag_id, tag_name, "tag", include=False)
         
-        # Add album badges (need to resolve IDs to names)
-        if hasattr(query, 'album_include') and query.album_include:
+        # === ALBUMS - Prefer refs (no DB query!), fallback to legacy ===
+        if hasattr(query, 'album_refs_include') and query.album_refs_include:
+            # NEW WAY: Use AlbumRef objects - names already available!
+            for album_ref in query.album_refs_include:
+                self.active_filters.add_badge(
+                    album_ref.to_id_str(),
+                    album_ref.name,  # ← NO database query!
+                    "album",
+                    include=True
+                )
+        elif hasattr(query, 'album_include') and query.album_include:
+            # FALLBACK: Legacy IDs - need database query
             for album_id in query.album_include:
                 album_name = self._get_album_name(album_id)
                 self.active_filters.add_badge(album_id, album_name, "album", include=True)
         
-        if hasattr(query, 'album_exclude') and query.album_exclude:
+        if hasattr(query, 'album_refs_exclude') and query.album_refs_exclude:
+            for album_ref in query.album_refs_exclude:
+                self.active_filters.add_badge(album_ref.to_id_str(), album_ref.name, "album", include=False)
+        elif hasattr(query, 'album_exclude') and query.album_exclude:
             for album_id in query.album_exclude:
                 album_name = self._get_album_name(album_id)
                 self.active_filters.add_badge(album_id, album_name, "album", include=False)
     
+    def _get_directory_name(self, path: str) -> str:
+        """Resolve directory path to display name."""
+        # Directories use paths, not IDs - extract folder name
+        from pathlib import Path
+        try:
+            folder_name = Path(path).name
+            return folder_name if folder_name else path
+        except Exception as e:
+            logger.debug(f"Failed to extract directory name from path: {e}")
+            return path
+    
     def _get_tag_name(self, tag_id: str) -> str:
         """Resolve tag ID to display name."""
-        if not self._locator:
-            return tag_id[:8]
+        logger.debug(f"Resolving tag name for ID: {tag_id}")
         
         try:
-            from src.core.database.manager import DatabaseManager
             from bson import ObjectId
+            from pymongo import MongoClient
             
-            db_manager = self._locator.get_system(DatabaseManager)
-            if not db_manager:
-                return tag_id[:8]
+            # Get MongoDB connection info from config
+            if self._locator and hasattr(self._locator, 'config'):
+                config = self._locator.config
+                if hasattr(config, 'data') and hasattr(config.data, 'mongo'):
+                    host = config.data.mongo.host
+                    port = config.data.mongo.port
+                    db_name = config.data.mongo.database_name
+                else:
+                    host, port, db_name = 'localhost', 27017, 'app_db'
+            else:
+                host, port, db_name = 'localhost', 27017, 'app_db'
             
-            # Query tag directly from database
+            # Create synchronous connection for this query
+            sync_client = MongoClient(f"mongodb://{host}:{port}")
+            sync_db = sync_client[db_name]
+            
             try:
                 tag_obj_id = ObjectId(tag_id)
-                tag = db_manager.db.tags.find_one({"_id": tag_obj_id})
-                if tag:
-                    # Return the name field
-                    return tag.get('name', tag_id[:8])
-            except Exception as e:
-                logger.debug(f"Failed to get tag from database: {e}")
+                tag_doc = sync_db.tags.find_one({"_id": tag_obj_id})
+                
+                if tag_doc and 'name' in tag_doc:
+                    logger.debug(f"Found tag name: {tag_doc['name']}")
+                    return tag_doc['name']
+                else:
+                    logger.warning(f"Tag not found: {tag_id}")
+            finally:
+                sync_client.close()
             
             return tag_id[:8]
         except Exception as e:
-            logger.debug(f"Failed to resolve tag name: {e}")
+            logger.error(f"Failed to resolve tag name: {e}")
             return tag_id[:8]
     
     def _get_album_name(self, album_id: str) -> str:
         """Resolve album ID to display name."""
-        if not self._locator:
-            return album_id[:8]
+        logger.debug(f"Resolving album name for ID: {album_id}")
         
         try:
-            from src.core.database.manager import DatabaseManager
             from bson import ObjectId
+            from pymongo import MongoClient
             
-            db_manager = self._locator.get_system(DatabaseManager)
-            if not db_manager:
-                return album_id[:8]
+            # Get MongoDB connection info from config
+            if self._locator and hasattr(self._locator, 'config'):
+                config = self._locator.config
+                if hasattr(config, 'data') and hasattr(config.data, 'mongo'):
+                    host = config.data.mongo.host
+                    port = config.data.mongo.port
+                    db_name = config.data.mongo.database_name
+                else:
+                    host, port, db_name = 'localhost', 27017, 'app_db'
+            else:
+                host, port, db_name = 'localhost', 27017, 'app_db'
             
-            # Query album directly from database
+            # Create synchronous connection for this query
+            sync_client = MongoClient(f"mongodb://{host}:{port}")
+            sync_db = sync_client[db_name]
+            
             try:
                 album_obj_id = ObjectId(album_id)
-                album = db_manager.db.albums.find_one({"_id": album_obj_id})
-                if album:
-                    # Return the name field
-                    return album.get('name', album_id[:8])
-            except Exception as e:
-                logger.debug(f"Failed to get album from database: {e}")
+                album_doc = sync_db.albums.find_one({"_id": album_obj_id})
+                
+                if album_doc and 'name' in album_doc:
+                    logger.debug(f"Found album name: {album_doc['name']}")
+                    return album_doc['name']
+                else:
+                    logger.warning(f"Album not found: {album_id}")
+            finally:
+                sync_client.close()
             
             return album_id[:8]
         except Exception as e:
-            logger.debug(f"Failed to resolve album name: {e}")
+            logger.error(f"Failed to resolve album name: {e}")
             return album_id[:8]
     
     def _on_filter_badge_removed(self, filter_type: str, filter_id: str):

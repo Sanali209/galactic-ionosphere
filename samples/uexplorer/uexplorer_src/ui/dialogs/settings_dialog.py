@@ -248,13 +248,20 @@ class ProcessingSettingsPage(QWidget):
         layout.addWidget(batch_group)
         
         # Workers
-        workers_group = QGroupBox("Background Workers")
+        workers_group = QGroupBox("Resource Usage")
         workers_layout = QFormLayout(workers_group)
         
         self.worker_count = QSpinBox()
-        self.worker_count.setRange(1, 16)
-        self.worker_count.setValue(3)
-        workers_layout.addRow("Worker Threads:", self.worker_count)
+        self.worker_count.setRange(1, 32)
+        self.worker_count.setValue(8)
+        self.worker_count.setToolTip("Number of background task orchestrators. Higher = more tasks managed at once.")
+        workers_layout.addRow("Task Orchestrators:", self.worker_count)
+
+        self.ai_workers = QSpinBox()
+        self.ai_workers.setRange(1, 16)
+        self.ai_workers.setValue(4)
+        self.ai_workers.setToolTip("Number of concurrent AI/CPU threads. Limit this based on your CPU cores.")
+        workers_layout.addRow("AI Threads (CPU):", self.ai_workers)
         
         layout.addWidget(workers_group)
         layout.addStretch()
@@ -425,7 +432,13 @@ class SettingsDialog(QDialog):
                 
                 # Task workers
                 self.processing_page.worker_count.setValue(
-                    getattr(data.general, 'task_workers', 3)
+                    getattr(data.general, 'task_workers', 8)
+                )
+
+            # Processing settings
+            if hasattr(data, 'processing'):
+                self.processing_page.ai_workers.setValue(
+                    getattr(data.processing, 'ai_workers', 4)
                 )
             
             # AI settings
@@ -579,6 +592,10 @@ class SettingsDialog(QDialog):
             # Task workers
             workers = self.processing_page.worker_count.value()
             self._config.update('general', 'task_workers', workers)
+
+            # AI workers
+            ai_workers = self.processing_page.ai_workers.value()
+            self._config.update('processing', 'ai_workers', ai_workers)
             
             # AI device
             device_map = {0: 'auto', 1: 'cpu', 2: 'cuda', 3: 'directml'}
