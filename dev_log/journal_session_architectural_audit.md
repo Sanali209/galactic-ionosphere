@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-01  
 **Session ID**: architectural_audit_refactor  
-**Status**: In Progress (Planning Phase)
+**Status**: In Progress (Execution Phase)
 
 ## Objective
 
@@ -12,34 +12,27 @@ Conduct deep research on `samples\uexplorer` for architectural audit and refacto
 3. Create implementation plan for standardization
 4. Leverage USCore Foundation to full power
 
-## Research Findings
+## Progress Summary
 
-### Files Exceeding 500-Line Target
+### Modules Extracted
 
-| File | Lines | Bytes | Responsibilities |
-|------|-------|-------|------------------|
-| `main_window.py` | 1973 | 84KB | 86 methods: UI setup, panels, session, events, maintenance |
-| `file_model.py` | 755 | 30KB | Qt model, thumbnails, sorting, grouping, filesystem updates |
-| `settings_dialog.py` | 689 | 27KB | 6 settings pages + dialog orchestration |
-| `file_browser_document.py` | ~650 | 26KB | File pane, card view, selection, context menus |
-| `unified_query_builder.py` | 560 | 24KB | Query model + filter connections |
-| `metadata_panel.py` | 554 | 23KB | StarRating widget + metadata display + XMP operations |
-| `unified_search_panel.py` | ~500 | 20KB | Search UI with multiple modes |
-| `directory_panel.py` | ~500 | 20KB | Directory tree with drag-drop |
-| `annotation_panel.py` | ~500 | 20KB | Annotation display (read-only) |
-| `album_tree.py` | ~440 | 17KB | Album tree widget |
-| `search_pipeline.py` | ~450 | 18KB | Search execution logic |
-| `tag_tree.py` | ~350 | 14KB | Tag tree widget |
-| `rule_manager_dialog.py` | ~350 | 14KB | Rule configuration UI |
+| Module | Lines | Source Reduction |
+|--------|-------|------------------|
+| `session_manager.py` | 220 | ~110 lines from main_window |
+| `maintenance_commands.py` | 280 | ~180 lines from main_window |
 
-### USCore Foundation Utilization
+### Main Window Status
 
-**Currently Used**:
-- ✅ ServiceLocator (dependency injection)
-- ✅ DockingService (QtAds docking)
-- ✅ SessionState (dock layout persistence)
-- ✅ ApplicationBuilder (test fixtures)
-- ✅ TaskSystem (background tasks)
+| Metric | Before | After | Change |
+|--------|--------|-------|--------|
+| Lines | 1973 | 1662 | -311 (-16%) |
+| Bytes | 84KB | 70KB | -14KB |
+| Methods | 86 | 79 | -7 |
+
+### Next Candidates (if continuing)
+
+- `_create_tool_panels` → `panel_factory.py` (~160 lines)
+- `settings_dialog.py` page separation (689 → ~150 lines each)
 
 **Underutilized**:
 - ⚠️ EventBus (direct signals used instead)

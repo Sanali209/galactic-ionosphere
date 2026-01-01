@@ -5,8 +5,12 @@ Simplifies application setup and initialization.
 """
 import sys
 import asyncio
-from typing import Type, Optional, List
+from abc import ABC, abstractmethod
+from typing import Type, Optional, List, TYPE_CHECKING
 from pathlib import Path
+
+if TYPE_CHECKING:
+    from .bootstrap import ApplicationBuilder
 
 from PySide6.QtWidgets import QApplication
 from qasync import QEventLoop
@@ -19,6 +23,31 @@ from .commands.bus import CommandBus
 from .journal.service import JournalService
 from .assets.manager import AssetManager
 from .tasks.system import TaskSystem
+
+
+class SystemBundle(ABC):
+    """
+    Base class for grouping related systems into reusable bundles.
+    
+    Bundles encapsulate the registration of multiple systems in their
+    required dependency order, reducing verbosity in entry points.
+    
+    Example:
+        class MyBundle(SystemBundle):
+            def register(self, builder: "ApplicationBuilder") -> None:
+                builder.add_system(ServiceA)
+                builder.add_system(ServiceB)
+    """
+    
+    @abstractmethod
+    def register(self, builder: "ApplicationBuilder") -> None:
+        """
+        Register all systems in this bundle.
+        
+        Args:
+            builder: The ApplicationBuilder to register systems with
+        """
+        pass
 
 
 class ApplicationBuilder:
@@ -77,6 +106,22 @@ class ApplicationBuilder:
             Self for chaining
         """
         self._systems.append(system_cls)
+        return self
+    
+    def add_bundle(self, bundle: SystemBundle) -> "ApplicationBuilder":
+        """
+        Register all systems from a bundle.
+        
+        Bundles group related systems together, reducing verbosity
+        and encapsulating dependency order.
+        
+        Args:
+            bundle: SystemBundle instance to register
+            
+        Returns:
+            Self for chaining
+        """
+        bundle.register(self)
         return self
         
     def with_logging(self, enable: bool = True):

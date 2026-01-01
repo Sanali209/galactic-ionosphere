@@ -84,13 +84,14 @@ class MainWindow(QMainWindow):
         # Apply theme
         self.apply_theme()
         
-        
-        # Connect SessionState to DockingService for integrated persistence
-        self._setup_session_integration()
+        # Initialize session manager for persistence
+        from uexplorer_src.ui.managers import SessionManager, restore_browser_document
+        self.session_manager = SessionManager(self, self.locator, self.docking_service)
+        self.session_manager.setup_integration()
         
         # Restore session (documents + layout)
         # This acts as the single source of truth for startup state
-        if not self._restore_session():
+        if not self.session_manager.restore(on_restore_document=self._restore_browser_document):
             logger.info("No session found - initializing default layout")
             # No session to restore - create default single browser
             self.new_browser()
@@ -99,149 +100,15 @@ class MainWindow(QMainWindow):
         
         logger.info("UExplorer main window initialized")
     
-    def _setup_session_integration(self):
-        """Connect SessionState to DockingService for integrated persistence."""
-        try:
-            from src.ui.state import SessionState
-            session = self.locator.get_system(SessionState)
-            if session:
-                session.set_docking_service(self.docking_service)
-                logger.info("SessionState connected to DockingService")
-        except (KeyError, ImportError) as e:
-            logger.debug(f"SessionState not available: {e}")
-    
-    def _save_session(self):
-        """Save session using Foundation's SessionState."""
-        try:
-            from src.ui.state import SessionState
-            session = self.locator.get_system(SessionState)
-            if session:
-                session.save()
-                logger.info("Session saved via SessionState")
-                return
-        except (KeyError, ImportError):
-            pass
-        
-        # Fallback: save layout only
-        try:
-            self.save_layout()
-        except RuntimeError:
-            pass
-    
-    def _restore_session(self) -> bool:
-        """Restore session using Foundation's SessionState. Returns True if documents restored."""
-        try:
-            from src.ui.state import SessionState
-            session = self.locator.get_system(SessionState)
-            if not session:
-                return False
-            
-            # Get saved document states
-            doc_states = session.get_document_states()
-            if not doc_states:
-                logger.info("No documents to restore from session")
-                return False
-            
-            logger.info(f"Restoring session: {len(doc_states)} documents")
-            restored = 0
-            
-            for doc_id, doc_state in doc_states.items():
-                # Only restore documents that were actually open
-                if doc_state.get("is_closed", False):
-                    logger.debug(f"Skipping closed document: {doc_id}")
-                    continue
-                    
-                try:
-                    self._restore_browser_document(doc_id, doc_state)
-                    restored += 1
-                except Exception as e:
-                    logger.error(f"Failed to restore {doc_id}: {e}")
-            
-            # Restore full layout from saved bytes (now works because objectNames match)
-            docking_state = session.get("docking", {})
-            layout = docking_state.get("layout_bytes") if isinstance(docking_state, dict) else None
-            
-            if layout and restored > 0:
-                try:
-                    layout_bytes = bytes.fromhex(layout)
-                    self.docking_service.restore_layout(layout_bytes)
-                    logger.info("Restored docking layout from session")
-                except Exception as e:
-                    logger.warning(f"Failed to restore layout: {e}")
-                    # Fallback to panel visibility restoration
-                    self._restore_panel_visibility(docking_state.get("panels", {}))
-            else:
-                # No layout bytes, try legacy or manual panel restoration
-                panel_states = docking_state.get("panels", {}) if isinstance(docking_state, dict) else {}
-                self._restore_panel_visibility(panel_states)
-            
-            logger.info(f"Session restored: {restored} documents")
-            return restored > 0
-            
-        except (KeyError, ImportError) as e:
-            logger.debug(f"SessionState not available: {e}")
-            return False
-    
     def _restore_browser_document(self, doc_id: str, doc_state: dict):
-        """Restore a browser document from saved state."""
-        from uexplorer_src.ui.documents.file_browser_document import FileBrowserDocument
-        
-        title = doc_state.get("title", "Files")
-        custom_state = doc_state.get("custom_state", {})
-        
-        # Register with DocumentManager FIRST so it's tracked
-        if hasattr(self, 'document_manager'):
-            vm = self.document_manager.create_document(doc_id)
-        else:
-            vm = None
-        
-        # Pass viewmodel to document so search results work
-        doc = FileBrowserDocument(self.locator, viewmodel=vm, title=title, parent=None)
-        
-        # Restore viewmodel state
-        if custom_state:
-            doc.set_state(custom_state)
-        
-        self.docking_service.add_document(doc_id, doc, title, area="center", closable=True)
-        
-        # Connect selection to metadata/properties panel
-        doc.selection_changed.connect(self.on_selection_changed)
-        
-        logger.debug(f"Restored document: {doc_id} - {title}")
-    
-    def _restore_panel_visibility(self, panel_states: dict):
-        """Restore panel visibility as fallback when layout_bytes fails."""
-        if not panel_states:
-            return
-            
-        for panel_id, panel_state in panel_states.items():
-            try:
-                is_visible = panel_state.get("is_visible", True)
-                if is_visible:
-                    self.docking_service.show_panel(panel_id)
-                else:
-                    self.docking_service.hide_panel(panel_id)
-            except Exception as e:
-                logger.debug(f"Failed to restore panel {panel_id}: {e}")
-        logger.info("Restored panel visibility from session")
+        """Restore a browser document from saved state (delegate to session_manager)."""
+        from uexplorer_src.ui.managers import restore_browser_document
+        restore_browser_document(self, self.locator, self.docking_service, doc_id, doc_state)
     
     def _open_browser_for_directory(self, directory_id: str):
-        """Open a new browser tab and navigate to directory."""
-        from uexplorer_src.ui.documents.file_browser_document import FileBrowserDocument
-        import uuid
-        
-        doc_id = f"browser_{uuid.uuid4().hex[:8]}"
-        
-        # Create ViewModel via DocumentManager
-        if hasattr(self, 'document_manager'):
-            vm = self.document_manager.create_document(doc_id)
-        else:
-            vm = None
-            
-        doc = FileBrowserDocument(self.locator, viewmodel=vm, title="Files", parent=None)
-        
-        self.docking_service.add_document(doc_id, doc, "Files", area="center", closable=True)
-        doc.browse_directory(directory_id)
+        """Open a new browser tab and navigate to directory (delegate to session_manager)."""
+        from uexplorer_src.ui.managers import open_browser_for_directory
+        open_browser_for_directory(self, self.locator, self.docking_service, directory_id)
     
     def _init_managers(self):
         """Initialize centralized UI managers."""
@@ -316,13 +183,14 @@ class MainWindow(QMainWindow):
         logger.info("✓ Initial root load triggered")
     
     def closeEvent(self, event):
-        """Handle window close event - save session via Foundation."""
+        """Handle window close event - save session via SessionManager."""
         logger.info("=" * 50)
         logger.info("🚪 WINDOW CLOSE - Saving session")
         logger.info("=" * 50)
         
         # Save complete session (documents, layout, panels)
-        self._save_session()
+        if hasattr(self, 'session_manager'):
+            self.session_manager.save()
         
         # Accept the close event
         event.accept()
@@ -705,250 +573,71 @@ class MainWindow(QMainWindow):
             if isinstance(doc, FileBrowserDocument) and doc.view_model:
                 asyncio.ensure_future(doc.view_model.refresh())
     
+    # ==================== Maintenance Commands (Delegated) ====================
+    
+    def _get_maintenance_ui(self):
+        """Get MaintenanceUI instance for command callbacks."""
+        from uexplorer_src.commands import MaintenanceUI
+        return MaintenanceUI(
+            parent_widget=self,
+            status_callback=lambda msg: self.status_label.setText(msg),
+            progress_callback=self.show_progress,
+            show_error=self._show_error,
+            show_warning=self._show_warning,
+            show_success=self._show_success,
+        )
+    
     def reprocess_selection(self):
         """Reprocess selected files through Phase 2/3 pipeline."""
-        import asyncio
-        from bson import ObjectId
+        from uexplorer_src.commands import reprocess_selection
         
-        # Get selected file IDs from SelectionManager
         if not hasattr(self, 'selection_manager'):
             logger.warning("SelectionManager not available")
             return
         
         selected_ids = self.selection_manager.get_selected_ids()
-        if not selected_ids:
-            self.status_label.setText("No files selected to reprocess")
-            return
-        
-        # Convert to ObjectIds
-        object_ids = [ObjectId(str(fid)) for fid in selected_ids]
-        
-        async def _enqueue():
-            try:
-                from src.ucorefs.processing.pipeline import ProcessingPipeline
-                pipeline = self.locator.get_system(ProcessingPipeline)
-                
-                if not pipeline:
-                    self.status_label.setText("ProcessingPipeline not available")
-                    return
-                
-                # Enqueue Phase 2 (metadata, thumbnails, embeddings)
-                task_id = await pipeline.enqueue_phase2(object_ids, force=True)
-                
-                if task_id:
-                    self.status_label.setText(f"Queued {len(object_ids)} files for reprocessing")
-                    logger.info(f"Reprocess: Queued {len(object_ids)} files - Task {task_id}")
-                else:
-                    self.status_label.setText("Files already in processing queue")
-                
-            except Exception as e:
-                logger.error(f"Failed to queue reprocessing: {e}")
-                self.status_label.setText(f"Reprocess failed: {e}")
-        
-        # Run async
-        asyncio.ensure_future(_enqueue())
+        asyncio.ensure_future(reprocess_selection(
+            self.locator, selected_ids, self._get_maintenance_ui()
+        ))
     
     def reindex_all_files(self):
         """Reindex all unprocessed files in database via background tasks."""
-        import asyncio
-        
-        async def _reindex():
-            try:
-                from src.ucorefs.processing.pipeline import ProcessingPipeline
-                pipeline = self.locator.get_system(ProcessingPipeline)
-                
-                if not pipeline:
-                    self.status_label.setText("ProcessingPipeline not available")
-                    return
-                
-                self.status_label.setText("Starting reindex...")
-                
-                # Reindex unprocessed files
-                result = await pipeline.reindex_all(include_processed=False)
-                
-                total = result.get("total_files", 0)
-                batches = result.get("batches_queued", 0)
-                
-                if total > 0:
-                    self.status_label.setText(f"Reindex: {total} files in {batches} batches queued")
-                    logger.info(f"Reindex started: {total} files, {batches} tasks")
-                else:
-                    self.status_label.setText("No unprocessed files to reindex")
-                
-            except Exception as e:
-                logger.error(f"Failed to reindex: {e}")
-                self.status_label.setText(f"Reindex failed: {e}")
-        
-        asyncio.ensure_future(_reindex())
-    
-    # ==================== Maintenance Menu Actions ====================
+        from uexplorer_src.commands import reindex_all_files
+        asyncio.ensure_future(reindex_all_files(
+            self.locator, self._get_maintenance_ui()
+        ))
     
     def rebuild_all_counts(self):
-        """Show progress dialog and rebuild all counts."""
-        asyncio.ensure_future(self._rebuild_counts_async())
-    
-    async def _rebuild_counts_async(self):
-        """Execute count rebuild with non-blocking progress feedback."""
-        from src.ucorefs.services.maintenance_service import MaintenanceService
+        """Rebuild file counts for tags, albums, directories."""
+        from uexplorer_src.commands import rebuild_all_counts
         
-        try:
-            maintenance = self.locator.get_system(MaintenanceService)
-            if not maintenance:
-                self._show_error("MaintenanceService not available")
-                return
-            
-            # Show non-blocking progress in status bar
-            self.show_progress(True, 0, 100)
-            self.status_label.setText("Rebuilding file counts...")
-            
-            try:
-                # Await without blocking event loop
-                result = await maintenance.rebuild_all_counts()
-                
-                # Calculate totals
-                total_updated = (result.get("tags_updated", 0) + 
-                               result.get("albums_updated", 0) + 
-                               result.get("directories_updated", 0))
-                
-                # Build message
-                message = (
-                    f"Count rebuild complete!\n\n"
-                    f"Tags: {result.get('tags_updated', 0)} | "
-                    f"Albums: {result.get('albums_updated', 0)} | "
-                    f"Dirs: {result.get('directories_updated', 0)}\n"
-                    f"Duration: {result.get('duration', 0):.2f}s"
-                )
-                
-                if result.get("errors"):
-                    message += f"\n\nErrors: {len(result['errors'])}"
-                
-                # Refresh panels (event loop not blocked, safe to schedule)
-                if hasattr(self, 'tags_panel') and self.tags_panel:
-                    asyncio.create_task(self.tags_panel._tree.refresh_tags())
-                if hasattr(self, 'albums_panel') and self.albums_panel:
-                    asyncio.create_task(self.albums_panel._tree.refresh_albums())
-                if hasattr(self, 'directory_panel') and self.directory_panel:
-                    asyncio.create_task(self.directory_panel.on_update())
-                
-                self._show_success(message)
-                logger.info(f"Count rebuild complete: {total_updated} records updated")
-                
-            finally:
-                self.show_progress(False)
-                self.status_label.setText("Ready")
-                
-        except Exception as e:
-            self._show_error(f"Rebuild failed: {e}")
-            logger.error(f"Count rebuild failed: {e}")
+        def refresh_panels():
+            if hasattr(self, 'tags_panel') and self.tags_panel:
+                asyncio.create_task(self.tags_panel._tree.refresh_tags())
+            if hasattr(self, 'albums_panel') and self.albums_panel:
+                asyncio.create_task(self.albums_panel._tree.refresh_albums())
+            if hasattr(self, 'directory_panel') and self.directory_panel:
+                asyncio.create_task(self.directory_panel.on_update())
+        
+        asyncio.ensure_future(rebuild_all_counts(
+            self.locator, self._get_maintenance_ui(), refresh_panels
+        ))
     
     def verify_references(self):
         """Verify data integrity."""
-        asyncio.ensure_future(self._verify_references_async())
-    
-    async def _verify_references_async(self):
-        """Verify ObjectId references with non-blocking progress feedback."""
-        from src.ucorefs.services.maintenance_service import MaintenanceService
-        
-        try:
-            maintenance = self.locator.get_system(MaintenanceService)
-            if not maintenance:
-                self._show_error("MaintenanceService not available")
-                return
-            
-            # Show non-blocking progress
-            self.show_progress(True, 0, 0)  # Indeterminate
-            self.status_label.setText("Verifying data integrity...")
-            
-            try:
-                result = await maintenance.verify_references()
-                
-                # Calculate totals
-                total_broken = (result.get("broken_tag_refs", 0) + 
-                              result.get("broken_album_refs", 0) + 
-                              result.get("broken_dir_refs", 0))
-                
-                if total_broken == 0:
-                    message = f"✓ All references valid! ({result.get('files_checked', 0)} files checked)"
-                    self._show_success(message)
-                else:
-                    message = (
-                        f"⚠ Found {total_broken} broken references:\n\n"
-                        f"Tags: {result.get('broken_tag_refs', 0)} | "
-                        f"Albums: {result.get('broken_album_refs', 0)} | "
-                        f"Dirs: {result.get('broken_dir_refs', 0)}\n"
-                        f"Files checked: {result.get('files_checked', 0)}\n\n"
-                        f"Run 'Cleanup Orphaned Records' to fix."
-                    )
-                    self._show_warning(message)
-                
-                logger.info(f"Reference verification complete: {total_broken} broken references")
-                
-            finally:
-                self.show_progress(False)
-                self.status_label.setText("Ready")
-                
-        except Exception as e:
-            self._show_error(f"Verification failed: {e}")
-            logger.error(f"Reference verification failed: {e}")
+        from uexplorer_src.commands import verify_references
+        asyncio.ensure_future(verify_references(
+            self.locator, self._get_maintenance_ui()
+        ))
     
     def cleanup_orphaned_records(self):
         """Cleanup orphaned references."""
-        asyncio.ensure_future(self._cleanup_orphaned_async())
+        from uexplorer_src.commands import cleanup_orphaned_records
+        asyncio.ensure_future(cleanup_orphaned_records(
+            self.locator, self._get_maintenance_ui()
+        ))
     
-    async def _cleanup_orphaned_async(self):
-        """Cleanup orphaned records with confirmation."""
-        from PySide6.QtWidgets import QMessageBox
-        from src.ucorefs.services.maintenance_service import MaintenanceService
-        
-        try:
-            # Confirm action (non-blocking dialog is OK here - user must respond)
-            reply = QMessageBox.question(
-                self,
-                "Cleanup Orphaned Records",
-                "This will remove invalid references from your database.\n\n"
-                "This operation is safe but cannot be undone.\n\n"
-                "Continue?",
-                QMessageBox.Yes | QMessageBox.No
-            )
-            
-            if reply != QMessageBox.Yes:
-                return
-            
-            maintenance = self.locator.get_system(MaintenanceService)
-            if not maintenance:
-                self._show_error("MaintenanceService not available")
-                return
-            
-            # Show non-blocking progress
-            self.show_progress(True, 0, 0)  # Indeterminate
-            self.status_label.setText("Cleaning up orphaned records...")
-            
-            try:
-                result = await maintenance.cleanup_orphaned_records()
-                
-                # Build message
-                message = (
-                    f"✓ Cleanup complete!\n\n"
-                    f"Files cleaned: {result.get('files_cleaned', 0)}\n"
-                    f"Tag refs removed: {result.get('tags_removed', 0)}\n"
-                    f"Album refs removed: {result.get('albums_removed', 0)}"
-                )
-                
-                if result.get("errors"):
-                    message += f"\n\nErrors: {len(result['errors'])}"
-                
-                self._show_success(message)
-                logger.info(f"Cleanup complete: {result.get('files_cleaned', 0)} files cleaned")
-                
-            finally:
-                self.show_progress(False)
-                self.status_label.setText("Ready")
-                
-        except Exception as e:
-            self._show_error(f"Cleanup failed: {e}")
-            logger.error(f"Cleanup failed: {e}")
-    
-    # ==================== End Maintenance Actions ====================
+    # ==================== End Maintenance Commands ====================
     
     # Helper methods for non-blocking messages
     def _show_error(self, message: str):
@@ -1158,163 +847,38 @@ class MainWindow(QMainWindow):
             self._connect_pane_to_managers(self.file_pane_left)
     
     def _create_tool_panels(self):
-        """Create tool panels from existing panel classes."""
-        from pathlib import Path
-        from uexplorer_src.ui.docking.tag_panel import TagPanel
-        from uexplorer_src.ui.docking.album_panel import AlbumPanel
-        from uexplorer_src.ui.docking.properties_panel import PropertiesPanel
-        from uexplorer_src.ui.docking.relations_panel import RelationsPanel
-        from uexplorer_src.ui.docking.background_panel import BackgroundPanel
-        from uexplorer_src.ui.docking.directory_panel import DirectoryPanel
+        """Create tool panels using panel_factory (delegated)."""
+        from uexplorer_src.ui.managers import create_all_panels, connect_panel_signals
         
-        # TAGS PANEL (Left)
-        self.tags_panel = TagPanel(self, self.locator)
-        self.docking_service.add_panel(
-            panel_id="tags",
-            widget=self.tags_panel,
-            title="Tags",
-            area="left",
-            closable=False
+        # Create all panels
+        panels = create_all_panels(self, self.locator, self.docking_service)
+        
+        # Store panel references on window for compatibility
+        self.tags_panel = panels.get("tags")
+        self.albums_panel = panels.get("albums")
+        self.directories_panel = panels.get("directories")
+        self.unified_search_panel = panels.get("search")
+        self.properties_panel = panels.get("properties")
+        self.relations_panel = panels.get("relations")
+        self.background_panel = panels.get("background")
+        self.maintenance_panel = panels.get("maintenance")
+        self.similar_items_panel = panels.get("similar")
+        self.annotation_panel = panels.get("annotation")
+        
+        # Connect panel signals
+        connect_panel_signals(
+            panels=panels,
+            window=self,
+            on_directory_selected=self._on_directory_selected,
+            on_album_selected=self._on_album_selected,
+            on_relation_selected=self._on_relation_category_selected,
+            on_active_changed=self._on_active_file_changed,
+            on_search_requested=self._on_search_requested,
+            selection_manager=getattr(self, 'selection_manager', None),
         )
-        
-        # ALBUMS PANEL (Left, below tags)
-        self.albums_panel = AlbumPanel(self, self.locator)
-        self.docking_service.add_panel(
-            panel_id="albums",
-            widget=self.albums_panel,
-            title="Albums",
-            area="left",
-            closable=False
-        )
-        
-        # DIRECTORIES PANEL (Left, below albums)
-        self.directories_panel = DirectoryPanel(self, self.locator)
-        self.docking_service.add_panel(
-            panel_id="directories",
-            widget=self.directories_panel,
-            title="Directories",
-            area="left",
-            closable=False
-        )
-        # Connect directory selection to open file browser document
-        self.directories_panel.directory_selected.connect(self._on_directory_selected)
-        
-        # UNIFIED SEARCH PANEL (Left, combines Search + Filter)
-        from uexplorer_src.ui.docking.unified_search_panel import UnifiedSearchPanel
-        self.unified_search_panel = UnifiedSearchPanel(locator=self.locator)
-        self.docking_service.add_panel(
-            panel_id="search",
-            widget=self.unified_search_panel,
-            title="Search",
-            area="left",
-            closable=True
-        )
-        
-        # PROPERTIES PANEL (Right)
-        self.properties_panel = PropertiesPanel(self, self.locator)
-        self.docking_service.add_panel(
-            panel_id="properties",
-            widget=self.properties_panel,
-            title="Properties",
-            area="right",
-            closable=False
-        )
-        
-        # RELATIONS PANEL (Bottom)
-        self.relations_panel = RelationsPanel(self, self.locator)
-        self.docking_service.add_panel(
-            panel_id="relations",
-            widget=self.relations_panel,
-            title="Related Files",
-            area="bottom",
-            closable=False
-        )
-        
-        # BACKGROUND PANEL (Bottom)
-        self.background_panel = BackgroundPanel(self.locator, self)
-        self.docking_service.add_panel(
-            panel_id="background",
-            widget=self.background_panel,
-            title="Background Tasks",
-            area="bottom",
-            closable=False
-        )
-        
-        # MAINTENANCE PANEL (Bottom, next to background)
-        from uexplorer_src.ui.docking.maintenance_panel import MaintenancePanel
-        self.maintenance_panel = MaintenancePanel()
-        
-        # Initialize with services
-        try:
-            from src.ucorefs.services.maintenance_service import MaintenanceService
-            from src.core.scheduling import PeriodicTaskScheduler
-            
-            maintenance_service = self.locator.get_system(MaintenanceService)
-            scheduler = self.locator.get_system(PeriodicTaskScheduler)
-            
-            if maintenance_service and scheduler:
-                self.maintenance_panel.set_services(maintenance_service, scheduler)
-                logger.info("MaintenancePanel connected to services")
-        except Exception as e:
-            logger.warning(f"Failed to connect MaintenancePanel to services: {e}")
-        
-        self.docking_service.add_panel(
-            panel_id="maintenance",
-            widget=self.maintenance_panel,
-            title="Maintenance",
-            area="bottom",
-            closable=True
-        )
-        
-        # SIMILAR ITEMS PANEL (Bottom, next to relations)
-        from uexplorer_src.ui.docking.similar_items_panel import SimilarItemsPanel
-        self.similar_items_panel = SimilarItemsPanel(self, self.locator)
-        self.docking_service.add_panel(
-            panel_id="similar",
-            widget=self.similar_items_panel,
-            title="Similar Files",
-            area="bottom",
-            closable=False
-        )
-        # Connect to SelectionManager
-        if hasattr(self, 'selection_manager'):
-            self.similar_items_panel.set_selection_manager(self.selection_manager)
-        
-        # ANNOTATION PANEL (Bottom)
-        from uexplorer_src.ui.docking.annotation_panel import AnnotationPanel
-        self.annotation_panel = AnnotationPanel(self, self.locator)
-        self.docking_service.add_panel(
-            panel_id="annotation",
-            widget=self.annotation_panel,
-            title="Annotation",
-            area="bottom",
-            closable=False
-        )
-        
-        # Connect panel signals (keep existing connections)
-        if hasattr(self.tags_panel, 'tree'):
-            self.tags_panel.tree.files_dropped_on_tag.connect(
-                lambda tag_id, files: logger.info(f"Tagged {len(files)} files with {tag_id}")
-            )
-        
-        if hasattr(self.albums_panel, 'tree'):
-            self.albums_panel.tree.album_selected.connect(self._on_album_selected)
-        
-        if hasattr(self.relations_panel, 'tree'):
-            self.relations_panel.tree.category_selected.connect(self._on_relation_category_selected)
-        
-        # Connect PropertiesPanel to SelectionManager for auto-update
-        if hasattr(self, 'selection_manager') and hasattr(self, 'properties_panel'):
-            self.selection_manager.active_changed.connect(self._on_active_file_changed)
-        
-        # Connect UnifiedSearchPanel to execute search via pipeline
-        self.unified_search_panel.search_requested.connect(self._on_search_requested)
-        logger.info("Connected UnifiedSearchPanel.search_requested to _on_search_requested")
         
         # Setup UnifiedQueryBuilder to collect filters from all panels
         self._setup_unified_query_builder()
-        
-        logger.info("✓ Created all tool panels")
     
     def _setup_unified_query_builder(self):
         """Initialize and connect UnifiedQueryBuilder to all filter panels."""
