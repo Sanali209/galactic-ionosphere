@@ -94,10 +94,13 @@ class UnifiedSearchQuery:
         # Tag filters - prefer refs, fallback to legacy IDs
         if self.tag_refs_include:
             # Use TagRef objects (new way)
-            mongo["tag_ids"] = {"$all": [t.id for t in self.tag_refs_include]}
+            tag_object_ids = [t.id for t in self.tag_refs_include]
+            mongo["tag_ids"] = {"$all": tag_object_ids}
+            logger.debug(f"[QUERY] Tag filter (refs): {len(tag_object_ids)} tags")
         elif self.tag_include:
             # Fallback to legacy IDs
             mongo["tag_ids"] = {"$all": [ObjectId(t) for t in self.tag_include]}
+            logger.debug(f"[QUERY] Tag filter (legacy): {len(self.tag_include)} tags")
         
         if self.tag_refs_exclude:
             # Files must NOT have ANY excluded tags
@@ -261,21 +264,29 @@ class UnifiedQueryBuilder(QObject):
         """
         Handle tag filter change from Tag Panel.
         
-        Upgraded to load tag objects and create TagRefs for new architecture.
-        Falls back to legacy ID-based method if tag loading fails.
+        RACE CONDITION FIX:
+        - Set legacy IDs immediately for instant MongoDB queries
+        - Load TagRefs asynchronously for display only (badges)
+        - This prevents empty filter queries while async loading completes
         """
         import asyncio
         from bson import ObjectId
         from src.ucorefs.tags.models import Tag
         
-        # Clear existing tag filters (both refs and legacy)
+        # IMMEDIATE: Set legacy lists for filtering (source of truth)
+        self._current_query.tag_include = include.copy()
+        self._current_query.tag_exclude = exclude.copy()
+        
+        # Clear only refs (will be populated async for display)
         self._current_query.tag_refs_include.clear()
         self._current_query.tag_refs_exclude.clear()
-        self._current_query.tag_include.clear()
-        self._current_query.tag_exclude.clear()
         
-        async def load_and_add_tags():
-            """Load tags from DB and add as refs."""
+        # IMMEDIATE: Emit query with legacy IDs for instant filtering
+        self._emit_query()
+        
+        # ASYNC: Load TagRefs in background for badge display
+        async def load_tag_refs_for_display():
+            """Load Tag objects to create TagRefs for UI display (badges)."""
             # Load include tags
             for tag_id_str in include:
                 try:
@@ -283,24 +294,16 @@ class UnifiedQueryBuilder(QObject):
                     tag = await Tag.get(tag_obj_id)
                     
                     if tag:
-                        # Create TagRef with loaded data
                         tag_ref = TagRef(
                             id=tag.id,
                             name=tag.name,
                             full_path=tag.full_path,
                             color=tag.color if hasattr(tag, 'color') else ""
                         )
-                        # Add using new method (also updates legacy fields)
                         if tag_ref not in self._current_query.tag_refs_include:
                             self._current_query.tag_refs_include.append(tag_ref)
-                            self._current_query.tag_include.append(tag_id_str)
-                    else:
-                        # Fallback: tag not found, use legacy ID
-                        logger.warning(f"Tag not found: {tag_id_str}, using legacy ID")
-                        self._current_query.tag_include.append(tag_id_str)
                 except Exception as e:
-                    logger.error(f"Failed to load tag {tag_id_str}: {e}, using legacy ID")
-                    self._current_query.tag_include.append(tag_id_str)
+                    logger.debug(f"Failed to load tag ref for display: {e}")
             
             # Load exclude tags
             for tag_id_str in exclude:
@@ -317,19 +320,14 @@ class UnifiedQueryBuilder(QObject):
                         )
                         if tag_ref not in self._current_query.tag_refs_exclude:
                             self._current_query.tag_refs_exclude.append(tag_ref)
-                            self._current_query.tag_exclude.append(tag_id_str)
-                    else:
-                        logger.warning(f"Tag not found: {tag_id_str}, using legacy ID")
-                        self._current_query.tag_exclude.append(tag_id_str)
                 except Exception as e:
-                    logger.error(f"Failed to load tag {tag_id_str}: {e}, using legacy ID")
-                    self._current_query.tag_exclude.append(tag_id_str)
+                    logger.debug(f"Failed to load tag ref for display: {e}")
             
-            # Emit after all tags loaded
-            self._emit_query()
+            # Note: No need to emit again - query already sent with IDs
         
-        # Run async loading
-        asyncio.ensure_future(load_and_add_tags())
+        # Start async loading (non-blocking, for display only)
+        if include or exclude:
+            asyncio.ensure_future(load_tag_refs_for_display())
     
     def _on_album_filter_changed(self, include: list, exclude: list):
         """
@@ -541,7 +539,8 @@ class UnifiedQueryBuilder(QObject):
         """Emit query changed signal."""
         logger.debug(f"Query changed: mode={self._current_query.mode}, "
                     f"text='{self._current_query.text[:20] if self._current_query.text else ''}', "
-                    f"tags=+{len(self._current_query.tag_include)}/-{len(self._current_query.tag_exclude)}")
+                    f"tags=+{len(self._current_query.tag_include)}/-{len(self._current_query.tag_exclude)}, "
+                    f"tag_refs=+{len(self._current_query.tag_refs_include)}/-{len(self._current_query.tag_refs_exclude)}")
         self.query_changed.emit(self._current_query)
     
     def clear_all(self):

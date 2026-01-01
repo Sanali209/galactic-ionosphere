@@ -241,6 +241,9 @@ class ProcessingPipeline(BaseSystem):
         
         file_ids = [ObjectId(fid) for fid in file_ids_str.split(",") if fid]
         
+        logger.info(f"[PHASE2_START] Processing batch of {len(file_ids)} files")
+        logger.debug(f"[PHASE2_START] File IDs: {[str(fid)[:8] + '...' for fid in file_ids]}")
+        
         results = {
             "processed": 0,
             "errors": 0,
@@ -254,16 +257,26 @@ class ProcessingPipeline(BaseSystem):
                 file = await FileRecord.get(file_id)
                 if file:
                     files.append(file)
+                    logger.debug(f"[PHASE2_LOAD] {file.name} | state={file.processing_state} | type={file.file_type}")
+                else:
+                    logger.error(f"[PHASE2_LOAD] ✗ File {file_id} not found in database!")
             except Exception as e:
-                logger.error(f"Failed to load file {file_id}: {e}")
+                logger.error(f"[PHASE2_LOAD] ✗ Failed to load {file_id}: {e}")
                 results["errors"] += 1
         
+        logger.info(f"[PHASE2_LOAD] Successfully loaded {len(files)}/{len(file_ids)} files")
+        
         if not files:
+            logger.warning("[PHASE2_LOAD] No files loaded - aborting batch")
             return results
         
         # Get Phase 2 extractors
         extractors = ExtractorRegistry.get_for_phase(2, locator=self.locator)
         total_extractors = len(extractors)
+        
+        logger.info(f"[PHASE2_EXTRACTORS] Found {total_extractors} registered extractors")
+        for ext in extractors:
+            logger.debug(f"[PHASE2_EXTRACTORS]   - {ext.name} (priority={ext.priority})")
         
         # SAN-14 Phase 2: Track progress per extractor
         for i, extractor in enumerate(extractors):
@@ -271,11 +284,24 @@ class ProcessingPipeline(BaseSystem):
                 # Filter to files this extractor can process
                 processable = [f for f in files if extractor.can_process(f)]
                 
+                logger.info(f"[PHASE2_EXTRACT_{i+1}/{total_extractors}] {extractor.name}: {len(processable)}/{len(files)} files processable")
+                
                 if processable:
-                    logger.info(f"Running {extractor.name} on {len(processable)} files")
+                    # Log file types for debugging
+                    file_types = {}
+                    for f in processable:
+                        file_types[f.file_type] = file_types.get(f.file_type, 0) + 1
+                    logger.debug(f"[PHASE2_EXTRACT_{i+1}] File types: {file_types}")
                     
                     extractor_results = await extractor.process(processable)
                     success_count = sum(1 for v in extractor_results.values() if v)
+                    
+                    logger.info(f"[PHASE2_EXTRACT_{i+1}] ✓ {extractor.name} completed: {success_count}/{len(processable)} successful")
+                    
+                    if success_count < len(processable):
+                        failed_count = len(processable) - success_count
+                        logger.warning(f"[PHASE2_EXTRACT_{i+1}] ⚠ {failed_count} files failed for {extractor.name}")
+                    
                     results["by_extractor"][extractor.name] = success_count
                     results["processed"] += success_count
                     
@@ -288,34 +314,53 @@ class ProcessingPipeline(BaseSystem):
                         "progress": progress_percent,
                         "batch_size": len(files)
                     })
+                else:
+                    logger.debug(f"[PHASE2_EXTRACT_{i+1}] {extractor.name}: No files to process (can_process=False for all)")
                     
             except Exception as e:
-                logger.error(f"Extractor {extractor.name} failed: {e}")
+                logger.error(f"[PHASE2_EXTRACT_{i+1}] ✗ Extractor {extractor.name} failed with exception: {e}", exc_info=True)
                 results["errors"] += 1
         
-        # Update state and queue for Phase 3
+        # Update state and queue for Phase 3 (ONLY if extractors succeeded)
         from src.ucorefs.models.base import ProcessingState
         
+        logger.info(f"[PHASE2_COMPLETE] Total: {results['processed']} files processed, {results['errors']} errors")
+        logger.info(f"[PHASE2_COMPLETE] By extractor: {results['by_extractor']}")
+        
         for file in files:
-            # If at least one extractor succeeded, or if no extractors failed critically
-            # For now, we assume if it passed Phase 2 extractors, it's ready for Phase 3
-            # We can be more strict if needed (e.g. check "processed" count)
+            # Re-fetch to get latest state from extractors
+            file = await FileRecord.get(file._id)
+            if not file:
+                logger.error(f"[PHASE2_TRANSITION] File {file._id} disappeared!")
+                continue
             
-            try:
-                # Update state
-                # Note: We re-fetch or assume file object is fresh enough. 
-                # Ideally we should use atomic updates if multiple workers touch same file, 
-                # but currently pipelines are linear per file.
-                
-                # We set to INDEXED (40), which implies Phase 2 complete
-                file.processing_state = ProcessingState.INDEXED
-                await file.save()
+            # Check if ANY extractor processed this file successfully
+            success_count = sum(1 for count in results["by_extractor"].values() if count > 0)
+            
+            if success_count > 0:
+                # At least one extractor succeeded - advance state
+                if file.processing_state < ProcessingState.INDEXED:
+                    old_state = file.processing_state
+                    file.processing_state = ProcessingState.INDEXED
+                    await file.save()
+                    # Handle both enum and int for old_state
+                    old_state_name = old_state.name if hasattr(old_state, 'name') else ProcessingState(old_state).name
+                    logger.info(f"[PHASE2_TRANSITION] ✓ {file.name}: {old_state_name} → INDEXED (processed by {success_count} extractors)")
+                else:
+                    # Handle both enum and int for processing_state
+                    state_name = file.processing_state.name if hasattr(file.processing_state, 'name') else ProcessingState(file.processing_state).name
+                    logger.debug(f"[PHASE2_TRANSITION] {file.name}: Already at state={state_name}")
                 
                 # Queue Phase 3
+                logger.debug(f"[PHASE2_TRANSITION] Queuing {file.name} for Phase 3")
                 await self.enqueue_phase3(file._id)
-                
-            except Exception as e:
-                logger.error(f"Failed to transition {file._id} to Phase 3: {e}")
+            else:
+                # NO extractors succeeded - keep current state
+                # Handle both enum and int for processing_state  
+                state_name = file.processing_state.name if hasattr(file.processing_state, 'name') else ProcessingState(file.processing_state).name
+                logger.warning(f"[PHASE2_TRANSITION] ⚠ {file.name} NOT processed by any extractor (state={state_name} unchanged)")
+                logger.warning(f"[PHASE2_TRANSITION]   Extractor results: {results['by_extractor']}")
+                logger.warning(f"[PHASE2_TRANSITION]   File type: {file.file_type}, Extension: {file.extension}")
         
         # Remove from pending
         for file_id in file_ids:
@@ -369,11 +414,27 @@ class ProcessingPipeline(BaseSystem):
             # Run DetectionService if configured
             results["detections"] = await self._run_detection(file)
             
-            # Update final state
+            # Update final state ONLY if Phase 3 actually did work
             file = await FileRecord.get(file_id)  # Refresh
             if file:
-                file.processing_state = ProcessingState.COMPLETE
-                await file.save()
+                # Check if any Phase 3 extractor succeeded OR detections were created
+                phase3_success = any(results["by_extractor"].values()) or results["detections"] > 0
+                
+                if phase3_success:
+                    old_state = file.processing_state
+                    file.processing_state = ProcessingState.COMPLETE
+                    await file.save()
+                    # Handle both enum and int for old_state
+                    old_state_name = old_state.name if hasattr(old_state, 'name') else ProcessingState(old_state).name
+                    logger.info(f"[PHASE3_TRANSITION] ✓ {file.name}: {old_state_name} → COMPLETE")
+                    logger.debug(f"[PHASE3_TRANSITION]   Phase 3 extractors: {list(results['by_extractor'].keys())}")
+                    logger.debug(f"[PHASE3_TRANSITION]   Detections: {results['detections']}")
+                else:
+                    # Phase 3 had nothing to do or all failed - stay at current state
+                    # Handle both enum and int for processing_state
+                    state_name = file.processing_state.name if hasattr(file.processing_state, 'name') else ProcessingState(file.processing_state).name
+                    logger.warning(f"[PHASE3_TRANSITION] ⚠ {file.name}: Phase 3 had no work or all failed (state={state_name} unchanged)")
+                    logger.debug(f"[PHASE3_TRANSITION]   Extractor results: {results['by_extractor']}")
                 
                 # SAN-14 Phase 3: Update Vector Index immediately
                 if "clip" in file.embeddings:

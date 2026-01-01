@@ -1960,7 +1960,7 @@ class MainWindow(QMainWindow):
         """Show the Settings dialog."""
         from uexplorer_src.ui.dialogs.settings_dialog import SettingsDialog
         
-        dialog = SettingsDialog(locator=self.locator, parent=self)
+        dialog = SettingsDialog(config_manager=self.locator.config, locator=self.locator, parent=self)
         if dialog.exec():
             logger.info("Settings saved")
         else:

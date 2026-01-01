@@ -30,8 +30,9 @@ class CardView(QWidget):
     """
     
     # Signals
-    item_clicked = Signal(str)
-    item_double_clicked = Signal(str)
+    item_clicked = Signal(str)  # Emits item ID when clicked
+    item_double_clicked = Signal(str)  # Emits item ID when double-clicked
+    item_find_similar_requested = Signal(str)  # Emits file_id for Find Similar
     selection_changed = Signal(list)
     context_menu_requested = Signal(str, object)
     
@@ -122,8 +123,9 @@ class CardView(QWidget):
         widget._card_view = self
         widget.set_size(self._card_width, self._card_height)
         widget.set_thumbnail_service(self._thumbnail_service)
-        widget.clicked.connect(self.item_clicked.emit)
-        widget.double_clicked.connect(self.item_double_clicked.emit)
+        widget.clicked.connect(lambda item_id: self.item_clicked.emit(item_id))
+        widget.double_clicked.connect(lambda item_id: self.item_double_clicked.emit(item_id))
+        widget.find_similar_requested.connect(lambda file_id: self.item_find_similar_requested.emit(file_id))
         
         # Enable drag and drop
         widget.setAcceptDrops(False)  # CardView doesn't accept drops, only drags
@@ -139,8 +141,11 @@ class CardView(QWidget):
         widget.set_thumbnail_service(self._thumbnail_service)
         widget.bind_data(item)
         widget.set_selected(item.id in self._selected_ids)
-        widget.clicked.connect(self.item_clicked.emit)
-        widget.double_clicked.connect(self.item_double_clicked.emit)
+        # Connect widget signals
+        widget.clicked.connect(lambda item_id: self.item_clicked.emit(item_id))
+        widget.double_clicked.connect(lambda item_id: self.item_double_clicked.emit(item_id))
+        widget.find_similar_requested.connect(lambda file_id: self.item_find_similar_requested.emit(file_id))
+        
         return widget
     
     # --- Layout Calculations (Flat View) ---

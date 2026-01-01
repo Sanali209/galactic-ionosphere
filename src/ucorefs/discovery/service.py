@@ -170,7 +170,16 @@ class DiscoveryService(BaseSystem):
                 # Queue Phase 2 processing for new files
                 added_ids = stats.get("added_file_ids", [])
                 if added_ids and self.processing_pipeline:
-                    await self.processing_pipeline.enqueue_phase2(added_ids)
+                    logger.info(f"[DISCOVERY] Queuing {len(added_ids)} new files for Phase 2 processing")
+                    logger.debug(f"[DISCOVERY] File IDs: {[str(fid)[:8] + '...' for fid in added_ids[:5]]}")
+                    
+                    task_id = await self.processing_pipeline.enqueue_phase2(added_ids)
+                    logger.info(f"[DISCOVERY] ✓ Phase 2 queued (task_id={task_id})")
+                else:
+                    if not added_ids:
+                        logger.debug("[DISCOVERY] No new files to queue")
+                    if not self.processing_pipeline:
+                        logger.warning("[DISCOVERY] ⚠ ProcessingPipeline not available - files won't be processed!")
                     
                 # Publish event for real-time UI updates
                 try:

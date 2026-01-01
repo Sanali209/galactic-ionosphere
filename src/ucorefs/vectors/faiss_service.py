@@ -68,16 +68,21 @@ class FAISSIndexService(BaseSystem):
             return True
         
         try:
-            from src.ucorefs.vectors.models import EmbeddingRecord
+            from src.ucorefs.models.file_record import FileRecord
             import numpy as np
             
-            # Load all embeddings for this provider
-            embeddings = await EmbeddingRecord.find(
-                {"provider": provider}
-            ).to_list()
+            logger.info(f"[FAISS] Building index for provider: {provider}")
             
-            if not embeddings:
-                logger.info(f"No embeddings found for provider: {provider}")
+            # Load all files with this provider's embeddings (UNIFIED STORAGE)
+            files = await FileRecord.find({
+                f"embeddings.{provider}": {"$exists": True},
+                f"embeddings.{provider}.vector": {"$exists": True}
+            })
+            
+            logger.info(f"[FAISS] Found {len(files)} files with {provider} embeddings")
+            
+            if not files:
+                logger.warning(f"[FAISS] No embeddings found for provider: {provider}")
                 return False
             
             # Extract vectors and build maps
@@ -85,10 +90,16 @@ class FAISSIndexService(BaseSystem):
             id_map = {}
             reverse_map = {}
             
-            for i, emb in enumerate(embeddings):
-                vectors.append(emb.vector)
-                id_map[i] = emb.file_id
-                reverse_map[str(emb.file_id)] = i
+            for i, file in enumerate(files):
+                vector = file.embeddings.get(provider, {}).get("vector")
+                if vector and len(vector) > 0:
+                    vectors.append(vector)
+                    id_map[i] = file._id
+                    reverse_map[str(file._id)] = i
+            
+            if not vectors:
+                logger.error(f"[FAISS] All files had empty/invalid vectors for {provider}")
+                return False
             
             # Convert to numpy
             vectors_np = np.array(vectors, dtype=np.float32)
@@ -107,13 +118,13 @@ class FAISSIndexService(BaseSystem):
             self._indexes[provider] = index
             self._id_maps[provider] = id_map
             self._reverse_maps[provider] = reverse_map
-            self._index_sizes[provider] = len(embeddings)
+            self._index_sizes[provider] = len(vectors)
             
-            logger.info(f"Built FAISS index for {provider}: {len(embeddings)} vectors, dim={dimension}")
+            logger.info(f"[FAISS] ✓ Built index for {provider}: {len(vectors)} vectors, dim={dimension}")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to build FAISS index for {provider}: {e}")
+            logger.error(f"[FAISS] Failed to build index for {provider}: {e}", exc_info=True)
             return False
     
     async def search(
@@ -137,20 +148,24 @@ class FAISSIndexService(BaseSystem):
         """
         # Ensure index is built
         if provider not in self._indexes:
+            logger.info(f"[FAISS] Index not found for {provider}, attempting to build...")
             await self.build_index(provider)
         
         if provider not in self._indexes:
+            logger.warning(f"[FAISS] No index available for {provider} after build attempt")
             return []
         
         try:
             import numpy as np
             
+            index = self._indexes[provider]
+            id_map = self._id_maps[provider]
+            
+            logger.info(f"[FAISS] Searching index: {index.ntotal} vectors, k={k}")
+            
             # Prepare query
             query = np.array([query_vector], dtype=np.float32)
             query = query / np.linalg.norm(query)  # Normalize
-            
-            index = self._indexes[provider]
-            id_map = self._id_maps[provider]
             
             # Search
             if file_ids:

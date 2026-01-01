@@ -1,6 +1,6 @@
 {
   "docking": {
-    "layout_bytes": "0000050178daad54cb6ec23010bcf72bacdc699e2420852044c5b155056d8fc88eb76091d8c836f4a17e7c1d40691242e0d053bc3b93f1ec7aed78fc9967680f5231c147967bef5808782a28e3ab91f5b298f506d638899ff584ee314f813e887463b0f997d290a3d7f2470bbd2890656c64a6826bccb8c914701297319a6502ebc3068ec9cfb719d3daa49f240343d107815e21b0e37a64f917393f25c7bb41c7fd279d82339180d10293436968ba93120a480196e9dae06f8cae40a3479c439945d34c28a045d17612db85444dc8af08512621d5c218504db52a5497acd1704676792743e3956a373567dfa092200c901f3828b68fb1f99e3a53b31d546c13293ecc142cc97b44523fea37bd9fe11df628566b22b0a4cb41e063e205833fb6dbc17687431242e8ddc6c60189428f460d76ad117dc7477d37686dc431337086d7da543dddad145b90bae5702b48476b084e372b69a69176b1246487d9555db5b98ee7213ff2afd9af4e39e65c1caf45d37e0569ddf3d2b56139cbb03cbb37a77487fda2f10e6a9f51bb7c70ccfac20396dcfd02bec8a2b4",
+    "layout_bytes": "0000047078daad545d6f8230147ddfaf687877801d1313c418171fb72cea7c5c0adcb1c6d29ab6ba8fecc7af454310816dc9c203dc7b0ee79e7b7b219abe170c1d402a2af8c4f1af3d07014f4546793e71d6abc52074a671f4a867d981f014b23b916e0db6fc501a0af454bde8a0b50259c546662eb826949b8c85e3a88ad18209a2cb029ec92f778c6a6dd20f9282a1e852606005f65c4f1cdcc9f9aa38c35fe8f8ffa46339330904ad4852b686e67b29c1420a884c5f0dbea1590e1add9302aa2c9a33a120b34dbb71e45a8933215c13d224574d998c4a48b530a65443eb8c4658b22f7a19a578ab9b25fd0415e3304001be45917b8ccdfd3492cec61329deccf13f272fa324c5a3a0e9fd02ef297fe38568ec8f5bcb1f33e3e18fe6eac3dc49b103a9eddc1ab66a48cfbc12926e73690e3feb634960e5aad4a4fc8bde7c8c872808f15f664b3817c72d6cdaaf21ad35bbb69416941179b1a6a7748f7d3b78cf5c6deeddeafb36cf1dff8bf8ea1b15557481",
     "documents": {
       "browser_bf7bc375": {
         "title": "Files",
@@ -16,67 +16,7 @@
             "sort_field": "size",
             "sort_ascending": true,
             "group_by": null,
-            "current_directory": "69526f58f684b48887bb54b5",
-            "search_text": "",
-            "search_mode": "text"
-          }
-        }
-      },
-      "dashboard_843ab248": {
-        "title": "Dashboard",
-        "is_active": false,
-        "is_floating": false,
-        "is_closed": true,
-        "custom_state": {
-          "title": "Dashboard",
-          "viewmodel_state": {
-            "doc_id": "dashboard_843ab248",
-            "title": "Untitled",
-            "view_mode": "tree",
-            "sort_field": "name",
-            "sort_ascending": true,
-            "group_by": null,
-            "current_directory": null,
-            "search_text": "",
-            "search_mode": "text"
-          }
-        }
-      },
-      "dashboard_199b6e62": {
-        "title": "Dashboard",
-        "is_active": false,
-        "is_floating": false,
-        "is_closed": true,
-        "custom_state": {
-          "title": "Dashboard",
-          "viewmodel_state": {
-            "doc_id": "dashboard_199b6e62",
-            "title": "Untitled",
-            "view_mode": "tree",
-            "sort_field": "name",
-            "sort_ascending": true,
-            "group_by": null,
-            "current_directory": null,
-            "search_text": "",
-            "search_mode": "text"
-          }
-        }
-      },
-      "dashboard_a4b762d7": {
-        "title": "Dashboard",
-        "is_active": false,
-        "is_floating": false,
-        "is_closed": true,
-        "custom_state": {
-          "title": "Dashboard",
-          "viewmodel_state": {
-            "doc_id": "dashboard_a4b762d7",
-            "title": "Untitled",
-            "view_mode": "tree",
-            "sort_field": "name",
-            "sort_ascending": true,
-            "group_by": null,
-            "current_directory": null,
+            "current_directory": "695555e4cf07fe940c0e12e2",
             "search_text": "",
             "search_mode": "text"
           }
@@ -89,7 +29,11 @@
         "is_visible": true,
         "is_floating": false,
         "is_auto_hide": false,
-        "custom_state": {}
+        "custom_state": {
+          "include_tags": [
+            "695555f3cf07fe940c0e13de"
+          ]
+        }
       },
       "albums": {
         "title": "Albums",

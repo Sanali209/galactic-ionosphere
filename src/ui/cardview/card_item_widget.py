@@ -48,9 +48,11 @@ class CardItemWidget(QWidget):
     """
     
     # Signals
-    clicked = Signal(str)
-    double_clicked = Signal(str)
-    selection_changed = Signal(bool)
+    clicked = Signal(object)  # Emits Card Item when clicked
+    double_clicked = Signal(object)  # Emits CardItem when double-clicked
+    selection_changed = Signal(bool)  # Emits selection state
+    find_similar_requested = Signal(str)  # Emits file_id when Find Similar is requested
+
     
     def __init__(self, parent: QWidget | None = None):
         """Initialize card item widget."""
@@ -61,6 +63,10 @@ class CardItemWidget(QWidget):
         self._selected = False
         self._thumbnail_size = (200, 200)
         self._setup_base_ui()
+        
+        # Enable context menu
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._show_context_menu)
     
     def _setup_base_ui(self):
         """Setup base UI structure."""
@@ -296,6 +302,32 @@ class CardItemWidget(QWidget):
         if self._data_context:
             return self._data_context.get_field(group_param) or "default"
         return "default"
+    
+    def _show_context_menu(self, position):
+        """Show context menu for card actions."""
+        if not self._data_context:
+            return
+        
+        from PySide6.QtWidgets import QMenu
+        from PySide6.QtGui import QAction
+        
+        menu = QMenu(self)
+        
+        # Find Similar Images action
+        find_similar_action = QAction("🔍 Find Similar Images", self)
+        find_similar_action.setToolTip("Search for visually similar images using CLIP embeddings")
+        find_similar_action.triggered.connect(self._on_find_similar)
+        menu.addAction(find_similar_action)
+        
+        # Show menu at cursor
+        menu.exec(self.mapToGlobal(position))
+    
+    def _on_find_similar(self):
+        """Handle Find Similar action."""
+        if self._data_context:
+            file_id = self._data_context.id  # CardItem.id contains the file ID
+            logger.info(f"Find Similar requested for file: {file_id}")
+            self.find_similar_requested.emit(file_id)
     
     def dispose(self):
         """Cleanup before destruction."""

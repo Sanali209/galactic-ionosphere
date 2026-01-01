@@ -14,6 +14,8 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from loguru import logger
 
+from uexplorer_src.ui.dialogs.maintenance_settings_page import MaintenanceSettingsPage
+
 
 class GeneralSettingsPage(QWidget):
     """General application settings."""
@@ -356,6 +358,7 @@ class SettingsDialog(QDialog):
             ("Metadata", "🔖"),
             ("Search", "🔍"),
             ("Processing", "⚡"),
+            ("Maintenance", "🔧"),
         ]
         
         for name, icon in categories:
@@ -374,6 +377,10 @@ class SettingsDialog(QDialog):
         self.metadata_page = MetadataSettingsPage()
         self.search_page = SearchSettingsPage()
         self.processing_page = ProcessingSettingsPage()
+        self.maintenance_page = MaintenanceSettingsPage()
+        
+        # Connect maintenance page signal
+        self.maintenance_page.run_task_requested.connect(self._on_run_maintenance_task)
         
         self.stack.addWidget(self.general_page)
         self.stack.addWidget(self.thumbnail_page)
@@ -381,6 +388,7 @@ class SettingsDialog(QDialog):
         self.stack.addWidget(self.metadata_page)
         self.stack.addWidget(self.search_page)
         self.stack.addWidget(self.processing_page)
+        self.stack.addWidget(self.maintenance_page)
         
         right_layout.addWidget(self.stack, 1)
         
@@ -633,4 +641,48 @@ class SettingsDialog(QDialog):
             
         except Exception as e:
             logger.error(f"Failed to save settings: {e}")
+    
+    def _on_run_maintenance_task(self, task_name: str):
+        """Handle manual maintenance task execution from settings."""
+        logger.info(f"Running maintenance task from settings: {task_name}")
+        
+        if self._locator:
+            from src.ucorefs.services.maintenance_service import MaintenanceService
+            maintenance = self._locator.get_system(MaintenanceService)
+            
+            # Execute in background
+            import asyncio
+            asyncio.create_task(self._execute_maintenance(maintenance, task_name))
+        else:
+            logger.warning("Cannot run task: ServiceLocator not available")
+    
+    async def _execute_maintenance(self, maintenance, task_name: str):
+        """Execute maintenance task asynchronously."""
+        try:
+            result = None
+            
+            if task_name == "reprocess_incomplete_embeddings":
+                result = await maintenance.reprocess_incomplete_embeddings()
+            elif task_name == "diagnose_pipeline_state":
+                result = await maintenance.diagnose_pipeline_state()
+            elif task_name == "fix_file_types":
+                result = await maintenance.fix_file_types()
+            elif task_name == "background_verification":
+                await maintenance.background_count_verification()
+            elif task_name == "database_optimization":
+                result = await maintenance.database_optimization()
+            elif task_name == "cache_cleanup":
+                result = await maintenance.cache_cleanup()
+            elif task_name == "orphaned_cleanup":
+                result = await maintenance.cleanup_orphaned_file_records()
+            elif task_name == "log_rotation":
+                result = await maintenance.log_rotation()
+            elif task_name == "database_cleanup":
+                result = await maintenance.cleanup_old_records()
+            
+            logger.info(f"Maintenance task {task_name} complete: {result}")
+            
+        except Exception as e:
+            logger.error(f"Maintenance task {task_name} failed: {e}", exc_info=True)
+
 

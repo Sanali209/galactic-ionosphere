@@ -154,10 +154,14 @@ class CLIPExtractor(Extractor):
             image_input = torch.stack(images).to(CLIPExtractor._shared_device)
             
             # Inference
+            logger.debug(f"[CLIP_BATCH_SYNC] Running inference on {len(images)} images...")
+            
             with torch.no_grad():
                 image_features = CLIPExtractor._shared_model.encode_image(image_input)
                 image_features = image_features / image_features.norm(dim=-1, keepdim=True)
                 image_features = image_features.cpu().numpy()
+            
+            logger.info(f"[CLIP_BATCH_SYNC] ✓ Inference complete: {len(image_features)} embeddings (dim={self.DIMENSION})")
             
             # Map results
             for i, file in enumerate(valid_files):
@@ -178,48 +182,26 @@ class CLIPExtractor(Extractor):
 
     
     async def store(self, file_id: ObjectId, result: Any) -> bool:
-        """Store CLIP embedding in MongoDB + FAISS."""
+        """Store CLIP embedding in FileRecord (unified storage)."""
         try:
-            from src.ucorefs.vectors.models import EmbeddingRecord
-            
             vector = result.get("vector", [])
             if not vector:
                 return False
             
-            # Upsert embedding record
-            existing = await EmbeddingRecord.find_one({
-                "file_id": file_id,
-                "provider": "clip"
-            })
-            
-            if existing:
-                existing.vector = vector
-                existing.dimension = len(vector)
-                existing.model_version = result.get("model", self.MODEL_NAME)
-                existing.updated_at = datetime.now()
-                await existing.save()
-            else:
-                record = EmbeddingRecord(
-                    file_id=file_id,
-                    provider="clip",
-                    vector=vector,
-                    dimension=len(vector),
-                    model_version=result.get("model", self.MODEL_NAME)
-                )
-                await record.save()
-            
-            # Update FileRecord
+            # UNIFIED STORAGE: Store vector directly in FileRecord
             file = await FileRecord.get(file_id)
             if file:
                 file.embeddings["clip"] = {
                     "model": result.get("model", self.MODEL_NAME),
                     "dimension": len(vector),
-                    "created_at": datetime.now().isoformat()
+                    "created_at": datetime.now().isoformat(),
+                    "vector": vector  # UNIFIED STORAGE: Vector stored in FileRecord
                 }
                 file.has_vector = True
                 if file.processing_state < ProcessingState.INDEXED:
                     file.processing_state = ProcessingState.INDEXED
                 await file.save()
+                logger.debug(f"[CLIP_STORE] ✓ Stored vector in FileRecord.embeddings (dim={len(vector)})")
             
             return True
             

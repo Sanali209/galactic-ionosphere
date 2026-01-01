@@ -1,0 +1,27 @@
+    def _on_item_expanded(self, item: QTreeWidgetItem):
+        """Load children when user expands a tag folder (lazy loading)."""
+        # Check if this item has the dummy "Loading..." child
+        if item.childCount() == 1:
+            first_child = item.child(0)
+            if first_child.text(0) == "Loading...":
+                # Remove dummy
+                item.removeChild(first_child)
+                
+                # Get tag ID
+                tag_id_str = item.data(0, Qt.UserRole)
+                if tag_id_str:
+                    # Load real children asynchronously
+                    import asyncio
+                    asyncio.ensure_future(self._load_children_async(item, ObjectId(tag_id_str)))
+    
+    async def _load_children_async(self, parent_item: QTreeWidgetItem, tag_id: ObjectId):
+        """Asynchronously load and add children for a tag."""
+        try:
+            children = await self.tag_manager.get_children(tag_id)
+            for child_tag in children:
+                await self._add_tag_item(child_tag, parent_item)
+        except Exception as e:
+            logger.error(f"Failed to load tag children: {e}")
+            # Add error indicator
+            error_item = QTreeWidgetItem(parent_item, [f"Error: {str(e)}"])
+            error_item.setForeground(0, Qt.red)

@@ -40,6 +40,12 @@
                 "use_gpu": true
             }
         },
+        "wd_tagger": {
+            "enabled": true,
+            "model_repo": "SmilingWolf/wd-vit-tagger-v3",
+            "general_threshold": 0.35,
+            "character_threshold": 0.35
+        },
         "embeddings": {
             "clip": {
                 "enabled": true

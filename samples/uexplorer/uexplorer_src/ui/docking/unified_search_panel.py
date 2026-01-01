@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QComboBox, QCheckBox, QPushButton, QGroupBox, QScrollArea,
     QFrame, QSlider, QToolButton
 )
-from PySide6.QtCore import Signal, Qt, QTimer
+from PySide6.QtCore import Signal, QTimer, Qt, QTimer
 from PySide6.QtGui import QIcon
 from loguru import logger
 
@@ -40,7 +40,7 @@ class UnifiedSearchPanel(QWidget):
         # Debounce timer
         self._debounce_timer = QTimer(self)
         self._debounce_timer.setSingleShot(True)
-        self._debounce_timer.setInterval(300)
+        self._debounce_timer.setInterval(2000)  # 2 seconds - avoid CLIP spam
         self._debounce_timer.timeout.connect(self._on_debounce_timeout)
         
         self._setup_ui()

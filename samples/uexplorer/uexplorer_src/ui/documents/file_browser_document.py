@@ -132,6 +132,7 @@ class FileBrowserDocument(QWidget):
         # Connect CardView signals
         self._card_view.selection_changed.connect(self._on_card_selection)
         self._card_view.item_double_clicked.connect(self._on_item_double_clicked)
+        self._card_view.item_find_similar_requested.connect(self._on_find_similar)
         
         # Connect viewport events for priority queue (SAN-14)
         scroll_bar = self._card_view.scroll_area.verticalScrollBar()
@@ -392,6 +393,23 @@ class FileBrowserDocument(QWidget):
             logger.info(f"Opened image viewer: {title}")
         except KeyError:
             logger.error("DockingService not available")
+    
+    def _on_find_similar(self, file_id: str):
+        """Handle Find Similar request - trigger semantic search."""
+        from bson import ObjectId
+        logger.info(f"🔍 Find Similar Images requested for file: {file_id}")
+        
+        # Get main window and trigger semantic search
+        main_window = self.window()
+        if hasattr(main_window, 'query_builder'):
+            try:
+                main_window.query_builder.set_similar_file(ObjectId(file_id))
+                logger.info(f"Semantic search triggered for similar images")
+            except Exception as e:
+                logger.error(f"Failed to trigger semantic search: {e}")
+        else:
+            logger.warning("QueryBuilder not available on MainWindow")
+
     
     # --- Public API ---
     

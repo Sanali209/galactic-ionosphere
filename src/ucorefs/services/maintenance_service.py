@@ -45,8 +45,12 @@ class MaintenanceService(BaseSystem):
                                     self.cleanup_orphaned_file_records)
         task_system.register_handler('maintenance_database_cleanup', 
                                     self.cleanup_old_records)
+        task_system.register_handler('maintenance_reprocess_incomplete_embeddings',
+                                    self.reprocess_incomplete_embeddings)
+        task_system.register_handler('maintenance_fix_file_types',
+                                    self.fix_file_types)
         
-        logger.info("MaintenanceService: Registered 6 task handlers")
+        logger.info("MaintenanceService: Registered 8 task handlers")
         
         await super().initialize()
         logger.info("MaintenanceService ready")
@@ -707,4 +711,282 @@ class MaintenanceService(BaseSystem):
             logger.error(f"Database cleanup failed: {e}")
         
         return result
-
+    
+    async def reprocess_incomplete_embeddings(self) -> Dict[str, Any]:
+        """
+        Reprocess files that are marked INDEXED/COMPLETE but missing CLIP embeddings.
+        
+        This is a data integrity maintenance task that fixes files which progressed
+        through the pipeline without proper embedding extraction.
+        
+        Returns:
+            Dict with:
+                files_found: Number of files missing embeddings
+                files_reset: Number of files reset to REGISTERED state
+                files_queued: Number of files queued for Phase 2
+                errors: List of errors encountered
+        """
+        from src.ucorefs.models.file_record import FileRecord
+        from src.ucorefs.models.base import ProcessingState
+        from src.ucorefs.processing.pipeline import ProcessingPipeline
+        import time
+        
+        start_time = time.time()
+        result = {
+            "files_found": 0,
+            "files_reset": 0,
+            "files_queued": 0,
+            "duration": 0.0,
+            "errors": []
+        }
+        
+        try:
+            logger.info("[MAINTENANCE_REPROCESS] Starting incomplete embeddings reprocessing...")
+            
+            # Find files claiming INDEXED/COMPLETE but no CLIP embeddings
+            bad_files = await FileRecord.find({
+                "processing_state": {"$gte": ProcessingState.INDEXED},
+                "$or": [
+                    {"embeddings.clip": {"$exists": False}},
+                    {"embeddings": {}}
+                ],
+                "file_type": "image"  # Only images should have CLIP
+            })
+            
+            result["files_found"] = len(bad_files)
+            logger.info(f"[MAINTENANCE_REPROCESS] Found {len(bad_files)} files missing CLIP embeddings")
+            
+            if not bad_files:
+                result["duration"] = time.time() - start_time
+                return result
+            
+            # Reset files to REGISTERED state and clear metadata
+            file_ids = []
+            for file in bad_files:
+                try:
+                    old_state = file.processing_state
+                    file.processing_state = ProcessingState.REGISTERED
+                    file.embeddings = {}
+                    file.has_vector = False
+                    await file.save()
+                    
+                    file_ids.append(file._id)
+                    result["files_reset"] += 1
+                    
+                    logger.debug(f"[MAINTENANCE_REPROCESS] Reset {file.name}: {old_state.name} → REGISTERED")
+                    
+                except Exception as e:
+                    error_msg = f"Failed to reset file {file._id}: {e}"
+                    result["errors"].append(error_msg)
+                    logger.error(f"[MAINTENANCE_REPROCESS] {error_msg}")
+            
+            # Requeue for Phase 2 processing
+            if file_ids:
+                try:
+                    pipeline = self.locator.get_system(ProcessingPipeline)
+                    await pipeline.enqueue_phase2(file_ids, force=True)
+                    result["files_queued"] = len(file_ids)
+                    
+                    logger.info(f"[MAINTENANCE_REPROCESS] ✓ Queued {len(file_ids)} files for reprocessing")
+                    
+                except Exception as e:
+                    error_msg = f"Failed to queue files for reprocessing: {e}"
+                    result["errors"].append(error_msg)
+                    logger.error(f"[MAINTENANCE_REPROCESS] {error_msg}")
+            
+            result["duration"] = time.time() - start_time
+            logger.info(f"[MAINTENANCE_REPROCESS] Complete: {result['files_reset']} reset, {result['files_queued']} queued in {result['duration']:.2f}s")
+            
+        except Exception as e:
+            result["errors"].append(f"Reprocessing failed: {e}")
+            logger.error(f"[MAINTENANCE_REPROCESS] ✗ Failed: {e}")
+        
+        return result
+    
+    async def diagnose_pipeline_state(self) -> Dict[str, Any]:
+        """
+        Diagnostic tool: Analyze pipeline processing state.
+        
+        Returns detailed statistics about:
+        - File counts by processing state
+        - Embedding coverage
+        - Mismatched states (files claiming complete but missing data)
+        
+        Returns:
+            Dict with diagnostic info
+        """
+        from src.ucorefs.models.file_record import FileRecord
+        from src.ucorefs.vectors.models import EmbeddingRecord
+        from src.ucorefs.models.base import ProcessingState
+        
+        result = {
+            "total_files": 0,
+            "by_type": {},
+            "by_state": {},
+            "embeddings": {},
+            "mismatched": {},
+            "samples": []
+        }
+        
+        try:
+            # Count files by type (using len since there's no count_documents)
+            all_files = await FileRecord.find({})
+            result["total_files"] = len(all_files)
+            
+            image_files = [f for f in all_files if f.file_type == "image"]
+            text_files = [f for f in all_files if f.file_type == "text"]
+            unknown_files = [f for f in all_files if not hasattr(f, 'file_type') or f.file_type == "unknown"]
+            
+            result["by_type"] = {
+                "image": len(image_files),
+                "text": len(text_files),
+                "unknown": len(unknown_files)
+            }
+            
+            # Count files by state
+            for state in ProcessingState:
+                count = len([f for f in all_files if f.processing_state == state])
+                if count > 0:
+                    result["by_state"][state.name] = count
+            
+            # Count embeddings
+            all_embeddings = await EmbeddingRecord.find({})
+            clip_emb = len([e for e in all_embeddings if e.provider == "clip"])
+            blip_emb = len([e for e in all_embeddings if e.provider == "blip"])
+            dino_emb = len([e for e in all_embeddings if e.provider == "dino"])
+            
+            files_with_clip = len([f for f in all_files if f.embeddings and "clip" in f.embeddings])
+            files_with_has_vector = len([f for f in all_files if f.has_vector])
+            
+            result["embeddings"] = {
+                "clip_records": clip_emb,
+                "blip_records": blip_emb,
+                "dino_records": dino_emb,
+                "files_with_clip_metadata": files_with_clip,
+                "files_with_has_vector": files_with_has_vector
+            }
+            
+            # Find mismatched states
+            indexed_without_clip = [
+                f for f in image_files
+                if f.processing_state >= ProcessingState.INDEXED
+                and (not f.embeddings or "clip" not in f.embeddings)
+            ]
+            
+            complete_without_clip = [
+                f for f in image_files
+                if f.processing_state == ProcessingState.COMPLETE
+                and (not f.embeddings or "clip" not in f.embeddings)
+            ]
+            
+            pending_images = [
+                f for f in image_files
+                if f.processing_state < ProcessingState.INDEXED
+            ]
+            
+            successful_images = [
+                f for f in image_files
+                if f.processing_state >= ProcessingState.INDEXED
+                and f.embeddings and "clip" in f.embeddings
+            ]
+            
+            result["mismatched"] = {
+                "indexed_no_clip": len(indexed_without_clip),
+                "complete_no_clip": len(complete_without_clip),
+                "pending_images": len(pending_images),
+                "successful_images": len(successful_images)
+            }
+            
+            # Sample files
+            sample_files = await FileRecord.find({}, limit=5)
+            for file in sample_files:
+                has_clip = "clip" in file.embeddings if file.embeddings else False
+                # Handle both int and enum for processing_state
+                state_name = file.processing_state.name if hasattr(file.processing_state, 'name') else str(file.processing_state)
+                result["samples"].append({
+                    "name": file.name,
+                    "state": state_name,
+                    "type": file.file_type,
+                    "has_clip": has_clip,
+                    "has_vector": file.has_vector
+                })
+            
+            logger.info(f"[DIAGNOSIS] Total files: {total_files}")
+            logger.info(f"[DIAGNOSIS] By type: {result['by_type']}")
+            logger.info(f"[DIAGNOSIS] By state: {result['by_state']}")
+            logger.info(f"[DIAGNOSIS] Embeddings: {result['embeddings']}")
+            logger.info(f"[DIAGNOSIS] Mismatched: {result['mismatched']}")
+            
+        except Exception as e:
+            logger.error(f"[DIAGNOSIS] Failed: {e}", exc_info=True)
+            result["error"] = str(e)
+        
+        return result
+    
+    async def fix_file_types(self) -> Dict[str, Any]:
+        """
+        Fix file_type for existing files based on driver registry.
+        
+        Scans all files with file_type="unknown" and updates them
+        using the type registry to determine correct type from extension.
+        
+        Returns:
+            Dict with total_files, fixed_count, by_type, duration, errors
+        """
+        from src.ucorefs.models.file_record import FileRecord
+        from src.ucorefs.types import registry
+        import time
+        
+        start_time = time.time()
+        result = {
+            "total_files": 0,
+            "fixed_count": 0,
+            "by_type": {},
+            "duration": 0.0,
+            "errors": []
+        }
+        
+        try:
+            logger.info("[MAINTENANCE_FIX_TYPES] Starting file type correction...")
+            
+            # Find all files with unknown type
+            unknown_files = await FileRecord.find({"file_type": "unknown"})
+            result["total_files"] = len(unknown_files)
+            
+            logger.info(f"[MAINTENANCE_FIX_TYPES] Found {len(unknown_files)} files with unknown type")
+            
+            if not unknown_files:
+                result["duration"] = time.time() - start_time
+                return result
+            
+            for file in unknown_files:
+                try:
+                    # Get driver for this file's extension
+                    driver = registry.get_driver(extension=file.extension)
+                    new_type = driver.driver_id if driver.driver_id != "default" else "unknown"
+                    
+                    # Only update if type actually changed
+                    if new_type != "unknown" and new_type != file.file_type:
+                        old_type = file.file_type
+                        file.file_type = new_type
+                        await file.save()
+                        
+                        result["fixed_count"] += 1
+                        result["by_type"][new_type] = result["by_type"].get(new_type, 0) + 1
+                        
+                        logger.debug(f"[MAINTENANCE_FIX_TYPES] {file.name}: {old_type} → {new_type}")
+                        
+                except Exception as e:
+                    error_msg = f"Failed to fix type for file {file._id}: {e}"
+                    result["errors"].append(error_msg)
+                    logger.error(f"[MAINTENANCE_FIX_TYPES] {error_msg}")
+            
+            result["duration"] = time.time() - start_time
+            logger.info(f"[MAINTENANCE_FIX_TYPES] Complete: {result['fixed_count']}/{result['total_files']} fixed in {result['duration']:.2f}s")
+            logger.info(f"[MAINTENANCE_FIX_TYPES] By type: {result['by_type']}")
+            
+        except Exception as e:
+            result["errors"].append(f"Fix types failed: {e}")
+            logger.error(f"[MAINTENANCE_FIX_TYPES] ✗ Failed: {e}", exc_info=True)
+        
+        return result

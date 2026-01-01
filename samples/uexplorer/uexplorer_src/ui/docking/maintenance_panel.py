@@ -268,6 +268,12 @@ class MaintenancePanel(QWidget):
                 result = await self.maintenance_service.log_rotation()
             elif task_name == 'database_cleanup':
                 result = await self.maintenance_service.cleanup_old_records()
+            elif task_name == 'reprocess_incomplete_embeddings':
+                result = await self.maintenance_service.reprocess_incomplete_embeddings()
+            elif task_name == 'diagnose_pipeline_state':
+                result = await self.maintenance_service.diagnose_pipeline_state()
+            elif task_name == 'fix_file_types':
+                result = await self.maintenance_service.fix_file_types()
             
             # Update UI
             if task_name in self.task_widgets:

@@ -57,7 +57,7 @@ class TagManager(BaseSystem):
         # Check if tag exists
         existing = await Tag.find_one({"full_path": full_path})
         if existing:
-            logger.debug(f"Tag already exists: {full_path}")
+            # logger.debug(f"Tag already exists: {full_path}")
             return existing
         
         # Create tag

@@ -87,16 +87,21 @@ class Extractor(ABC):
         try:
             extracted = await self.extract(files)
             
+            if not extracted:
+                logger.warning(f"{self.name}: extract() returned empty results for {len(files)} files")
+            
             for file_id, data in extracted.items():
                 try:
                     success = await self.store(file_id, data)
                     results[file_id] = success
+                    if not success:
+                        logger.error(f"{self.name}: Storage returned False for {file_id}")
                 except Exception as e:
-                    logger.error(f"{self.name}: Failed to store for {file_id}: {e}")
+                    logger.error(f"{self.name}: Failed to store for {file_id}: {e}", exc_info=True)
                     results[file_id] = False
                     
         except Exception as e:
-            logger.error(f"{self.name}: Extraction failed: {e}")
+            logger.error(f"{self.name}: Extraction failed: {e}", exc_info=True)
             for file in files:
                 results[file._id] = False
         

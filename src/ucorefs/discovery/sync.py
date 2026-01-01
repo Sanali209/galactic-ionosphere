@@ -94,6 +94,7 @@ class SyncManager:
             Tuple of (count, list of added file ObjectIds)
         """
         from src.ucorefs.models.base import ProcessingState
+        from src.ucorefs.types import registry
         
         count = 0
         added_ids = []
@@ -107,6 +108,10 @@ class SyncManager:
                 # Try finding parent directory
                 parent = await DirectoryRecord.find_one({"path": parent_path})
                 
+                # Get file type from driver registry
+                driver = registry.get_driver(extension=result.extension)
+                file_type = driver.driver_id if driver.driver_id != "default" else "unknown"
+                
                 # Create or update file record with REGISTERED state
                 file = await self.fs_service.upsert_file(
                     path=file_path,
@@ -116,7 +121,8 @@ class SyncManager:
                     extension=result.extension,
                     size_bytes=result.size,
                     modified_at=datetime.fromtimestamp(result.modified_time),
-                    processing_state=ProcessingState.REGISTERED
+                    processing_state=ProcessingState.REGISTERED,
+                    file_type=file_type  # NEW: Set from driver
                 )
                 count += 1
                 if file and hasattr(file, '_id'):

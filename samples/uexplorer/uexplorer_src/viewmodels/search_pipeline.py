@@ -65,7 +65,11 @@ class SearchPipeline(QObject):
         logger.info(f"Limit: {query.limit}")
         
         try:
-            if query.is_image_search():
+            # Check for similar mode FIRST (uses image embeddings for similarity)
+            if query.mode == "similar" and query.file_id:
+                logger.info(f">>> Routing to SIMILAR IMAGE SEARCH (file_id={query.file_id})")
+                results = await self._image_search_similar(query)
+            elif query.is_image_search():
                 logger.info(">>> Routing to IMAGE SEARCH")
                 results = await self._image_search(query)
             elif query.is_vector_search():
@@ -276,6 +280,69 @@ class SearchPipeline(QObject):
             
         except Exception as e:
             logger.error(f"Image search failed: {e}")
+            return []
+    
+    async def _image_search_similar(self, query: SearchQuery) -> List:
+        """
+        Find similar images using CLIP embeddings from FileRecord.
+        
+        Used by Find Similar context menu - gets source image embedding
+        and searches FAISS index for visually similar images.
+        """
+        from src.ucorefs.vectors.faiss_service import FAISSIndexService
+        from src.ucorefs.models import FileRecord
+        import numpy as np
+        
+        logger.info(f"[SIMILAR_SEARCH] Finding images similar to file_id={query.file_id}")
+        
+        try:
+            #Get source image FileRecord to extract CLIP embedding
+            source_file = await FileRecord.get(query.file_id)
+            if not source_file:
+                logger.warning(f"[SIMILAR_SEARCH] Source file not found: {query.file_id}")
+                return []
+            
+            # Extract CLIP embedding from FileRecord.embeddings
+            if not hasattr(source_file, 'embeddings') or not source_file.embeddings:
+                logger.warning(f"[SIMILAR_SEARCH] Source file has no embeddings")
+                return []
+            
+            clip_data = source_file.embeddings.get('clip')
+            if not clip_data or 'vector' not in clip_data:
+                logger.warning(f"[SIMILAR_SEARCH] Source file has no CLIP vector")
+                return []
+            
+            source_vector = np.array(clip_data['vector'], dtype=np.float32)
+            logger.info(f"[SIMILAR_SEARCH] Loaded CLIP vector: shape={source_vector.shape}")
+            
+            # Use FAISS to find similar images
+            faiss_service = self._locator.get_system(FAISSIndexService)
+            if not faiss_service:
+                logger.warning("[SIMILAR_SEARCH] FAISSIndexService not available")
+                return []
+            
+            # Search FAISS index (provider='clip' required!)
+            results = await faiss_service.search(
+                provider='clip',
+                query_vector=source_vector.tolist(),
+                k=query.limit
+            )
+            logger.info(f"[SIMILAR_SEARCH] FAISS returned {len(results)} results")
+            
+            if not results:
+                return []
+            
+            # Convert to FileRecords
+            file_ids = [fid for fid, _dist in results]
+            files = await FileRecord.find({"_id": {"$in": file_ids}})
+            
+            logger.info(f"[SIMILAR_SEARCH] Found {len(files)} similar images")
+            return files
+            
+        except Exception as e:
+            logger.error(f"[SIMILAR_SEARCH] Failed: {e}")
+            import traceback
+            logger.error(f"[SIMILAR_SEARCH] Traceback: {traceback.format_exc()}")
             return []
     
     def _build_filter_conditions(self, filters: dict) -> List[Q]:
