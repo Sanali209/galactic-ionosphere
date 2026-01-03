@@ -17,6 +17,10 @@ class ExtractorRegistry:
     Extractors register themselves at application startup.
     ProcessingPipeline queries this registry to get extractors per phase.
     
+    Note: This class implements IExtractorRegistry protocol via structural
+    subtyping (duck typing). No explicit inheritance is required; the class
+    satisfies the protocol by having the required methods with matching signatures.
+    
     Example:
         # Register extractors
         ExtractorRegistry.register(ThumbnailExtractor)

@@ -415,15 +415,6 @@ class CollectionRecord(metaclass=DbRecordMeta):
         
         return target_cls(oid=data.get('_id'), **processed_kwargs)
 
-    async def save(self):
-        coll = self.get_collection()
-        data = self.to_dict()
-        await coll.replace_one({'_id': self._id}, data, upsert=True)
-
-    async def delete(self):
-        coll = self.get_collection()
-        await coll.delete_one({'_id': self._id})
-    
     @classmethod
     async def delete_many(cls, query: Dict) -> Any:
         """
@@ -435,6 +426,53 @@ class CollectionRecord(metaclass=DbRecordMeta):
         Returns:
             DeleteResult from motor/pymongo
         """
+        coll = cls.get_collection()
+        return await coll.delete_many(query)
+
+    async def save(self, emit_event: bool = True):
+        coll = self.get_collection()
+        data = self.to_dict()
+        await coll.replace_one({'_id': self._id}, data, upsert=True)
+        
+        if emit_event:
+            # Emit event via DatabaseManager bridge
+            from src.core.database.manager import DatabaseManager
+            try:
+                db_manager = DatabaseManager.get_instance()
+                collection_name = self.get_collection().name
+                
+                await db_manager.emit_db_event(
+                    f"db.{collection_name}.updated",
+                    {
+                        "collection": collection_name,
+                        "id": self._id,
+                        "record": data
+                    }
+                )
+            except Exception:
+                # Ignore errors during event emission to prevent save failure
+                pass
+
+    async def delete(self, emit_event: bool = True):
+        coll = self.get_collection()
+        await coll.delete_one({'_id': self._id})
+        
+        if emit_event:
+            from src.core.database.manager import DatabaseManager
+            try:
+                db_manager = DatabaseManager.get_instance()
+                collection_name = self.get_collection().name
+                
+                await db_manager.emit_db_event(
+                    f"db.{collection_name}.deleted",
+                    {
+                        "collection": collection_name,
+                        "id": self._id
+                    }
+                )
+            except Exception:
+                pass
+
     @classmethod
     async def count(cls, query: Dict = None) -> int:
         """

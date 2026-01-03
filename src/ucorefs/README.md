@@ -137,9 +137,10 @@ pytest tests/ucorefs/ -v
 
 ## Dependencies
 
-- `motor` - Async MongoDB
+- `motor` → `pymongo>=4.10` - Async MongoDB (migration in progress)
 - `pydantic` - Data validation
 - `Pillow` - Image processing
+- `faiss-cpu` or `faiss-gpu` - Vector similarity search
 - `pyexiv2` - XMP metadata (optional)
 
 ## Documentation

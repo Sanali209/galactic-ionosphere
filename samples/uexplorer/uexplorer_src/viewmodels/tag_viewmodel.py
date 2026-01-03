@@ -37,6 +37,8 @@ class TagViewModel(BaseViewModel):
         self._all_tags: List[Tag] = []
         self._root_tags: List[Tag] = []
         self._loading = False
+        
+        self.initialize_reactivity()
     
     @property
     def all_tags(self) -> List[Tag]:
@@ -122,3 +124,88 @@ class TagViewModel(BaseViewModel):
     def refresh(self):
         """Trigger async reload."""
         asyncio.ensure_future(self.load_all())
+
+    # === Reactive SSOT Implementation ===
+
+    @property
+    def _event_bus(self):
+        """Lazy access to EventBus."""
+        from src.core.events import EventBus
+        try:
+            return self.locator.get_system(EventBus)
+        except Exception:
+            return None
+
+    def initialize_reactivity(self):
+        """Subscribe to database events."""
+        bus = self._event_bus
+        if bus:
+             bus.subscribe("db.tags.updated", self._on_tag_updated)
+             bus.subscribe("db.tags.deleted", self._on_tag_deleted)
+             logger.debug("TagViewModel: Reactivity initialized")
+
+    def _on_tag_updated(self, data: dict):
+        """Handle real-time tag updates (or creation)."""
+        try:
+            tag_id = ObjectId(data.get("id"))
+            record_data = data.get("record", {})
+            
+            # Check if existing
+            existing = next((t for t in self._all_tags if t._id == tag_id), None)
+            
+            if existing:
+                # Update existing
+                for k, v in record_data.items():
+                    if hasattr(existing, k) and k != "_id":
+                        # Handle ObjectId conversion if needed
+                        if k == "parent_id" and v:
+                            v = ObjectId(v)
+                        setattr(existing, k, v)
+                
+                # Check root status change
+                is_root = existing.parent_id is None
+                in_roots = existing in self._root_tags
+                
+                if is_root and not in_roots:
+                    self._root_tags.append(existing)
+                elif not is_root and in_roots:
+                    self._root_tags.remove(existing)
+                    
+                self.tag_updated.emit(existing)
+                logger.debug(f"TagViewModel: Tag {tag_id} updated from event")
+            else:
+                # New tag created externally
+                # Need to hydrate full object
+                # Since we have raw dict, let's try to instantiate or just reload all if complex
+                # Ideally we instantiate a Tag object. 
+                # For safety/simplicity in this step, we can trigger a reload or instantiate if easy.
+                # Let's instantiate to avoid full reload
+                try:
+                    new_tag = Tag._instantiate_from_data(record_data)
+                    self._all_tags.append(new_tag)
+                    if new_tag.parent_id is None:
+                        self._root_tags.append(new_tag)
+                    self.tag_created.emit(new_tag)
+                    logger.debug(f"TagViewModel: New Tag {tag_id} created from event")
+                except Exception as ex:
+                    logger.warning(f"Could not instantiate tag from event, triggering reload: {ex}")
+                    self.refresh()
+                
+        except Exception as e:
+             logger.error(f"Error handling tag update: {e}")
+
+    def _on_tag_deleted(self, data: dict):
+        """Handle real-time tag deletion."""
+        try:
+            tag_id_str = str(data.get("id"))
+            
+            initial_len = len(self._all_tags)
+            self._all_tags = [t for t in self._all_tags if str(t._id) != tag_id_str]
+            self._root_tags = [t for t in self._root_tags if str(t._id) != tag_id_str]
+            
+            if len(self._all_tags) != initial_len:
+                self.tag_deleted.emit(tag_id_str)
+                logger.debug(f"TagViewModel: Tag {tag_id_str} deleted from event")
+                
+        except Exception as e:
+            logger.error(f"Error handling tag deletion: {e}")

@@ -48,7 +48,7 @@ class PeriodicTaskScheduler(BaseSystem):
     async def initialize(self):
         """Initialize scheduler and start scheduled tasks."""
         logger.info("PeriodicTaskScheduler initializing...")
-        self._running = True
+
         
         # Get required dependencies (guaranteed by depends_on)
         self.task_system = self.locator.get_system(TaskSystem)
@@ -73,6 +73,7 @@ class PeriodicTaskScheduler(BaseSystem):
                 self._scheduled_tasks.append(task_coroutine)
                 logger.info(f"Scheduled periodic task: {task_name}")
         
+        self._running = True
         await super().initialize()
         logger.info(f"PeriodicTaskScheduler ready ({len(self._scheduled_tasks)} tasks)")
     

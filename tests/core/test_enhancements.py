@@ -13,74 +13,7 @@ from src.core.plugins import Plugin, PluginState, PluginManager
 from src.ucorefs.ai.driver_registry import AIDriver, DriverRegistry
 
 
-# ============================================================
-# EventBus Tests (Replaces MessageBusSystem Tests)
-# ============================================================
 
-class TestEventBus:
-    """Tests for EventBus (unified pub-sub system)."""
-    
-    @pytest.fixture
-    async def bus(self):
-        """Create initialized event bus."""
-        from unittest.mock import MagicMock
-        bus = EventBus(MagicMock(), MagicMock())
-        await bus.initialize()
-        return bus
-    
-    @pytest.mark.asyncio
-    async def test_subscribe_and_publish(self, bus):
-        """Test basic pub-sub."""
-        received = []
-        
-        def handler(data):
-            received.append(data)
-        
-        bus.subscribe("test.event", handler)
-        bus.publish("test.event", {"value": 42})
-        
-        assert len(received) == 1
-        assert received[0]["value"] == 42
-    
-    @pytest.mark.asyncio
-    async def test_unsubscribe(self, bus):
-        """Test unsubscribe."""
-        received = []
-        
-        def handler(data):
-            received.append(data)
-        
-        bus.subscribe("test.event", handler)
-        bus.unsubscribe("test.event", handler)
-        bus.publish("test.event", {"value": 42})
-        
-        assert len(received) == 0
-    
-    @pytest.mark.asyncio
-    async def test_async_publish(self, bus):
-        """Test async publish."""
-        received = []
-        
-        async def async_handler(data):
-            received.append(data)
-        
-        bus.subscribe("test.event", async_handler)
-        await bus.publish_async("test.event", {"value": 99})
-        
-        assert len(received) == 1
-        assert received[0]["value"] == 99
-    
-    @pytest.mark.asyncio
-    async def test_shutdown_clears(self, bus):
-        """Test shutdown clears subscribers."""
-        bus.subscribe("test.event", lambda d: None)
-        await bus.shutdown()
-        # After shutdown, publishing should not fail
-        bus.publish("test.event", {})
-
-
-# ============================================================
-# LifecycleManager Tests
 # ============================================================
 
 class TestLifecycleManager:

@@ -2,7 +2,6 @@
 UCoreFS - Vector Service
 
 Vector storage and similarity search using FAISS + MongoDB.
-Replaced ChromaDB with FAISSIndexService for better performance.
 """
 from typing import List, Dict, Any, Optional
 from bson import ObjectId

@@ -215,6 +215,9 @@ class DockingService(QObject):
         # Optional visual features
         safe_set_flag('MiddleMouseButtonClosesTab', True)
         safe_set_flag('FocusHighlighting', True)
+        
+        # Consolidation: Let QtAds manage the central widget
+        safe_set_flag('DockManagerManageCentralWidget', True)
     
     # === Document Management ===
     

@@ -12,7 +12,7 @@ from loguru import logger
 from src.core.base_system import BaseSystem
 
 
-@dataclass
+@dataclass(slots=True)
 class SearchResult:
     """Individual search result with scoring."""
     file_id: ObjectId
@@ -22,7 +22,7 @@ class SearchResult:
     match_type: str = "filter"  # filter, text, vector, hybrid
 
 
-@dataclass
+@dataclass(slots=True)
 class SearchQuery:
     """
     Unified search query parameters.

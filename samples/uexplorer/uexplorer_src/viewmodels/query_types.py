@@ -10,7 +10,7 @@ from bson import ObjectId
 from typing import Optional
 
 
-@dataclass
+@dataclass( slots=True, eq=False)
 class TagRef:
     """
     Lightweight tag reference for queries.
@@ -84,7 +84,7 @@ class TagRef:
         return self.id == other.id
 
 
-@dataclass
+@dataclass( slots=True, eq=False)
 class AlbumRef:
     """
     Lightweight album reference for queries.

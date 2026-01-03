@@ -11,6 +11,7 @@ from uexplorer_src.viewmodels.search_pipeline import SearchPipeline
 from uexplorer_src.viewmodels.field_registry import (
     FieldRegistry, FieldDefinition, FieldType, get_field_registry
 )
+from uexplorer_src.viewmodels.main_viewmodel import MainViewModel
 
 __all__ = [
     "BrowseViewModel",
@@ -21,6 +22,7 @@ __all__ = [
     "FieldDefinition",
     "FieldType",
     "get_field_registry",
+    "MainViewModel",
 ]
 
 

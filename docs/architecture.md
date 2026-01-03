@@ -21,17 +21,17 @@ graph TD
         Core --> Plugins[Plugin System]
     end
     
-    UCoreFS --> DB[(MongoDB / ChromaDB)]
+    UCoreFS --> DB[(MongoDB / FAISS)]
 ```
 
 ## Directory Structure
 
 The project is organized as follows:
 
-- **`templates/foundation/src/core`**: The heart of the framework. Contains the Service Locator, Base Service classes, Event Bus, and Configuration logic.
-- **`templates/foundation/src/ui`**: Reusable UI components, Docking system, and MVVM base classes (`BindableProperty`).
-- **`templates/foundation/src/ucorefs`**: A specialized filesystem database that combines file tracking with AI vector embeddings.
-- **`templates/foundation/src/nodegraph`**: A visual node editor engine similar to Unreal Engine Blueprints.
+- **`src/core`**: The heart of the framework. Contains the Service Locator, Base Service classes, Event Bus, and Configuration logic.
+- **`src/ui`**: Reusable UI components, Docking system, and MVVM base classes (`BindableProperty`).
+- **`src/ucorefs`**: A specialized filesystem database that combines file tracking with AI vector embeddings (FAISS).
+- **`src/nodegraph`**: A visual node editor engine similar to Unreal Engine Blueprints.
 - **`samples/`**: Example applications demonstrating how to use the framework (e.g., `uexplorer`, `node_editor`).
 
 ## Core Patterns
@@ -53,7 +53,7 @@ The following diagram illustrates how data moves through the system, from the fi
 sequenceDiagram
     participant OS as File System
     participant FS as UCoreFS Service
-    participant DB as Database (Mongo/Chroma)
+    participant DB as Database (MongoDB/FAISS)
     participant UI as User Interface
 
     OS->>FS: File Change Detected (Watchdog)

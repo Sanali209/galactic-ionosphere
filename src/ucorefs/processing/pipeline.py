@@ -14,6 +14,7 @@ from src.core.base_system import BaseSystem
 from src.core.tasks.system import TaskSystem
 from src.ucorefs.models.base import ProcessingState
 from src.ucorefs.models.file_record import FileRecord
+from src.ucorefs.extractors.protocols import IExtractorRegistry
 
 
 class ProcessingPipeline(BaseSystem):
@@ -39,6 +40,12 @@ class ProcessingPipeline(BaseSystem):
         
         # Get dependencies
         self.task_system = self.locator.get_system(TaskSystem)
+        
+        # Inject ExtractorRegistry (breaks circular dependency)
+        # Import here once during initialization, not at module level
+        from src.ucorefs.extractors import ExtractorRegistry
+        self._extractor_registry: IExtractorRegistry = ExtractorRegistry
+        logger.debug("ExtractorRegistry injected into ProcessingPipeline")
         
         # Register task handlers
         self.task_system.register_handler("process_phase2_batch", self._handle_phase2_batch)
@@ -237,8 +244,6 @@ class ProcessingPipeline(BaseSystem):
         2. Extract metadata (EXIF, XMP)
         3. Compute basic embeddings
         """
-        from src.ucorefs.extractors import ExtractorRegistry
-        
         file_ids = [ObjectId(fid) for fid in file_ids_str.split(",") if fid]
         
         logger.info(f"[PHASE2_START] Processing batch of {len(file_ids)} files")
@@ -270,8 +275,8 @@ class ProcessingPipeline(BaseSystem):
             logger.warning("[PHASE2_LOAD] No files loaded - aborting batch")
             return results
         
-        # Get Phase 2 extractors
-        extractors = ExtractorRegistry.get_for_phase(2, locator=self.locator)
+        # Get Phase 2 extractors (using injected registry)
+        extractors = self._extractor_registry.get_for_phase(2, locator=self.locator)
         total_extractors = len(extractors)
         
         logger.info(f"[PHASE2_EXTRACTORS] Found {total_extractors} registered extractors")
@@ -381,8 +386,6 @@ class ProcessingPipeline(BaseSystem):
         3. Other Phase 3 extractors
         4. DetectionService (YOLO/MTCNN) if enabled
         """
-        from src.ucorefs.extractors import ExtractorRegistry
-        
         file_id = ObjectId(file_id_str)
         
         results = {
@@ -397,8 +400,8 @@ class ProcessingPipeline(BaseSystem):
             if not file:
                 return results
             
-            # Get Phase 3 extractors
-            extractors = ExtractorRegistry.get_for_phase(3, locator=self.locator)
+            # Get Phase 3 extractors (using injected registry)
+            extractors = self._extractor_registry.get_for_phase(3, locator=self.locator)
             
             for extractor in extractors:
                 try:

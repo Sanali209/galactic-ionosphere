@@ -28,8 +28,17 @@ class TagSelector(QWidget):
         
         self.init_ui()
         
-        # Load available tags for auto-complete
-        asyncio.ensure_future(self._load_all_tags())
+        # Defer tag loading until event loop is running
+        # NOTE: PyMongo AsyncMongoClient requires active event loop
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(100, self._deferred_load)
+        
+    def _deferred_load(self):
+        """Deferred load called after event loop is ready."""
+        try:
+            asyncio.ensure_future(self._load_all_tags())
+        except RuntimeError as e:
+            logger.warning(f"Could not load tags on init: {e}")
         
     def init_ui(self):
         layout = QVBoxLayout(self)

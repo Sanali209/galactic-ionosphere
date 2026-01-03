@@ -39,6 +39,7 @@ class CardViewModel(QObject):
         self._is_loading: bool = False
         self._current_filter = None
         
+        self.initialize_reactivity()
         logger.info("CardViewModel initialized")
     
     @property
@@ -187,3 +188,67 @@ class CardViewModel(QObject):
         except Exception as e:
             logger.error(f"Vector search failed: {e}")
             self.error_occurred.emit(str(e))
+
+    # === Reactive SSOT Implementation ===
+
+    @property
+    def _event_bus(self):
+        """Lazy access to EventBus."""
+        from src.core.events import EventBus
+        try:
+            return self._locator.get_system(EventBus)
+        except Exception:
+            return None
+
+    def initialize_reactivity(self):
+        """Subscribe to database events."""
+        bus = self._event_bus
+        if bus:
+             bus.subscribe("db.file_records.updated", self._on_file_updated)
+             bus.subscribe("db.file_records.deleted", self._on_file_deleted)
+             logger.debug("CardViewModel: Reactivity initialized")
+
+    def shutdown(self):
+        """Cleanup subscriptions."""
+        bus = self._event_bus
+        if bus:
+            bus.unsubscribe("db.file_records.updated", self._on_file_updated)
+            bus.unsubscribe("db.file_records.deleted", self._on_file_deleted)
+
+    def _on_file_updated(self, data: dict):
+        """Handle real-time file updates."""
+        try:
+            file_id = data.get("id")
+            if not file_id: return
+
+            updated = False
+            for record in self._files:
+                if getattr(record, "_id", None) == file_id:
+                    # Update fields
+                    record_data = data.get("record", {})
+                    for k, v in record_data.items():
+                         if hasattr(record, k) and k != "_id":
+                             setattr(record, k, v)
+                    updated = True
+            
+            if updated:
+                self.files_changed.emit(self._files)
+                logger.debug(f"CardViewModel: File {file_id} refreshed")
+                
+        except Exception as e:
+             logger.error(f"Error handling file update: {e}")
+
+    def _on_file_deleted(self, data: dict):
+        """Handle real-time file deletion."""
+        try:
+            file_id = data.get("id")
+            if not file_id: return
+            
+            initial_len = len(self._files)
+            self._files = [f for f in self._files if getattr(f, "_id", None) != file_id]
+            
+            if len(self._files) != initial_len:
+                self.files_changed.emit(self._files)
+                logger.debug(f"CardViewModel: File {file_id} removed")
+        except Exception as e:
+            logger.error(f"Error handling file deletion: {e}")

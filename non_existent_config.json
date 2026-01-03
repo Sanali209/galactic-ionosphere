@@ -16,6 +16,7 @@
     },
     "library_path": "./data",
     "processing": {
+        "ai_workers": 4,
         "detection": {
             "enabled": false,
             "backend": "yolo",
@@ -51,5 +52,9 @@
                 "model": null
             }
         }
+    },
+    "metadata": {
+        "auto_fill_description_from_blip": true,
+        "prefer_xmp_over_existing": false
     }
 }

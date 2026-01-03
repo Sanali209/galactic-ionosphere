@@ -67,8 +67,16 @@ class TagTreeWidget(QTreeWidget):
         # Tag ID to TreeWidgetItem mapping
         self._tag_items = {}
         
-        # Load tags on init
-        asyncio.ensure_future(self.refresh_tags())
+        # Defer tag loading until event loop is running
+        # NOTE: PyMongo AsyncMongoClient requires active event loop
+        QTimer.singleShot(100, self._deferred_refresh)
+    
+    def _deferred_refresh(self):
+        """Deferred refresh called after event loop is ready."""
+        try:
+            asyncio.ensure_future(self.refresh_tags())
+        except RuntimeError as e:
+            logger.warning(f"Could not refresh tags on init: {e}")
     
     def _on_tags_loaded(self, tags):
         """Handle tags loaded from ViewModel."""

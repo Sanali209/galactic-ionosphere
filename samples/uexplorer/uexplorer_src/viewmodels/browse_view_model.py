@@ -72,6 +72,7 @@ class BrowseViewModel(DocumentViewModel):
         self._selected_tags: List[ObjectId] = []
         self._tag_mode: str = "any"  # any | all | none
         
+        self.initialize_reactivity()
         logger.debug(f"BrowseViewModel created: {doc_id}")
     
     @property
@@ -350,3 +351,87 @@ class BrowseViewModel(DocumentViewModel):
         
         logger.debug(f"[{self._doc_id}] State restored")
 
+
+    # === Reactive SSOT Implementation ===
+
+    @property
+    def _event_bus(self):
+        """Lazy access to EventBus."""
+        from src.core.events import EventBus
+        try:
+            return self.locator.get_system(EventBus)
+        except Exception:
+            return None
+
+    def initialize_reactivity(self):
+        """
+        Subscribe to database events for SSOT.
+        Called by View or after locator is ready.
+        """
+        bus = self._event_bus
+        if bus:
+             bus.subscribe("db.file_records.updated", self._on_file_updated)
+             bus.subscribe("db.file_records.deleted", self._on_file_deleted)
+             logger.debug(f"[{self._doc_id}] Reactivity initialized: Subscribed to file updates")
+
+    def shutdown(self):
+        """Cleanup subscriptions."""
+        bus = self._event_bus
+        if bus:
+            bus.unsubscribe("db.file_records.updated", self._on_file_updated)
+            bus.unsubscribe("db.file_records.deleted", self._on_file_deleted)
+        # super().shutdown() # if strictly required by parent
+
+    def _on_file_updated(self, data: Dict[str, Any]):
+        """
+        Handle real-time file updates from database.
+        
+        Args:
+            data: {"collection": "file_records", "id": ObjectId, "record": dict}
+        """
+        try:
+            file_id = data.get("id")
+            if not file_id: return
+
+            # 1. Update items in current results if present
+            updated_indices = []
+            for i, item in enumerate(self._results):
+                if getattr(item, "_id", None) == file_id:
+                    # Update the record in place or replace it
+                    # For FileRecord, we might need to re-hydrate or update fields
+                    # Assuming item is a FileRecord instance
+                    
+                    # Update fields from record data
+                    record_data = data.get("record", {})
+                    for k, v in record_data.items():
+                         if hasattr(item, k) and k != "_id":
+                             setattr(item, k, v)
+                    
+                    updated_indices.append(i)
+                    logger.debug(f"[{self._doc_id}] SSOT Update: File {file_id} refreshed in view")
+            
+            # 2. Emit partial change signal if supported by View, else generic change
+            if updated_indices:
+                # For now, just re-emit the list to force redraw, 
+                # or add a specific signal "item_changed" if the View supports it.
+                # Optimized: We could emit a specific signal
+                self.results_changed.emit(self._results)
+                
+        except Exception as e:
+             logger.error(f"Error handling file update: {e}")
+
+    def _on_file_deleted(self, data: Dict[str, Any]):
+        """Handle real-time file deletion."""
+        try:
+            file_id = data.get("id")
+            if not file_id: return
+            
+            initial_len = len(self._results)
+            self._results = [r for r in self._results if getattr(r, "_id", None) != file_id]
+            
+            if len(self._results) != initial_len:
+                self.results_changed.emit(self._results)
+                logger.debug(f"[{self._doc_id}] SSOT Update: File {file_id} removed from view")
+                
+        except Exception as e:
+            logger.error(f"Error handling file deletion: {e}")

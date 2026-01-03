@@ -158,12 +158,12 @@ class MainWindow(QMainWindow):
         from loguru import logger
         logger.info("MainWindow: Triggering initial root load...")
         
-        # Refresh all panes in split area
-        if hasattr(self, 'split_area'):
-            for pane in self.split_area.get_all_panes():
-                logger.info(f"  - Loading roots into pane: {pane.title}")
-                if hasattr(pane.file_pane, 'model'):
-                    await pane.file_pane.model.refresh_roots()
+        # Unified Docking: iterate over DockingService documents
+        if hasattr(self, 'docking_service') and self.docking_service.documents:
+             for doc_id, doc in self.docking_service.documents.items():
+                if hasattr(doc, 'model') and hasattr(doc.model, 'refresh_roots'):
+                    logger.info(f"  - Loading roots into document: {doc_id}")
+                    await doc.model.refresh_roots()
         
         # Fallback for old-style panes
         elif hasattr(self, 'left_pane') and self.left_pane:
@@ -240,135 +240,20 @@ class MainWindow(QMainWindow):
         logger.info("Toolbar created via ToolbarManager")
     
     def create_central_widget(self):
-        """Create the central widget area with CardView file browser."""
-        from src.ui.documents.split_manager import SplitManager
-        from src.ui.documents.split_container import SplitContainer
+        """
+        Create the central widget area.
         
-        self.split_manager = SplitManager()
-        
-        # Create root container (empty initially)
-        # Documents will be added by DockingService during session restore
-        root_container = SplitContainer(self.split_manager.root.id)
-        
-        # Store container widget reference
-        self.split_manager.set_container_widget(self.split_manager.root.id, root_container)
-        
-        # Set as central widget
-        self.setCentralWidget(root_container)
-        
-        logger.info("✓ Central widget setup complete with drag & drop enabled")
+        With Unified Docking (QtAds Manager of Central Widget),
+        we do not strictly need a central widget as QtAds manages the space.
+        However, we set a dummy one if needed, or just let QtAds handle it.
+        """
+        # Unified Docking: QtAds manages the central widget area
+        logger.info("Central widget managed by DockingService (QtAds)")
+        pass
     
-    def create_left_panel(self):
-        """Create left navigation panel."""
-        from PySide6.QtWidgets import QTabWidget, QTreeWidget, QTreeWidgetItem
-        import sys
-        from pathlib import Path
-        
-        # Add widgets to path for imports
-        panel = QWidget()
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(5, 5, 5, 5)
-        
-        # Tabbed navigation
-        tabs = QTabWidget()
-        
-        # Tags tab - use TagTreeWidget
-        try:
-            from tag_tree import TagTreeWidget
-            self.tags_tree = TagTreeWidget(self.locator)
-        except Exception as e:
-            # Fallback to static tree
-            from loguru import logger
-            logger.error(f"Failed to load TagTreeWidget: {e}")
-            self.tags_tree = QTreeWidget()
-            self.tags_tree.setHeaderLabel("Tags")
-            self.tags_tree.setStyleSheet("QTreeWidget { background: #2d2d2d; color: #cccccc; border: none; }")
-            QTreeWidgetItem(self.tags_tree, [f"Error: {str(e)}"])
-        
-        tabs.addTab(self.tags_tree, "Tags")
-        
-        # Albums tab - use AlbumTreeWidget
-        try:
-            from album_tree import AlbumTreeWidget
-            self.albums_tree = AlbumTreeWidget(self.locator)
-            self.albums_tree.album_selected.connect(self._on_album_selected)
-        except Exception as e:
-            logger.warning(f"AlbumTreeWidget not available: {e}")
-            self.albums_tree = QTreeWidget()
-            self.albums_tree.setHeaderLabel("Albums")
-            self.albums_tree.setStyleSheet("QTreeWidget { background: #2d2d2d; color: #cccccc; border: none; }")
-            QTreeWidgetItem(self.albums_tree, ["(Error loading albums)"])
-        tabs.addTab(self.albums_tree, "Albums")
-        
-        # Relations tab - use RelationTreeWidget
-        try:
-            from relation_panel import RelationTreeWidget
-            self.relations_tree = RelationTreeWidget(self.locator)
-            self.relations_tree.category_selected.connect(self._on_relation_category_selected)
-        except Exception as e:
-            logger.warning(f"RelationTreeWidget not available: {e}")
-            self.relations_tree = QTreeWidget()
-            self.relations_tree.setHeaderLabel("Relations")
-            self.relations_tree.setStyleSheet("QTreeWidget { background: #2d2d2d; color: #cccccc; border: none; }")
-            QTreeWidgetItem(self.relations_tree, ["Duplicates"])
-            QTreeWidgetItem(self.relations_tree, ["Similar"])
-        tabs.addTab(self.relations_tree, "Relations")
-        
-        layout.addWidget(tabs)
-        
-        return panel
+
     
-    def create_right_area(self):
-        """Create right area with dual panes and metadata."""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        
-        # File panes (no more embedded metadata - now in dock panel)
-        dual_panes = self.create_dual_panes()
-        layout.addWidget(dual_panes)
-        
-        return widget
-    
-    def create_dual_panes(self):
-        """Create split document area for file browsing."""
-        from pathlib import Path
-        
-        # Add documents to path
-        # Central widget - File browser with Foundation's SplitManager (drag & drop enabled)
-        from pathlib import Path
-        
-        # Add Foundation to path
-        from src.ui.documents.split_manager import SplitManager, SplitOrientation
-        from src.ui.documents.split_container import SplitContainer
-        
-        # Import local file_pane_document
-        from file_pane_document import FilePaneDocument
-        
-        self.split_manager = SplitManager()
-        
-        # Create initial file browser pane as a document
-        initial_pane = FilePaneDocument(self.locator, "Browser 1")
-        
-        # Get root container and add document
-        root_container = SplitContainer(self.split_manager.root.id)
-        root_container.add_document(initial_pane, "Browser 1")
-        
-        # Store container widget reference
-        self.split_manager.root.container_widget = root_container
-        
-        # Set as central widget
-        self.setCentralWidget(root_container)
-        
-        logger.info("✓ Central widget setup complete with drag & drop enabled")
-        
-        # Connect signals from root container
-        root_container.document_activated.connect(self.on_selection_changed)
-        
-        # Store reference
-        self.central_container = root_container
-        
-        return root_container
+
     
     def on_selection_changed(self, record_ids):
         """Handle selection change (any pane)."""
@@ -411,20 +296,9 @@ class MainWindow(QMainWindow):
             from loguru import logger
             logger.error(f"Failed to update metadata: {e}")
     
-    def on_left_selection_changed(self, record_ids):
-        # Deprecated
-        self.on_selection_changed(record_ids)
+
     
-    def on_right_selection_changed(self, record_ids):
-        # Deprecated
-        self.on_selection_changed(record_ids)
-    
-    def create_metadata_panel(self):
-        """Create metadata editor panel."""
-        from pathlib import Path
-        from metadata_panel import MetadataPanel
-        self.metadata_panel = MetadataPanel(self.locator)
-        return self.metadata_panel
+
     
     def create_status_bar(self):
         """Create status bar."""

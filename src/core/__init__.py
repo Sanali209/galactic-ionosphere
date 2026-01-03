@@ -39,6 +39,7 @@ from .commands import (
     CompositeCommand,
 )
 from .decorators import system, on_lifecycle, subscribe_event
+from .context import managed_service, managed_locator
 
 __all__ = [
     # Core infrastructure
@@ -77,4 +78,9 @@ __all__ = [
     "system",
     "on_lifecycle",
     "subscribe_event",
+    
+    # Context Managers
+    "managed_service",
+    "managed_locator",
 ]
+

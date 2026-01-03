@@ -144,6 +144,14 @@ class ApplicationBuilder:
         Returns:
             ServiceLocator instance with all systems started
         """
+        # 0. Load environment variables (Secrets)
+        try:
+            from dotenv import load_dotenv
+            load_dotenv()
+            logger.debug("Loaded environment variables from .env")
+        except ImportError:
+            logger.debug("python-dotenv not installed - skipping .env loading")
+
         # 1. Setup logging
         if self._logging_configured:
             from .logging import setup_logging

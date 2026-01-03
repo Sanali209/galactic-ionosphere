@@ -46,7 +46,16 @@ class AlbumTreeWidget(QTreeWidget):
         
         self._album_items = {}
         
-        asyncio.ensure_future(self.refresh_albums())
+        # Defer album loading until event loop is running
+        # NOTE: PyMongo AsyncMongoClient requires active event loop
+        QTimer.singleShot(100, self._deferred_refresh)
+    
+    def _deferred_refresh(self):
+        """Deferred refresh called after event loop is ready."""
+        try:
+            asyncio.ensure_future(self.refresh_albums())
+        except RuntimeError as e:
+            logger.warning(f"Could not refresh albums on init: {e}")
     
     async def _get_album_count(self, album: Album) -> int:
         """

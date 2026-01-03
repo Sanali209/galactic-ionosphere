@@ -34,7 +34,7 @@ class TestEventBusBasic:
     async def test_initialize_and_shutdown(self, event_bus):
         """Test EventBus lifecycle methods."""
         await event_bus.initialize()
-        assert event_bus._initialized is True
+        assert event_bus.is_ready is True
         
         await event_bus.shutdown()
         assert len(event_bus._subscribers) == 0
@@ -60,7 +60,7 @@ class TestEventBusSubscription:
         assert handler in event_bus._subscribers["test.event"]
     
     def test_subscribe_multiple_handlers(self, event_bus):
-       """Test subscribing multiple handlers to same event."""
+        """Test subscribing multiple handlers to same event."""
         def handler1(data):
             pass
         
@@ -318,7 +318,7 @@ class TestEventBusIntegration:
         """Test complete subscribe -> publish -> unsubscribe flow."""
         received = []
         
-       def handler(data):
+        def handler(data):
             received.append(data)
         
         # Subscribe

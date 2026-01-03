@@ -1,6 +1,6 @@
 {
   "docking": {
-    "layout_bytes": "0000046f78daad545d6f8230147ddfaf687877a0a8688218e3e2e396459d8f4b69ef5863694d5bdd47f6e3d7a22188c2b664e101ee3d8773cfbdbd104fdf738e0ea0349362e2756f030f81209232914dbcf56ad11979d3247e34337ac08200bd93646bb1e5873690a3a7f2450fad35a832b63273290c66c2661c9cc4658c165c625314086c7eb9e3cc189b7e500c2cc514021d27b01766e2858d9caf92d3fb854ef79f741c67a600a3154e8bd6d07caf1438480356e4d5e21b463330e81ee75066d19c4b0dd435ed27b1ef24ce84c28a90c199aecb50a68018694de99ad6190df3749fb7320af1ab6e96ec1374128643d41f8e50ec1f637b3f8da4b1f154c9377bfccfe94b9492301ad4bd5fe02de57be3080d1bca1f33a360fc93b9ea30774aee401937b79aad0ad232af14936da6ece1d33696025eac4a45aa7bd1db380a50bf37f8cb68b110f2b88475f715e46ac9a6256539e3585d6ce929dde2decd3db0d735f77ef979dbe786df4572f30dd39a745a",
+    "layout_bytes": "0000047678daad545b6f8230187ddfaf6878775451d40431c6c5c72d8b3a1f9752beb1c6d29ab6ba4bf6e3d7a221a8c0b6644fd0730ee7bb70209abee71c1d406926c5c4ebde620f81a03265229b78ebd5a233f2a671f46866e981080ae99da45bcb2d3fb4811c3d950f7a68ad4195676b3397c210262ce2e8382acf68c1253145016cf1e58e33632cfca0185889290c3ace602fccc40b1a355fa5a6f70b9fee3ff938cd4c01412b9214a3a1f95e29709406a2e8abe5372ccdc0a07b924389a239971a5237b41f47beb338330a2a462953408db40de84bb72a756e7926233cd9e7ad0a43325ddfd4927d828e832044fd708422ff78b6d7d3661ae74f947cb329784e5e86090d8683cbdeaff8b6f2e1008518d7963f22233cfea9b9ea4e774aee40999a955698967d25846e33653390b6a914f0223115abeed56ce32146fddee02fab2542c863162fbbaf30b5259bb2ca72c689ba0aeb096ee9deed1da3fa37e3975fb9bd6ff86bc437dfc3897736",
     "documents": {
       "browser_bf7bc375": {
         "title": "Files",
@@ -16,7 +16,7 @@
             "sort_field": "size",
             "sort_ascending": true,
             "group_by": null,
-            "current_directory": "695555e4cf07fe940c0e12e2",
+            "current_directory": "6956d808145a36184619e7ac",
             "search_text": "",
             "search_mode": "text"
           }
@@ -29,11 +29,7 @@
         "is_visible": true,
         "is_floating": false,
         "is_auto_hide": false,
-        "custom_state": {
-          "include_tags": [
-            "695555f2cf07fe940c0e13b4"
-          ]
-        }
+        "custom_state": {}
       },
       "albums": {
         "title": "Albums",

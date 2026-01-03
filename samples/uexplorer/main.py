@@ -29,7 +29,7 @@ from uexplorer_src.bundle import UExplorerUIBundle
 
 # Import UExplorer UI
 from uexplorer_src.ui.main_window import MainWindow
-from uexplorer_src.ui.viewmodels.main_viewmodel import MainViewModel
+from uexplorer_src.viewmodels.main_viewmodel import MainViewModel
 
 
 def main():

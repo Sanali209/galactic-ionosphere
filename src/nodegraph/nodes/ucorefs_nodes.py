@@ -44,7 +44,7 @@ class FileQueryNode(BaseNode):
     
     async def execute(self, context: dict) -> dict:
         """Execute file query."""
-        from src.core.services.fs_service import FSService
+        from src.ucorefs.services.fs_service import FSService
         
         pattern = self.get_input("pattern")
         file_type = self.get_input("file_type") or None
@@ -90,7 +90,7 @@ class GetFileByPathNode(BaseNode):
         self.add_output_pin(DataPin("found", PinType.BOOLEAN, PinDirection.OUTPUT))
     
     async def execute(self, context: dict) -> dict:
-        from src.core.services.fs_service import FSService
+        from src.ucorefs.services.fs_service import FSService
         
         path = self.get_input("path")
         

@@ -117,7 +117,11 @@ class GroundingDINOExtractor(Extractor):
             logger.warning("GroundingDINO not available - pip install transformers")
             self._available = False
         except Exception as e:
+            import os
             logger.error(f"Failed to load GroundingDINO: {e}")
+            if "401" in str(e) or "403" in str(e) or "not found" in str(e).lower():
+                if not os.environ.get("HF_TOKEN"):
+                    logger.critical("Hugging Face token missing! Create a .env file with HF_TOKEN=your_token")
             self._available = False
         
         return self._available

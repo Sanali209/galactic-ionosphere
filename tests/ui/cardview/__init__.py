@@ -1,3 +1,0 @@
-"""
-CardView test package.
-"""

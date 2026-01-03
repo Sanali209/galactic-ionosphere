@@ -29,10 +29,10 @@ class ServiceLocator:
         self._systems: Dict[Type[BaseSystem], BaseSystem] = {}
         self._startup_order: list = []  # Track actual startup order for safe shutdown
         
-        # Initialize EventBus as a core system
+        # Register EventBus as a core system (initialized in start_all with other systems)
         self.bus = EventBus(self, self.config)
         self._systems[EventBus] = self.bus
-        self.bus.initialize()
+        # NOTE: EventBus.initialize() is async - called by start_all() in proper order
         
         # Reactive binding: Config -> Systems?
         # Systems subscribe to config changes themselves usually.

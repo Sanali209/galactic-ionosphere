@@ -14,6 +14,9 @@ class DatabaseManager(BaseSystem):
     Access via ServiceLocator:
         db = DatabaseManager.get_instance()
         collection = db.get_collection("my_collection")
+    
+    Note: Uses Motor (not PyMongo Async) for Qt/qasync compatibility.
+    PyMongo's AsyncMongoClient doesn't work with external event loops.
     """
     
     @classmethod
@@ -79,8 +82,19 @@ class DatabaseManager(BaseSystem):
             name: Collection name
             
         Returns:
-            Motor collection instance
+            PyMongo async collection instance
         """
         if self.db is None:
             raise RuntimeError("Database not connected. Call initialize() first.")
         return self.db[name]
+    async def emit_db_event(self, event_name: str, data: dict) -> None:
+        """
+        Helper to emit events from ORM layer which doesn't have direct access to EventBus.
+        """
+        from ..events import EventBus
+        try:
+            bus = self.locator.get_system(EventBus)
+            await bus.publish(event_name, data)
+        except (KeyError, Exception) as e:
+            # Silent failure if event bus not available (during startup/shutdown tests)
+            pass
