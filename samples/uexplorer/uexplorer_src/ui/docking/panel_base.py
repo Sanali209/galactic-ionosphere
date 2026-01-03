@@ -3,9 +3,13 @@ Base Panel for UExplorer
 
 Panel widgets for use with DockingService (QWidget-based, not QDockWidget).
 """
+from typing import TYPE_CHECKING, Optional, Dict, Any
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtCore import Signal
 from loguru import logger
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
 
 
 class PanelBase(QWidget):
@@ -21,7 +25,7 @@ class PanelBase(QWidget):
     panel_shown = Signal()
     panel_hidden = Signal()
     
-    def __init__(self, locator, parent=None):
+    def __init__(self, locator: "ServiceLocator", parent: Optional[QWidget] = None) -> None:
         """
         Initialize panel.
         
@@ -30,7 +34,7 @@ class PanelBase(QWidget):
             parent: Parent widget (optional)
         """
         super().__init__(parent)
-        self.locator = locator
+        self.locator: "ServiceLocator" = locator
         self.setup_ui()
     
     def setup_ui(self):

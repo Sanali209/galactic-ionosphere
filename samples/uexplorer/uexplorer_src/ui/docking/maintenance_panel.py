@@ -3,7 +3,7 @@ UExplorer - Maintenance Panel
 
 Docking panel for viewing and controlling automated maintenance tasks.
 """
-from typing import Optional, Dict, Any
+from typing import TYPE_CHECKING, Optional, Dict, Any
 from datetime import datetime
 
 from PySide6.QtWidgets import (
@@ -14,8 +14,9 @@ from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QFont
 from loguru import logger
 
-from src.ucorefs.services.maintenance_service import MaintenanceService
-from src.core.scheduling import PeriodicTaskScheduler
+if TYPE_CHECKING:
+    from src.ucorefs.services.maintenance_service import MaintenanceService
+    from src.core.scheduling import PeriodicTaskScheduler
 
 
 class MaintenanceTaskWidget(QWidget):
@@ -23,16 +24,16 @@ class MaintenanceTaskWidget(QWidget):
     
     run_requested = Signal(str)  # task_name
     
-    def __init__(self, task_name: str, task_config: Dict[str, Any], parent=None):
+    def __init__(self, task_name: str, task_config: Dict[str, Any], parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.task_name = task_name
-        self.task_config = task_config
+        self.task_name: str = task_name
+        self.task_config: Dict[str, Any] = task_config
         self.last_run_time: Optional[datetime] = None
-        self.status = "Idle"
+        self.status: str = "Idle"
         
         self._init_ui()
     
-    def _init_ui(self):
+    def _init_ui(self) -> None:
         """Initialize UI components."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
@@ -116,7 +117,7 @@ class MaintenanceTaskWidget(QWidget):
         
         return " ".join(parts) if parts else "Unknown"
     
-    def update_status(self, status: str, last_run: Optional[datetime] = None):
+    def update_status(self, status: str, last_run: Optional[datetime] = None) -> None:
         """Update task status display."""
         self.status = status
         
@@ -152,17 +153,17 @@ class MaintenancePanel(QWidget):
     - View execution history
     """
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         
-        self.maintenance_service: Optional[MaintenanceService] = None
-        self.scheduler: Optional[PeriodicTaskScheduler] = None
+        self.maintenance_service: Optional["MaintenanceService"] = None
+        self.scheduler: Optional["PeriodicTaskScheduler"] = None
         self.task_widgets: Dict[str, MaintenanceTaskWidget] = {}
         
         self._init_ui()
         
         # Auto-refresh timer
-        self.refresh_timer = QTimer(self)
+        self.refresh_timer: QTimer = QTimer(self)
         self.refresh_timer.timeout.connect(self._refresh_status)
         self.refresh_timer.start(5000)  # Refresh every 5 seconds
     
@@ -206,7 +207,7 @@ class MaintenancePanel(QWidget):
         refresh_button.clicked.connect(self._refresh_status)
         layout.addWidget(refresh_button)
     
-    def set_services(self, maintenance_service: MaintenanceService, scheduler: PeriodicTaskScheduler):
+    def set_services(self, maintenance_service: "MaintenanceService", scheduler: "PeriodicTaskScheduler") -> None:
         """Set the maintenance service and scheduler instances."""
         self.maintenance_service = maintenance_service
         self.scheduler = scheduler

@@ -4,13 +4,16 @@ DocumentManager - Tracks active document and routes results.
 Manages multiple browser documents and ensures search results
 go to the currently active document.
 """
-from typing import Dict, Optional, Any
+from typing import TYPE_CHECKING, Dict, Optional, Any
 from pathlib import Path
 from PySide6.QtCore import QObject, Signal
 from loguru import logger
 
 from uexplorer_src.viewmodels.browse_view_model import BrowseViewModel
 from src.ui.navigation.service import NavigationHandler, NavigationContext
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
 
 
 class DocumentManager(QObject, NavigationHandler):
@@ -29,7 +32,7 @@ class DocumentManager(QObject, NavigationHandler):
     # Navigation signals
     request_new_document = Signal(object)  # data (path/id)
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QObject] = None) -> None:
         QObject.__init__(self, parent)
         self._documents: Dict[str, BrowseViewModel] = {}
         self._active_id: Optional[str] = None

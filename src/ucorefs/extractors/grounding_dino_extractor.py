@@ -101,14 +101,18 @@ class GroundingDINOExtractor(Extractor):
             return self._available
         
         try:
+            import os
             import torch
             from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
             
             self._device = "cuda" if torch.cuda.is_available() else "cpu"
             
+            # Get HuggingFace token from environment
+            hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+            
             model_id = "IDEA-Research/grounding-dino-tiny"
-            self._processor = AutoProcessor.from_pretrained(model_id)
-            self._model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to(self._device)
+            self._processor = AutoProcessor.from_pretrained(model_id, token=hf_token)
+            self._model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id, token=hf_token).to(self._device)
             
             self._available = True
             logger.info(f"GroundingDINO loaded on {self._device}")

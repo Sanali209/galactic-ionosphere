@@ -3,7 +3,7 @@ Background Processing Panel - Real-time task monitoring.
 
 Displays TaskSystem queue, active tasks, and processing status.
 """
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional, Any
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QLabel, QProgressBar, QHeaderView, QGroupBox, QPushButton
@@ -11,6 +11,11 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QColor
 from loguru import logger
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+    from src.core.tasks.system import TaskSystem
+    from src.ucorefs.processing.pipeline import ProcessingPipeline
 
 
 class BackgroundPanel(QWidget):
@@ -26,7 +31,7 @@ class BackgroundPanel(QWidget):
     
     REFRESH_INTERVAL_MS = 2000  # 2 seconds
     
-    def __init__(self, locator, parent=None):
+    def __init__(self, locator: "ServiceLocator", parent: Optional[QWidget] = None) -> None:
         """
         Initialize BackgroundPanel.
         
@@ -35,9 +40,9 @@ class BackgroundPanel(QWidget):
             parent: Parent widget
         """
         super().__init__(parent)
-        self.locator = locator
-        self._task_system = None
-        self._pipeline = None
+        self.locator: "ServiceLocator" = locator
+        self._task_system: Optional["TaskSystem"] = None
+        self._pipeline: Optional["ProcessingPipeline"] = None
         
         self._setup_ui()
         self._setup_timer()

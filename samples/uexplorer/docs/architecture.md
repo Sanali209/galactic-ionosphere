@@ -39,17 +39,6 @@ locator = await builder.build()
 
 All UI actions defined in `src/ui/actions/action_definitions.py`:
 
-```python
-def register_all_actions(registry: ActionRegistry, window: MainWindow):
-    registry.register_action(
-        "file.new_window",
-        "&New Window",
-        window.new_window,
-        shortcut="Ctrl+N"
-    )
-    # ... 17 more actions
-```
-
 **Benefits**:
 - Single source of truth
 - Automatic Command Palette integration

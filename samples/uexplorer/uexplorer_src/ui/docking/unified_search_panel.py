@@ -4,7 +4,7 @@ UnifiedSearchPanel - Merged Search + Filter panel with auto-execute.
 Combines text search, filters, and displays active filter badges.
 Auto-rebuilds and executes search when any source changes.
 """
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, List, Dict, Any
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QComboBox, QCheckBox, QPushButton, QGroupBox, QScrollArea,
@@ -13,6 +13,10 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal, QTimer, Qt, QTimer
 from PySide6.QtGui import QIcon
 from loguru import logger
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+    from uexplorer_src.viewmodels.unified_query_builder import UnifiedQueryBuilder
 
 
 class UnifiedSearchPanel(QWidget):
@@ -32,13 +36,13 @@ class UnifiedSearchPanel(QWidget):
     
     search_requested = Signal(str, str, list)  # mode, text, fields
     
-    def __init__(self, locator=None, parent=None):
+    def __init__(self, locator: Optional["ServiceLocator"] = None, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self._locator = locator
-        self._query_builder = None
+        self._locator: Optional["ServiceLocator"] = locator
+        self._query_builder: Optional["UnifiedQueryBuilder"] = None
         
         # Debounce timer
-        self._debounce_timer = QTimer(self)
+        self._debounce_timer: QTimer = QTimer(self)
         self._debounce_timer.setSingleShot(True)
         self._debounce_timer.setInterval(2000)  # 2 seconds - avoid CLIP spam
         self._debounce_timer.timeout.connect(self._on_debounce_timeout)

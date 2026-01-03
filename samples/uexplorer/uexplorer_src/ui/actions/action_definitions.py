@@ -23,14 +23,7 @@ def register_all_actions(registry: 'ActionRegistry', window: 'MainWindow'):
     # FILE MENU
     # ============================================================
     
-    registry.register_action(
-        "file.new_window",
-        "&New Window",
-        window.new_window,
-        shortcut="Ctrl+N",
-        tooltip="Open a new UExplorer window"
-    )
-    
+
     registry.register_action(
         "file.new_browser",
         "New &Browser",

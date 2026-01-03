@@ -4,10 +4,13 @@ UExplorer - Card View Model
 ViewModel for CardGridView using QueryBuilder.
 Loads all images from database with pagination.
 """
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional, Dict, Any
 from bson import ObjectId
 from PySide6.QtCore import QObject, Signal
 from loguru import logger
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
 
 
 class CardViewModel(QObject):
@@ -29,15 +32,15 @@ class CardViewModel(QObject):
     page_changed = Signal(int)
     total_changed = Signal(int)
     
-    def __init__(self, locator=None, parent=None):
+    def __init__(self, locator: Optional["ServiceLocator"] = None, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
-        self._locator = locator
-        self._files: List = []
+        self._locator: Optional["ServiceLocator"] = locator
+        self._files: List[Any] = []
         self._page: int = 0
         self._page_size: int = 100
         self._total: int = 0
         self._is_loading: bool = False
-        self._current_filter = None
+        self._current_filter: Optional[Any] = None
         
         self.initialize_reactivity()
         logger.info("CardViewModel initialized")

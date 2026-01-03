@@ -3,18 +3,22 @@ Dockable Relations Panel for UExplorer.
 
 Works with DockingService (QWidget-based).
 """
-from PySide6.QtWidgets import QVBoxLayout
+from typing import TYPE_CHECKING, Optional
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 import sys
 from pathlib import Path
 from uexplorer_src.ui.docking.panel_base import PanelBase
 from uexplorer_src.ui.widgets.relation_panel import RelationTreeWidget
 
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+
 class RelationsPanel(PanelBase):
     """Dockable relations panel."""
     
-    def __init__(self, parent, locator):
-        self._tree = None
+    def __init__(self, parent: Optional[QWidget], locator: "ServiceLocator") -> None:
+        self._tree: Optional[RelationTreeWidget] = None
         super().__init__(locator, parent)
     
     def setup_ui(self):

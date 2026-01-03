@@ -6,13 +6,17 @@ Modes:
 - vector: Text → Embedding → FAISS similarity
 - image: Image → Embedding → FAISS similarity
 """
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional, Dict, Any
 from PySide6.QtCore import QObject, Signal
 from bson import ObjectId
 from loguru import logger
 
 from uexplorer_src.viewmodels.search_query import SearchQuery
 from src.ucorefs.query import Q, F
+
+if TYPE_CHECKING:
+    from src.ucorefs.models.file_record import FileRecord
+    from src.core.service_locator import ServiceLocator
 
 
 class SearchPipeline(QObject):
@@ -32,17 +36,18 @@ class SearchPipeline(QObject):
     search_completed = Signal(list)  # List[FileRecord]
     search_failed = Signal(str)  # Error message
     
-    def __init__(self, locator, parent=None):
+    def __init__(self, locator: "ServiceLocator", parent: Optional[QObject] = None) -> None:
         """
         Initialize pipeline.
         
         Args:
             locator: ServiceLocator for accessing services
+            parent: Optional parent QObject
         """
         super().__init__(parent)
-        self._locator = locator
+        self._locator: "ServiceLocator" = locator
     
-    async def execute(self, query: SearchQuery) -> List:
+    async def execute(self, query: SearchQuery) -> List["FileRecord"]:
         """
         Execute search query.
         
@@ -91,7 +96,7 @@ class SearchPipeline(QObject):
             self.search_failed.emit(error_msg)
             return []
     
-    async def _text_search(self, query: SearchQuery) -> List:
+    async def _text_search(self, query: SearchQuery) -> List["FileRecord"]:
         """
         Text search using MongoDB regex.
         
@@ -139,7 +144,7 @@ class SearchPipeline(QObject):
         logger.info(f"Text search found {len(results)} results")
         return results
     
-    async def _vector_search(self, query: SearchQuery) -> List:
+    async def _vector_search(self, query: SearchQuery) -> List["FileRecord"]:
         """
         Vector search using unified SearchService.
         
@@ -198,8 +203,12 @@ class SearchPipeline(QObject):
             logger.info(f"[VECTOR_SEARCH] Retrieving {len(file_ids)} FileRecords from database")
             files = await FileRecord.find({"_id": {"$in": file_ids}})
             
-            logger.info(f"[VECTOR_SEARCH] ✓ Vector search complete: {len(files)} FileRecords retrieved")
-            return files
+            # MongoDB $in doesn't preserve order, so reorder to match similarity ranking
+            file_dict = {f._id: f for f in files}
+            ordered_files = [file_dict[fid] for fid in file_ids if fid in file_dict]
+            
+            logger.info(f"[VECTOR_SEARCH] ✓ Vector search complete: {len(ordered_files)} FileRecords retrieved (ordered)")
+            return ordered_files
             
         except Exception as e:
             logger.error(f"[VECTOR_SEARCH] ✗ Vector search failed: {e}")
@@ -207,7 +216,7 @@ class SearchPipeline(QObject):
             logger.error(f"[VECTOR_SEARCH] Traceback: {traceback.format_exc()}")
             return []
     
-    async def _vector_search_fallback(self, query: SearchQuery) -> List:
+    async def _vector_search_fallback(self, query: SearchQuery) -> List["FileRecord"]:
         """Fallback to direct VectorService if SearchService unavailable."""
         from src.ucorefs.vectors.service import VectorService
         from src.ucorefs.models import FileRecord
@@ -239,15 +248,20 @@ class SearchPipeline(QObject):
             logger.info(f"[VECTOR_FALLBACK] Extracting {len(file_ids)} file IDs")
             
             files = await FileRecord.find({"_id": {"$in": file_ids}})
-            logger.info(f"[VECTOR_FALLBACK] ✓ Fallback complete: {len(files)} FileRecords retrieved")
-            return files
+            
+            # MongoDB $in doesn't preserve order, so reorder to match similarity ranking
+            file_dict = {f._id: f for f in files}
+            ordered_files = [file_dict[fid] for fid in file_ids if fid in file_dict]
+            
+            logger.info(f"[VECTOR_FALLBACK] ✓ Fallback complete: {len(ordered_files)} FileRecords retrieved (ordered)")
+            return ordered_files
         except Exception as e:
             logger.error(f"[VECTOR_FALLBACK] ✗ Fallback failed: {e}")
             import traceback
             logger.error(f"[VECTOR_FALLBACK] Traceback: {traceback.format_exc()}")
             return []
     
-    async def _image_search(self, query: SearchQuery) -> List:
+    async def _image_search(self, query: SearchQuery) -> List["FileRecord"]:
         """
         Image similarity search.
         
@@ -271,18 +285,22 @@ class SearchPipeline(QObject):
             if not results:
                 return []
             
-            # Convert to FileRecords
+            # Convert to FileRecords - PRESERVE SIMILARITY ORDER
             file_ids = [ObjectId(r["file_id"]) for r in results if "file_id" in r]
             files = await FileRecord.find({"_id": {"$in": file_ids}})
             
-            logger.info(f"Image search found {len(files)} similar")
-            return files
+            # MongoDB $in doesn't preserve order, so reorder to match similarity ranking
+            file_dict = {f._id: f for f in files}
+            ordered_files = [file_dict[fid] for fid in file_ids if fid in file_dict]
+            
+            logger.info(f"Image search found {len(ordered_files)} similar (ordered)")
+            return ordered_files
             
         except Exception as e:
             logger.error(f"Image search failed: {e}")
             return []
     
-    async def _image_search_similar(self, query: SearchQuery) -> List:
+    async def _image_search_similar(self, query: SearchQuery) -> List["FileRecord"]:
         """
         Find similar images using CLIP embeddings from FileRecord.
         
@@ -332,12 +350,17 @@ class SearchPipeline(QObject):
             if not results:
                 return []
             
-            # Convert to FileRecords
+            # Convert to FileRecords - PRESERVE SIMILARITY ORDER
+            # FAISS returns (file_id, distance) sorted by similarity
             file_ids = [fid for fid, _dist in results]
             files = await FileRecord.find({"_id": {"$in": file_ids}})
             
-            logger.info(f"[SIMILAR_SEARCH] Found {len(files)} similar images")
-            return files
+            # MongoDB $in doesn't preserve order, so reorder to match FAISS ranking
+            file_dict = {f._id: f for f in files}
+            ordered_files = [file_dict[fid] for fid in file_ids if fid in file_dict]
+            
+            logger.info(f"[SIMILAR_SEARCH] Found {len(ordered_files)} similar images (ordered by similarity)")
+            return ordered_files
             
         except Exception as e:
             logger.error(f"[SIMILAR_SEARCH] Failed: {e}")
@@ -345,7 +368,7 @@ class SearchPipeline(QObject):
             logger.error(f"[SIMILAR_SEARCH] Traceback: {traceback.format_exc()}")
             return []
     
-    def _build_filter_conditions(self, filters: dict) -> List[Q]:
+    def _build_filter_conditions(self, filters: Dict[str, Any]) -> List[Q]:
         """Build Q conditions from filter dict including include/exclude."""
         conditions = []
         

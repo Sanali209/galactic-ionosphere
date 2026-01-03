@@ -8,12 +8,15 @@ Each file browser document has its own ViewModel that:
 
 Extends Foundation's DocumentViewModel for integration with DocumentManager.
 """
-from typing import List, Optional, Dict, Any
-from PySide6.QtCore import Signal
+from typing import TYPE_CHECKING, List, Optional, Dict, Any
+from PySide6.QtCore import Signal, QObject
 from bson import ObjectId
 from loguru import logger
 
 from src.ui.mvvm.document_viewmodel import DocumentViewModel
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
 
 
 class BrowseViewModel(DocumentViewModel):
@@ -41,7 +44,7 @@ class BrowseViewModel(DocumentViewModel):
     group_changed = Signal(str)  # group_by field or None
     error_occurred = Signal(str)
     
-    def __init__(self, doc_id: str, locator=None, parent=None):
+    def __init__(self, doc_id: str, locator: Optional["ServiceLocator"] = None, parent: Optional[QObject] = None) -> None:
         """
         Initialize ViewModel for a document.
         

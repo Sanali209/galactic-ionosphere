@@ -11,13 +11,16 @@ Usage:
     builder.connect_panels(search_panel, tag_panel, album_panel, filter_panel)
     builder.query_changed.connect(execute_search)
 """
-from typing import Optional, List, Dict, Any
+from typing import TYPE_CHECKING, Optional, List, Dict, Any
 from dataclasses import dataclass, field
 from PySide6.QtCore import QObject, Signal
 from bson import ObjectId
 from loguru import logger
 
 from .query_types import TagRef, AlbumRef
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
 
 
 @dataclass
@@ -182,19 +185,19 @@ class UnifiedQueryBuilder(QObject):
     
     query_changed = Signal(object)  # UnifiedSearchQuery
     
-    def __init__(self, locator=None, parent=None):
+    def __init__(self, locator: Optional["ServiceLocator"] = None, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
-        self._locator = locator
+        self._locator: Optional["ServiceLocator"] = locator
         
         # Panel references
-        self._search_panel = None
-        self._tag_panel = None
-        self._album_panel = None
-        self._directory_panel = None
-        self._filter_panel = None
+        self._search_panel: Optional[QObject] = None
+        self._tag_panel: Optional[QObject] = None
+        self._album_panel: Optional[QObject] = None
+        self._directory_panel: Optional[QObject] = None
+        self._filter_panel: Optional[QObject] = None
         
         # Current query state
-        self._current_query = UnifiedSearchQuery()
+        self._current_query: UnifiedSearchQuery = UnifiedSearchQuery()
         
         logger.debug("UnifiedQueryBuilder initialized")
     

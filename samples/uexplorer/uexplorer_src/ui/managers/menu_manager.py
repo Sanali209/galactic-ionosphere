@@ -48,7 +48,6 @@ class MenuManager:
     def _build_file_menu(self, menubar: QMenuBar):
         """Build File menu."""
         file_menu = menubar.addMenu("&File")
-        file_menu.addAction(self.action_registry.get_action("file.new_window"))
         file_menu.addAction(self.action_registry.get_action("file.new_browser"))
         file_menu.addSeparator()
         file_menu.addAction(self.action_registry.get_action("file.exit"))

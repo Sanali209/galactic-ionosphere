@@ -43,14 +43,18 @@ class BLIPExtractor(Extractor):
             return self._available
         
         try:
+            import os
             import torch
             from transformers import BlipProcessor, BlipForConditionalGeneration
             
             self._device = "cuda" if torch.cuda.is_available() else "cpu"
             
+            # Get HuggingFace token from environment
+            hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+            
             model_name = "Salesforce/blip-image-captioning-base"
-            self._processor = BlipProcessor.from_pretrained(model_name)
-            self._model = BlipForConditionalGeneration.from_pretrained(model_name).to(self._device)
+            self._processor = BlipProcessor.from_pretrained(model_name, token=hf_token)
+            self._model = BlipForConditionalGeneration.from_pretrained(model_name, token=hf_token).to(self._device)
             
             self._available = True
             logger.info(f"BLIP model loaded on {self._device}")

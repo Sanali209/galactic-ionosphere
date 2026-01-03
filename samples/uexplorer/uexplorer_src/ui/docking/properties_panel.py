@@ -4,6 +4,7 @@ Dockable Properties Panel (Metadata) for UExplorer.
 Supports multiple modes: Properties, Detections.
 Works with DockingService (QWidget-based).
 """
+from typing import TYPE_CHECKING, Optional
 import asyncio
 from PySide6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QComboBox, QLabel, QStackedWidget, QWidget
@@ -14,6 +15,9 @@ from loguru import logger
 
 from uexplorer_src.ui.docking.panel_base import PanelBase
 from uexplorer_src.ui.widgets.metadata_panel import MetadataPanel
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
 
 
 class PropertiesPanel(PanelBase):
@@ -28,12 +32,12 @@ class PropertiesPanel(PanelBase):
     MODE_PROPERTIES = 0
     MODE_DETECTIONS = 1
     
-    def __init__(self, parent, locator):
-        self._metadata = None
-        self._detections_widget = None
-        self._stack = None
-        self._mode_combo = None
-        self._current_file_id = None
+    def __init__(self, parent: Optional[QWidget], locator: "ServiceLocator") -> None:
+        self._metadata: Optional[MetadataPanel] = None
+        self._detections_widget: Optional["DetectionsWidget"] = None
+        self._stack: Optional[QStackedWidget] = None
+        self._mode_combo: Optional[QComboBox] = None
+        self._current_file_id: Optional[str] = None
         super().__init__(locator, parent)
     
     def setup_ui(self):

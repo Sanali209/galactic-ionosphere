@@ -1,6 +1,7 @@
 """
 Metadata Panel for UExplorer.
 """
+from typing import TYPE_CHECKING, Optional
 import asyncio
 from datetime import datetime
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
@@ -23,13 +24,16 @@ except ImportError:
         # Fallback for relative import if loaded as package
         from .tag_selector import TagSelector
 
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+
 class StarRating(QWidget):
     """Simple 5-star rating widget."""
     ratingChanged = Signal(int)
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.rating = 0
+        self.rating: int = 0
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(2)
@@ -45,7 +49,7 @@ class StarRating(QWidget):
             layout.addWidget(btn)
             self.stars.append(btn)
             
-    def set_rating(self, rating, emit=False):
+    def set_rating(self, rating: int, emit: bool = False) -> None:
         self.rating = rating
         for i, btn in enumerate(self.stars):
             if i < rating:
@@ -62,13 +66,13 @@ class MetadataPanel(QWidget):
     Panel for displaying and editing file metadata.
     """
     
-    def __init__(self, locator):
+    def __init__(self, locator: "ServiceLocator") -> None:
         super().__init__()
-        self.locator = locator
-        self.fs_service = locator.get_system(FSService)
-        self.thumbnail_service = locator.get_system(ThumbnailService)
+        self.locator: "ServiceLocator" = locator
+        self.fs_service: FSService = locator.get_system(FSService)
+        self.thumbnail_service: ThumbnailService = locator.get_system(ThumbnailService)
         
-        self.current_file = None # FileRecord
+        self.current_file: Optional[FileRecord] = None
         
         self.init_ui()
         

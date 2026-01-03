@@ -4,7 +4,7 @@ FileCardWidget - Card widget for displaying files in UExplorer.
 Shows file thumbnail, name, size, and rating widget.
 Only displays files (not folders).
 """
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, List
 from PySide6.QtWidgets import (
     QLabel, QVBoxLayout, QHBoxLayout, QWidget, QPushButton
 )
@@ -24,11 +24,11 @@ class StarRatingWidget(QWidget):
     """
     rating_changed = Signal(int)
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self._rating = 0
-        self._max_stars = 5
-        self._star_labels: list[QLabel] = []
+        self._rating: int = 0
+        self._max_stars: int = 5
+        self._star_labels: List[QLabel] = []
         self._setup_ui()
     
     def _setup_ui(self):

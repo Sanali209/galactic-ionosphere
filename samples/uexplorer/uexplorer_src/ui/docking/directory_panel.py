@@ -5,10 +5,10 @@ Provides filesystem directory tree navigation.
 Works with DockingService (QWidget-based).
 Supports include/exclude filtering.
 """
-from typing import Optional, List
+from typing import TYPE_CHECKING, Optional, List, Set, Dict, Any
 from PySide6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QTreeWidget, QTreeWidgetItem,
-    QLabel, QPushButton, QHeaderView
+    QLabel, QPushButton, QHeaderView, QWidget
 )
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QIcon
@@ -17,6 +17,10 @@ from pathlib import Path
 from loguru import logger
 
 from uexplorer_src.ui.docking.panel_base import PanelBase
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+    from src.ucorefs.services.fs_service import FSService
 
 
 class DirectoryPanel(PanelBase):
@@ -36,13 +40,13 @@ class DirectoryPanel(PanelBase):
     # Filter changed signal for unified search
     filter_changed = Signal(list, list)  # (include_paths, exclude_paths)
     
-    def __init__(self, parent, locator):
-        self._tree = None
-        self._fs_service = None
-        self._dir_cache = {}  # id -> DirectoryRecord
-        self._include_dirs: set = set()  # paths to include
-        self._exclude_dirs: set = set()  # paths to exclude
-        self._last_source_path = None  # Track source changes
+    def __init__(self, parent: Optional[QWidget], locator: "ServiceLocator") -> None:
+        self._tree: Optional[QTreeWidget] = None
+        self._fs_service: Optional["FSService"] = None
+        self._dir_cache: Dict[str, Any] = {}  # id -> DirectoryRecord
+        self._include_dirs: Set[str] = set()  # paths to include
+        self._exclude_dirs: Set[str] = set()  # paths to exclude
+        self._last_source_path: Optional[str] = None  # Track source changes
         super().__init__(locator, parent)
         
         # Get FSService from locator

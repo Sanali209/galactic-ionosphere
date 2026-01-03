@@ -3,8 +3,11 @@ File Operation Commands
 
 Demonstrates Foundation's CommandBus pattern for decoupled operations.
 """
-from typing import List
+from typing import TYPE_CHECKING, List, Dict, Any
 from loguru import logger
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
 
 
 class TagFilesCommand:
@@ -17,7 +20,7 @@ class TagFilesCommand:
     - Potential for undo/redo support
     """
     
-    def __init__(self, locator, file_ids: List[str], tag_id: str):
+    def __init__(self, locator: "ServiceLocator", file_ids: List[str], tag_id: str) -> None:
         """
         Initialize tag command.
         
@@ -26,9 +29,9 @@ class TagFilesCommand:
             file_ids: List of file record IDs to tag
             tag_id: Tag ID to apply
         """
-        self.locator = locator
-        self.file_ids = file_ids
-        self.tag_id = tag_id
+        self.locator: "ServiceLocator" = locator
+        self.file_ids: List[str] = file_ids
+        self.tag_id: str = tag_id
     
     async def execute(self) -> dict:
         """

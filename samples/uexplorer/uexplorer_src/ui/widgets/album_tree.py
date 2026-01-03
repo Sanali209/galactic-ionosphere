@@ -3,17 +3,21 @@ Album Tree Widget for UExplorer navigation panel.
 
 Displays albums (both manual and smart) in hierarchical tree.
 """
+from typing import TYPE_CHECKING, Optional, Dict
 import asyncio
 from PySide6.QtWidgets import (QTreeWidget, QTreeWidgetItem, QMenu, 
                                 QInputDialog, QMessageBox, QDialog,
                                 QVBoxLayout, QHBoxLayout, QLabel, 
-                                QLineEdit, QCheckBox, QTextEdit, QPushButton)
+                                QLineEdit, QCheckBox, QTextEdit, QPushButton, QWidget)
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QAction, QColor
 from loguru import logger
 from bson import ObjectId
 
 from src.ucorefs.albums.models import Album
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
 
 
 class AlbumTreeWidget(QTreeWidget):
@@ -23,9 +27,9 @@ class AlbumTreeWidget(QTreeWidget):
     include_requested = Signal(str)  # Emits album_id to include in filter
     exclude_requested = Signal(str)  # Emits album_id to exclude from filter
     
-    def __init__(self, locator, parent=None):
+    def __init__(self, locator: "ServiceLocator", parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.locator = locator
+        self.locator: "ServiceLocator" = locator
         
         self.setHeaderLabel("Albums")
         self.setStyleSheet("QTreeWidget { background: #2d2d2d; color: #cccccc; border: none; }")
@@ -37,14 +41,14 @@ class AlbumTreeWidget(QTreeWidget):
         self.setAcceptDrops(True)
         
         # Drag throttling state - prevents UI freeze during drag
-        self._last_drag_item = None
-        self._drag_throttle_timer = QTimer()
+        self._last_drag_item: Optional[QTreeWidgetItem] = None
+        self._drag_throttle_timer: QTimer = QTimer()
         self._drag_throttle_timer.setSingleShot(True)
         self._drag_throttle_timer.setInterval(50)  # 50ms throttle
-        self._drag_throttle_pending_item = None
+        self._drag_throttle_pending_item: Optional[QTreeWidgetItem] = None
         self._drag_throttle_timer.timeout.connect(self._apply_drag_highlight)
         
-        self._album_items = {}
+        self._album_items: Dict[str, QTreeWidgetItem] = {}
         
         # Defer album loading until event loop is running
         # NOTE: PyMongo AsyncMongoClient requires active event loop

@@ -4,14 +4,17 @@ Dockable Tag Panel for UExplorer.
 Works with DockingService (QWidget-based).
 Supports include/exclude filtering.
 """
-from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton
+from typing import TYPE_CHECKING, List, Set, Optional
+from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget
 from PySide6.QtCore import Signal
-from typing import List
 
 import sys
 from pathlib import Path
 from uexplorer_src.ui.docking.panel_base import PanelBase
 from uexplorer_src.ui.widgets.tag_tree import TagTreeWidget
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
 
 class TagPanel(PanelBase):
     """
@@ -29,15 +32,15 @@ class TagPanel(PanelBase):
     # Filter changed signal for unified search
     filter_changed = Signal(list, list)  # (include_tag_ids, exclude_tag_ids)
     
-    def __init__(self, parent, locator):
+    def __init__(self, parent: Optional[QWidget], locator: "ServiceLocator") -> None:
         """
         Args:
             parent: Parent widget
             locator: ServiceLocator for services
         """
-        self._tree = None
-        self._include_tags: set = set()
-        self._exclude_tags: set = set()
+        self._tree: Optional[TagTreeWidget] = None
+        self._include_tags: Set[str] = set()
+        self._exclude_tags: Set[str] = set()
         super().__init__(locator, parent)
     
     def setup_ui(self):

@@ -386,11 +386,7 @@ class MainWindow(QMainWindow):
         self.status_label.setText("Dashboard opened")
         logger.info("Dashboard opened")
 
-    def new_window(self):
-        """Open a new UExplorer window."""
-        # TODO: Implement multi-window support
-        self.status_label.setText("Multi-window not yet implemented")
-        logger.info("New window requested")
+
     
     def new_browser(self):
         """Create a new CardView file browser document tab."""
@@ -1185,15 +1181,7 @@ class MainWindow(QMainWindow):
         self.docking_service.add_document(doc_id, doc, "Files", area="center", closable=True)
         logger.info(f"New browser created: {doc_id}")
     
-    def new_window(self):
-        """Open a new UExplorer window."""
-        logger.info("New window requested (not yet implemented)")
-        from PySide6.QtWidgets import QMessageBox
-        QMessageBox.information(
-            self,
-            "New Window",
-            "Multiple window support coming soon!"
-        )
+
     
     def show_command_palette(self):
         """Show command palette dialog."""
@@ -1404,7 +1392,3 @@ class MainWindow(QMainWindow):
         else:
             logger.info("Settings dialog cancelled")
     
-    def new_window(self):
-        """Open a new UExplorer window."""
-        # TODO: Implement new window - would require app-level window management
-        logger.info("New window requested (not yet implemented)")

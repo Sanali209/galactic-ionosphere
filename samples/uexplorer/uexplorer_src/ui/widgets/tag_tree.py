@@ -7,8 +7,9 @@ Supports:
 - Context menu operations
 - MVVM sync via TagViewModel
 """
+from typing import TYPE_CHECKING, Optional, Dict
 import asyncio
-from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox
+from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox, QWidget
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QAction, QColor, QDragEnterEvent, QDropEvent
 from loguru import logger
@@ -16,6 +17,10 @@ from bson import ObjectId
 
 from src.ucorefs.tags.manager import TagManager
 from src.ucorefs.tags.models import Tag
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+    from uexplorer_src.viewmodels.tag_viewmodel import TagViewModel
 
 
 class TagTreeWidget(QTreeWidget):
@@ -26,13 +31,13 @@ class TagTreeWidget(QTreeWidget):
     include_requested = Signal(str)  # Emits tag_id to include in filter
     exclude_requested = Signal(str)  # Emits tag_id to exclude from filter
     
-    def __init__(self, locator, parent=None):
+    def __init__(self, locator: "ServiceLocator", parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.locator = locator
-        self.tag_manager = locator.get_system(TagManager)
+        self.locator: "ServiceLocator" = locator
+        self.tag_manager: TagManager = locator.get_system(TagManager)
         
         # Try to get TagViewModel if registered
-        self._viewmodel = None
+        self._viewmodel: Optional["TagViewModel"] = None
         try:
             from src.viewmodels.tag_viewmodel import TagViewModel
             self._viewmodel = locator.get_system(TagViewModel)
@@ -57,15 +62,15 @@ class TagTreeWidget(QTreeWidget):
         self.setDropIndicatorShown(True)
         
         # Drag throttling state - prevents UI freeze during drag
-        self._last_drag_item = None
-        self._drag_throttle_timer = QTimer()
+        self._last_drag_item: Optional[QTreeWidgetItem] = None
+        self._drag_throttle_timer: QTimer = QTimer()
         self._drag_throttle_timer.setSingleShot(True)
         self._drag_throttle_timer.setInterval(50)  # 50ms throttle
-        self._drag_throttle_pending_item = None
+        self._drag_throttle_pending_item: Optional[QTreeWidgetItem] = None
         self._drag_throttle_timer.timeout.connect(self._apply_drag_highlight)
         
         # Tag ID to TreeWidgetItem mapping
-        self._tag_items = {}
+        self._tag_items: Dict[str, QTreeWidgetItem] = {}
         
         # Defer tag loading until event loop is running
         # NOTE: PyMongo AsyncMongoClient requires active event loop

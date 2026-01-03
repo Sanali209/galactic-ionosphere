@@ -1,6 +1,7 @@
 """
 Tag Selector Widget for UExplorer.
 """
+from typing import TYPE_CHECKING, Optional, List
 import asyncio
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, 
                                QListWidget, QPushButton, QCompleter, QLabel)
@@ -12,19 +13,22 @@ from bson import ObjectId
 from src.ucorefs.tags.manager import TagManager
 from src.ucorefs.tags.models import Tag
 
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+
 class TagSelector(QWidget):
     """
     Widget for selecting and managing tags for a file.
     """
     tags_changed = Signal(list)  # Emits list of tag IDs
     
-    def __init__(self, locator):
+    def __init__(self, locator: "ServiceLocator") -> None:
         super().__init__()
-        self.locator = locator
-        self.tag_manager = locator.get_system(TagManager)
+        self.locator: "ServiceLocator" = locator
+        self.tag_manager: TagManager = locator.get_system(TagManager)
         
-        self._selected_tags = [] # List of Tag objects
-        self._all_tags = []      # Cache of all tags for completer
+        self._selected_tags: List[Tag] = []  # List of Tag objects
+        self._all_tags: List[Tag] = []       # Cache of all tags for completer
         
         self.init_ui()
         

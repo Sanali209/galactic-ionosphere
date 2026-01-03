@@ -4,10 +4,10 @@ Dockable Similar Items Panel for UExplorer.
 Shows files similar to the current selection using vector similarity.
 Works with DockingService (QWidget-based).
 """
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 from PySide6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-    QLabel, QPushButton, QSlider, QSpinBox
+    QLabel, QPushButton, QSlider, QSpinBox, QWidget
 )
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QPixmap
@@ -16,6 +16,11 @@ from pathlib import Path
 from loguru import logger
 
 from uexplorer_src.ui.docking.panel_base import PanelBase
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+    from src.ucorefs.ai.similarity_service import SimilarityService
+    from src.ucorefs.thumbnails.service import ThumbnailService
 
 
 class SimilarItemsPanel(PanelBase):
@@ -29,14 +34,14 @@ class SimilarItemsPanel(PanelBase):
     # Emitted when similar item is clicked (for navigation)
     item_clicked = Signal(str)  # file_id
     
-    def __init__(self, parent, locator):
-        self._list = None
-        self._similarity_service = None
-        self._thumbnail_service = None
-        self._selection_manager = None
-        self._current_file_id = None
-        self._threshold_slider = None
-        self._limit_spinbox = None
+    def __init__(self, parent: Optional[QWidget], locator: "ServiceLocator") -> None:
+        self._list: Optional[QListWidget] = None
+        self._similarity_service: Optional["SimilarityService"] = None
+        self._thumbnail_service: Optional["ThumbnailService"] = None
+        self._selection_manager: Optional[object] = None
+        self._current_file_id: Optional[str] = None
+        self._threshold_slider: Optional[QSlider] = None
+        self._limit_spinbox: Optional[QSpinBox] = None
         super().__init__(locator, parent)
         
         # Get services

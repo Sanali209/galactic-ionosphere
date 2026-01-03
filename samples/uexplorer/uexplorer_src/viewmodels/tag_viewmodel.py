@@ -4,7 +4,7 @@ Tag ViewModel for MVVM pattern.
 Provides synchronized tag data between TagTreeWidget and TagSelector.
 """
 import asyncio
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional, Dict, Any
 from PySide6.QtCore import QObject, Signal
 from bson import ObjectId
 from loguru import logger
@@ -12,6 +12,9 @@ from loguru import logger
 from src.ui.mvvm.viewmodel import BaseViewModel
 from src.ucorefs.tags.manager import TagManager
 from src.ucorefs.tags.models import Tag
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
 
 
 class TagViewModel(BaseViewModel):
@@ -30,9 +33,9 @@ class TagViewModel(BaseViewModel):
     tag_deleted = Signal(str)  # Emits deleted tag ID
     tag_updated = Signal(object)  # Emits updated Tag
     
-    def __init__(self, locator):
+    def __init__(self, locator: "ServiceLocator") -> None:
         super().__init__(locator)
-        self.tag_manager = locator.get_system(TagManager)
+        self.tag_manager: TagManager = locator.get_system(TagManager)
         
         self._all_tags: List[Tag] = []
         self._root_tags: List[Tag] = []

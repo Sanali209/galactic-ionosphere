@@ -3,9 +3,14 @@ UExplorer MainViewModel
 
 ViewModel for the main window, providing data and commands for the UI.
 """
+from typing import TYPE_CHECKING
+
 from PySide6.QtCore import Signal
 
 from src.ui.mvvm.bindable import BindableBase, BindableProperty
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
 
 
 class MainViewModel(BindableBase):
@@ -28,7 +33,7 @@ class MainViewModel(BindableBase):
     is_loading = BindableProperty(default=False)
     file_count = BindableProperty(default=0)
     
-    def __init__(self, locator):
+    def __init__(self, locator: "ServiceLocator") -> None:
         super().__init__(locator)
         # Reason: locator is stored by BindableBase.__init__, no need to override
     

@@ -8,7 +8,7 @@ Fetches data from:
 - DetectionService (Detection counts)
 - TaskSystem (Recent tasks)
 """
-from typing import Dict, Any, List, Optional
+from typing import TYPE_CHECKING, Dict, Any, List, Optional
 from PySide6.QtCore import Signal, QTimer
 from loguru import logger
 import asyncio
@@ -16,6 +16,9 @@ import time
 
 from src.ui.mvvm.document_viewmodel import DocumentViewModel
 from src.ui.cardview.models.card_item import CardItem
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
 
 class DashboardViewModel(DocumentViewModel):
     """
@@ -27,7 +30,7 @@ class DashboardViewModel(DocumentViewModel):
     stats_updated = Signal()  # Data refreshed
     items_changed = Signal(list)  # For CardView (List[CardItem])
     
-    def __init__(self, doc_id: str, locator=None):
+    def __init__(self, doc_id: str, locator: Optional["ServiceLocator"] = None) -> None:
         super().__init__(doc_id, locator)
         self._title = "Dashboard"
         

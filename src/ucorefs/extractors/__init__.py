@@ -26,7 +26,8 @@ ExtractorRegistry.register(WDTaggerExtractor)
 
 # Auto-register Phase 3 extractors (one-at-a-time)
 ExtractorRegistry.register(BLIPExtractor)
-ExtractorRegistry.register(GroundingDINOExtractor)
+# GroundingDINO disabled - not needed for current workflow
+# ExtractorRegistry.register(GroundingDINOExtractor)
 
 
 __all__ = [

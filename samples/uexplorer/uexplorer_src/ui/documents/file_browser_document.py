@@ -4,7 +4,7 @@ FileBrowserDocument - CardView-based file browser document.
 Uses Foundation's CardView + BrowseViewModel for MVVM file browsing.
 Replaces the old 3-view FilePaneWidget with a single CardView.
 """
-from typing import Optional, List, Set
+from typing import TYPE_CHECKING, Optional, List, Set
 from collections import OrderedDict
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
@@ -20,6 +20,10 @@ from bson import ObjectId
 from src.ui.cardview.card_view import CardView
 from src.ui.cardview.card_viewmodel import CardViewModel
 from src.ui.cardview.models.card_item import CardItem
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+    from uexplorer_src.viewmodels.browse_view_model import BrowseViewModel
 
 
 class FileBrowserDocument(QWidget):
@@ -41,7 +45,13 @@ class FileBrowserDocument(QWidget):
     selection_changed = Signal(list)  # list of file IDs
     content_changed = Signal()
     
-    def __init__(self, locator, viewmodel=None, title: str = "Files", parent=None):
+    def __init__(
+        self, 
+        locator: "ServiceLocator", 
+        viewmodel: Optional["BrowseViewModel"] = None, 
+        title: str = "Files", 
+        parent: Optional[QWidget] = None
+    ) -> None:
         """
         Initialize file browser document.
         
@@ -52,9 +62,9 @@ class FileBrowserDocument(QWidget):
             parent: Parent widget
         """
         super().__init__(parent)
-        self.locator = locator
-        self._title = title
-        self.id = str(uuid.uuid4())
+        self.locator: "ServiceLocator" = locator
+        self._title: str = title
+        self.id: str = str(uuid.uuid4())
         self._current_directory_id: Optional[str] = None  # Track current directory for session restore
         
         # ViewModel - create or use provided

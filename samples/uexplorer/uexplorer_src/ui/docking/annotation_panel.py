@@ -4,7 +4,7 @@ Dockable Annotation Panel for UExplorer.
 Provides annotation workflow UI for ML training data curation.
 Supports binary, multiclass, and multilabel annotation jobs.
 """
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, List, Any
 from PySide6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox,
     QProgressBar, QListWidget, QListWidgetItem, QStackedWidget,
@@ -17,6 +17,11 @@ from pathlib import Path
 from loguru import logger
 
 from uexplorer_src.ui.docking.panel_base import PanelBase
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+    from src.ucorefs.annotation.service import AnnotationService
+    from src.ucorefs.thumbnails.service import ThumbnailService
 
 
 class AnnotationPanel(PanelBase):
@@ -34,12 +39,12 @@ class AnnotationPanel(PanelBase):
     # Emitted when file is annotated
     file_annotated = Signal(str, str)  # file_id, value
     
-    def __init__(self, parent, locator):
-        self._annotation_service = None
-        self._thumbnail_service = None
-        self._current_job = None
-        self._current_record = None
-        self._current_file = None
+    def __init__(self, parent: Optional[QWidget], locator: "ServiceLocator") -> None:
+        self._annotation_service: Optional["AnnotationService"] = None
+        self._thumbnail_service: Optional["ThumbnailService"] = None
+        self._current_job: Optional[Any] = None
+        self._current_record: Optional[Any] = None
+        self._current_file: Optional[Any] = None
         super().__init__(locator, parent)
         
         # Get services

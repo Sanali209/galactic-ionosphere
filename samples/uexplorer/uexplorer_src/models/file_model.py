@@ -5,7 +5,7 @@ QAbstractItemModel implementation for browsing filesystem through FSService.
 """
 import asyncio
 from pathlib import Path
-from typing import Any, Optional, List
+from typing import TYPE_CHECKING, Any, Optional, List, Dict, Set
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, Qt, Signal, QObject, QTimer
 from PySide6.QtGui import QIcon, QPixmap
 from bson import ObjectId
@@ -15,8 +15,12 @@ from loguru import logger
 from src.ucorefs import FSService
 from src.ucorefs.thumbnails.service import ThumbnailService
 
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+
 class FileModel(QAbstractItemModel):
     """
+    TODO: need resarch is used or not
     Qt model for filesystem browsing.
     
     Features:
@@ -32,7 +36,7 @@ class FileModel(QAbstractItemModel):
     IsDirectoryRole = Qt.UserRole + 3
     SizeRole = Qt.UserRole + 4
     
-    def __init__(self, locator):
+    def __init__(self, locator: "ServiceLocator") -> None:
         """
         Initialize file model.
         
@@ -41,16 +45,16 @@ class FileModel(QAbstractItemModel):
         """
         super().__init__()
         
-        self.locator = locator
-        self.fs_service = locator.get_system(FSService)
-        self.thumbnail_service = locator.get_system(ThumbnailService)
+        self.locator: "ServiceLocator" = locator
+        self.fs_service: FSService = locator.get_system(FSService)
+        self.thumbnail_service: ThumbnailService = locator.get_system(ThumbnailService)
         
         # Cache of loaded records
-        self._roots = []  # List of root records
-        self._cache = {}  # record_id -> record
-        self._children = {}  # parent_id -> list of children
-        self._thumbnail_cache = {} # record_id -> QIcon
-        self._loading_thumbnails = set() # record_id
+        self._roots: List[Any] = []  # List of root records
+        self._cache: Dict[str, Any] = {}  # record_id -> record
+        self._children: Dict[str, List[Any]] = {}  # parent_id -> list of children
+        self._thumbnail_cache: Dict[str, QIcon] = {} # record_id -> QIcon
+        self._loading_thumbnails: Set[str] = set() # record_id
         
         # Drag state - pause thumbnail loading during drag to prevent UI freezes
         self._drag_in_progress = False

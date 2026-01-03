@@ -5,16 +5,20 @@ Works with DockingService (QWidget-based).
 Demonstrates UCoreFS AlbumManager integration.
 Supports include/exclude filtering.
 """
+from typing import TYPE_CHECKING, List, Set, Optional
 from PySide6.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QInputDialog, QMessageBox
+    QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QInputDialog, QMessageBox, QWidget
 )
 from PySide6.QtCore import Signal
-from typing import List
 import asyncio
 from loguru import logger
 
 from uexplorer_src.ui.docking.panel_base import PanelBase
 from uexplorer_src.ui.widgets.album_tree import AlbumTreeWidget
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+    from src.ucorefs.albums.manager import AlbumManager
 
 
 class AlbumPanel(PanelBase):
@@ -37,11 +41,11 @@ class AlbumPanel(PanelBase):
     # Filter changed signal for unified search
     filter_changed = Signal(list, list)  # (include_album_ids, exclude_album_ids)
     
-    def __init__(self, parent, locator):
-        self._tree = None
-        self._album_manager = None
-        self._include_albums: set = set()
-        self._exclude_albums: set = set()
+    def __init__(self, parent: Optional[QWidget], locator: "ServiceLocator") -> None:
+        self._tree: Optional[AlbumTreeWidget] = None
+        self._album_manager: Optional["AlbumManager"] = None
+        self._include_albums: Set[str] = set()
+        self._exclude_albums: Set[str] = set()
         super().__init__(locator, parent)
         
         # Get AlbumManager from locator

@@ -8,6 +8,19 @@ Refactored to use Foundation's run_app() helper and SystemBundles for cleaner st
 import sys
 from pathlib import Path
 
+# CRITICAL: Load .env FIRST before any other imports
+# This ensures HF_TOKEN is available when extractors are imported
+_env_path = Path(__file__).parent / ".env"
+if _env_path.exists():
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(_env_path)
+        import os
+        if os.environ.get("HF_TOKEN"):
+            print(f"✓ HF_TOKEN loaded from {_env_path}")
+    except ImportError:
+        pass
+
 # Add foundation to path (allows running main.py directly for debugging)
 foundation_path = Path(__file__).parent.parent.parent
 if str(foundation_path) not in sys.path:
