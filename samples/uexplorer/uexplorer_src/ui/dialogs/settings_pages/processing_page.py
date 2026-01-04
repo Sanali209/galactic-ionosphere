@@ -3,6 +3,7 @@ Processing Settings Page
 
 Batch sizes and worker configuration.
 """
+from typing import Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGroupBox, QFormLayout, QSpinBox
 )
@@ -11,7 +12,8 @@ from PySide6.QtWidgets import (
 class ProcessingSettingsPage(QWidget):
     """Processing pipeline settings."""
     
-    def __init__(self, parent=None):
+    
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         

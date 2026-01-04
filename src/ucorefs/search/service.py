@@ -4,7 +4,8 @@ UCoreFS - Search Service
 Unified search combining MongoDB text/filter queries with FAISS vector similarity.
 Single entry point for all file search operations.
 """
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple, Set
+import re
 from dataclasses import dataclass, field
 from bson import ObjectId
 from loguru import logger
@@ -50,6 +51,10 @@ class SearchQuery:
     # Sorting
     sort_by: str = "score"  # score, name, modified_at, rating
     sort_desc: bool = True
+    
+    # Detection filters (parsed from query)
+    # List of {"class_name": str, "group_name": str, "min_count": int, "negate": bool}
+    detection_filters: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class SearchService(BaseSystem):
@@ -108,8 +113,35 @@ class SearchService(BaseSystem):
         
         results_map: Dict[str, SearchResult] = {}
         
+        # Step 0: Parse detection syntax from text
+        if query.text:
+            query.text, parsed_filters = self._parse_query_text(query.text)
+            if parsed_filters:
+                query.detection_filters.extend(parsed_filters)
+                logger.info(f"[SearchService] Parsed detection filters: {parsed_filters}")
+        
         # Step 1: MongoDB filter search
         mongo_filter = self._build_mongo_filter(query)
+        
+        # Apply detection filters
+        if query.detection_filters:
+            detection_ids, excluded_ids = await self._resolve_detection_filters(query.detection_filters)
+            
+            # Combine logic
+            if detection_ids:
+                mongo_filter["_id"] = {"$in": list(detection_ids)}
+            
+            if excluded_ids:
+                # If we already have $in, we subtract excluded
+                if "_id" in mongo_filter and "$in" in mongo_filter["_id"]:
+                    current_in = set(mongo_filter["_id"]["$in"])
+                    current_in -= excluded_ids
+                    mongo_filter["_id"]["$in"] = list(current_in)
+                else:
+                    # Just exclude
+                    if "_id" not in mongo_filter:
+                         mongo_filter["_id"] = {}
+                    mongo_filter["_id"]["$nin"] = list(excluded_ids)
         
         if query.text:
             # Text search on name, description, tags
@@ -364,3 +396,301 @@ class SearchService(BaseSystem):
                     mongo_filter[key] = value
         
         return mongo_filter
+    
+    async def get_detection_counts(self, query: SearchQuery = None) -> List[Dict[str, Any]]:
+        """
+        Get aggregated detection counts for display in the tree.
+        
+        Args:
+            query: Current active search query (to filter counts). 
+                   If None, returns global counts.
+                   
+        Returns:
+            List of dicts: [{'class_name': 'Person', 'group_name': 'any', 'count': 10}, ...]
+        """
+        try:
+            from src.ucorefs.detection.models import DetectionInstance, DetectionClass
+            
+            # Base match pipeline
+            pipeline = []
+            
+            # Scope to current search query
+            if query:
+                # 1. Build file scoping filter
+                file_filter = self._build_mongo_filter(query)
+                
+                # Handling Text Search separately (since it's not in mongo_filter usually? 
+                # Wait, _build_mongo_filter handles 'filters', but search handles 'text' logic separately in `search` method)
+                
+                # We need to replicate logic from search() to gather candidate file IDs
+                # This is slightly redundant but necessary for accurate counts
+                
+                # Check if we need scoping (if filter non-empty or text present)
+                has_filter = bool(file_filter)
+                has_text = bool(query.text)
+                
+                if has_filter or has_text:
+                    # Resolve text search filter parts if needed
+                    # Note: search() does this inside it. We might duplicating logic.
+                    # Simplified approach: Just use file_filter as base, ignore text relevance scoring, just regex match.
+                    
+                    if has_text:
+                         file_filter["$or"] = [
+                            {"name": {"$regex": query.text, "$options": "i"}},
+                            {"description": {"$regex": query.text, "$options": "i"}},
+                            {"ai_description": {"$regex": query.text, "$options": "i"}},
+                        ]
+                    
+                    # Fetch matching file IDs
+                    # Cap search to avoid massive fetch
+                    from src.ucorefs.models.file_record import FileRecord
+                    
+                    # Use the find API
+                    matching_files = await FileRecord.find(file_filter, projection={"_id": 1}, limit=10000)
+                    matching_ids = [f.id for f in matching_files]
+                    
+                    if not matching_ids:
+                        return []
+                        
+                    # Add to pipeline
+                    pipeline.append({
+                        "$match": {"file_id": {"$in": matching_ids}}
+                    })
+            
+            # Group by class_id
+            pipeline.append({
+                "$group": {
+                    "_id": "$detection_class_id", 
+                    "count": {"$sum": 1}
+                }
+            })
+            
+            # Execute aggregation
+            # Execute aggregation
+            cursor = DetectionInstance.get_collection().aggregate(pipeline)
+            
+            counts = []
+            class_ids = []
+            id_to_count = {}
+            
+            async for doc in cursor:
+                c_id = doc["_id"]
+                if c_id:
+                    class_ids.append(c_id)
+                    id_to_count[c_id] = doc["count"]
+            
+            if not class_ids:
+                return []
+            
+            # Resolve class names
+            classes = await DetectionClass.find({"_id": {"$in": class_ids}})
+            for cls in classes:
+                count = id_to_count.get(cls.id, 0)
+                counts.append({
+                    "class_name": cls.class_name,
+                    "group_name": "any",  # TODO: Sub-grouping (DetectionObject?)
+                    "count": count,
+                    "class_id": str(cls.id)
+                })
+            
+            return counts
+            
+        except Exception as e:
+            logger.error(f"[SearchService] Failed to get detection counts: {e}")
+            return []
+    
+    def _parse_query_text(self, text: str) -> Tuple[str, List[Dict[str, Any]]]:
+        """
+        Parse detection syntax from text query.
+        Syntax: [-!]class[:group][:count]
+        Examples: 
+          "Person:2" -> Class=Person, Count=2
+          "Person:face" -> Class=Person, Group=face
+          "Person:face:2" -> Class=Person, Group=face, Count=2
+          "!Car" -> Class=Car, Negate=True
+        """
+        if not text:
+            return "", []
+        
+        filters = []
+        
+        # Regex to find potential tokens
+        # Matches: Optional -/!, Word, Optional :suffix, Optional :suffix
+        # We capture the entire token and parse manually
+        pattern = r'(?:^|\s)([-!]?[\w]+(?:[:][\w]+){0,2})(?=\s|$)'
+        
+        matches = list(re.finditer(pattern, text))
+        
+        last_end = 0
+        clean_parts = []
+        
+        for match in matches:
+            token = match.group(1)
+            
+            # Skip if it's just a regular word (no negation, no colons)
+            if ':' not in token and not token.startswith(('!', '-')):
+                # It's just a word like "vacation" or "Person"
+                # Keep it as text
+                continue
+            
+            # Parse token
+            negate = False
+            if token.startswith(('!', '-')):
+                negate = True
+                token = token[1:]
+            
+            parts = token.split(':')
+            class_name = parts[0]
+            group_name = "any"
+            min_count = 1
+            
+            if len(parts) == 2:
+                # Class:Suffix
+                # Check if suffix is integer
+                if parts[1].isdigit():
+                    min_count = int(parts[1])
+                else:
+                    group_name = parts[1]
+            elif len(parts) == 3:
+                # Class:Group:Count
+                # Middle is group, last is count (if digit)
+                if parts[2].isdigit():
+                    min_count = int(parts[2])
+                    group_name = parts[1]
+                else:
+                    # Class:Group:SubGroup? Not supported yet, treat as Class:Group
+                    group_name = parts[1]
+            
+            filters.append({
+                "class_name": class_name,
+                "group_name": group_name,
+                "min_count": min_count,
+                "negate": negate
+            })
+            
+            # Add text before this match
+            clean_parts.append(text[last_end:match.start()])
+            last_end = match.end()
+        
+        # Add remaining text
+        clean_parts.append(text[last_end:])
+        
+        cleaned_text = "".join(clean_parts).strip()
+        # Collapse multiple spaces
+        cleaned_text = re.sub(r'\s+', ' ', cleaned_text)
+        
+        return cleaned_text, filters
+
+    async def _resolve_detection_filters(self, filters: List[Dict[str, Any]]) -> Tuple[Set[ObjectId], Set[ObjectId]]:
+        """
+        Resolve detection filters to Sets of File IDs.
+        Returns: (included_ids, excluded_ids)
+        """
+        included_ids: Set[ObjectId] = set()
+        excluded_ids: Set[ObjectId] = set()
+        
+        try:
+            from src.ucorefs.detection.models import DetectionInstance
+            
+            # Optimization: If no filters, return empty
+            if not filters:
+                return set(), set()
+                
+            first_include = True
+            
+            for f in filters:
+                class_name = f['class_name']
+                group_name = f['group_name']
+                min_count = f['min_count']
+                negate = f['negate']
+                
+                # Build MongoDB query for DetectionInstance
+                # We need to find file_ids where count(class matching) >= min_count
+                
+                # Resolving Class Name to ID? 
+                # Currently detections might store class_name string if loose, or we assume lookup.
+                # For Phase 4.1 merger we used 'label'.
+                # DetectionInstance has 'detection_class_id'.
+                # We need to lookup class ID from name first?
+                # Or does DetectionInstance also store 'class_name' cached? 
+                # Reading models.py: DetectionInstance has class_id and object_id. NOT class_name string (except my mock plan).
+                # WAIT! DetectionInstance in Phase 4.1 Plan mentioned "class_name" in find logic? 
+                # Let's check models.py again.
+                # DetectionClass has class_name.
+                
+                # We need to find DetectionClass by name first.
+                # This makes it async complex.
+                
+                # For this implementation step, let's assume we can query by 'class_name' field 
+                # if we denormalized it, OR we do the lookup.
+                # Given 'DetectionInstance' definition I checked earlier (Step 641), 
+                # it only has 'detection_class_id'. It does NOT have 'class_name'.
+                # So we MUST lookup class_id.
+                
+                # However, for simplicity and performance, maybe we filter by text match on FileRecord.detections?
+                # NO, the plan is to use DetectionInstance.
+                
+                # Logic:
+                # 1. Find Class ID(s) matching current class_name.
+                # 2. Query DetectionInstance for these class_ids.
+                
+                # Mocking this logical flow for now as "todo" logic 
+                # since we don't have the Class Lookup Service ready/injected here.
+                # Wait, I can import DetectionClass model.
+                
+                from src.ucorefs.detection.models import DetectionClass
+                
+                # Find class(es)
+                # Regex for case insensitive
+                class_docs = await DetectionClass.find({"class_name": {"$regex": f"^{class_name}$", "$options": "i"}})
+                if not class_docs:
+                    logger.debug(f"Class '{class_name}' not found")
+                    # If negating non-existent class -> exclude nothing.
+                    # If including -> return empty set (intersection will empty result).
+                    if not negate:
+                        if first_include:
+                            return set(), set() # Empty result immediately
+                        else:
+                            included_ids = set() # Intersect with empty -> empty
+                    continue
+                
+                class_ids = [c.id for c in class_docs]
+                
+                # Query Instances
+                # We need aggregation to count?
+                # Or just simple query: find instances with class_in [...]
+                # Then python count?
+                
+                # Aggregation is better:
+                # pipeline = [
+                #   {$match: {detection_class_id: {$in: class_ids}}},
+                #   {$group: {_id: "$file_id", count: {$sum: 1}}},
+                #   {$match: {count: {$gte: min_count}}}
+                # ]
+                
+                pipeline = [
+                    {"$match": {"detection_class_id": {"$in": class_ids}}},
+                    {"$group": {"_id": "$file_id", "count": {"$sum": 1}}},
+                    {"$match": {"count": {"$gte": min_count}}}
+                ]
+                
+                # Execute aggregation
+                cursor = DetectionInstance.objects().aggregate(pipeline)
+                found_ids = set()
+                async for doc in cursor:
+                    found_ids.add(doc['_id'])
+                
+                if negate:
+                    excluded_ids.update(found_ids)
+                else:
+                    if first_include:
+                        included_ids = found_ids
+                        first_include = False
+                    else:
+                        included_ids.intersection_update(found_ids)
+            
+            return included_ids, excluded_ids
+
+        except Exception as e:
+            logger.error(f"Failed to resolve detection filters: {e}")
+            return set(), set()

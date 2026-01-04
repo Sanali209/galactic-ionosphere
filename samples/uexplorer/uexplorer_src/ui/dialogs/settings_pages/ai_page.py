@@ -3,6 +3,7 @@ AI Settings Page
 
 Embedding models, object detection, and hardware settings.
 """
+from typing import Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGroupBox, QFormLayout,
     QCheckBox, QSpinBox, QComboBox, QSlider
@@ -13,7 +14,8 @@ from PySide6.QtCore import Qt
 class AISettingsPage(QWidget):
     """AI/Embedding and Detection settings."""
     
-    def __init__(self, parent=None):
+    
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         

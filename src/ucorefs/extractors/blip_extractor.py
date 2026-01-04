@@ -70,7 +70,7 @@ class BLIPExtractor(Extractor):
     
     async def extract(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
         """
-        Generate captions for images.
+        Generate captions for images in a thread-safe manner.
         
         Args:
             files: List of image files (usually 1 for Phase 3)
@@ -81,8 +81,27 @@ class BLIPExtractor(Extractor):
         if not await self._ensure_model():
             return {}
         
-        results = {}
+        import asyncio
+        loop = asyncio.get_running_loop()
         
+        # Get dedicated AI executor if available
+        executor = None
+        if self.locator:
+            try:
+                from src.ucorefs.processing.pipeline import ProcessingPipeline
+                pipeline = self.locator.get_system(ProcessingPipeline)
+                executor = pipeline.get_ai_executor()
+            except (KeyError, AttributeError, ImportError):
+                pass
+        
+        # Offload blocking inference to thread pool
+        return await loop.run_in_executor(executor, self._inference_batch, files)
+        
+    def _inference_batch(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
+        """
+        Blocking inference function to run in worker thread.
+        """
+        results = {}
         try:
             import torch
             from PIL import Image
@@ -96,6 +115,7 @@ class BLIPExtractor(Extractor):
                     image = Image.open(file.path).convert("RGB")
                     
                     # Generate caption
+                    # Move inputs to device (this is fast enough/handled by torch)
                     inputs = self._processor(image, return_tensors="pt").to(self._device)
                     
                     with torch.no_grad():
@@ -111,8 +131,8 @@ class BLIPExtractor(Extractor):
                     logger.error(f"BLIP caption failed for {file._id}: {e}")
         
         except Exception as e:
-            logger.error(f"BLIP extraction failed: {e}")
-        
+            logger.error(f"BLIP extraction inference failed: {e}")
+            
         return results
     
     async def store(self, file_id: ObjectId, result: Any) -> bool:

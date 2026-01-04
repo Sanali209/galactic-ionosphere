@@ -3,6 +3,7 @@ Metadata Settings Page
 
 Metadata extraction and mapping settings.
 """
+from typing import Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGroupBox, QCheckBox, QLabel
 )
@@ -11,7 +12,8 @@ from PySide6.QtWidgets import (
 class MetadataSettingsPage(QWidget):
     """Metadata extraction and mapping settings."""
     
-    def __init__(self, parent=None):
+    
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         

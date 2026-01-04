@@ -209,3 +209,51 @@ class DetectionService(BaseSystem):
         )
         await detection_class.save()
         return detection_class
+        
+    async def update_file_detections(self, file_id: ObjectId, detections: List[Dict[str, Any]]) -> bool:
+        """
+        Update/Replace all detections for a file.
+        
+        Args:
+            file_id: File ID to update
+            detections: List of detection dicts (label, bbox, confidence)
+            
+        Returns:
+            True if successful
+        """
+        try:
+            # 1. Delete existing detections
+            # Note: This removes all history!
+            await DetectionInstance.delete_many({"file_id": file_id})
+            
+            # 2. Create new ones
+            for i, det in enumerate(detections):
+                label = det.get("label", "Unknown")
+                bbox = det.get("bbox", {})
+                confidence = det.get("confidence", 1.0) # User added = 100% confidence?
+                
+                instance = DetectionInstance(
+                    name=f"{label}_{i}",
+                    file_id=file_id,
+                    bbox=bbox,
+                    confidence=confidence
+                )
+                
+                # Resolve class
+                detection_class = await self._get_or_create_class(label)
+                if detection_class:
+                    instance.detection_class_id = detection_class._id
+                
+                await instance.save()
+            
+            # 3. Update FileRecord.detections cache if it exists?
+            # Current implementation of search uses Aggregation on DetectionInstance, 
+            # so updating FileRecord might not be strictly necessary unless we double-write.
+            # But let's check if FileRecord acts as cache.
+            # FileRecord usually stores a summary or just has 'detections' field if using simplistic extraction.
+            # But here we are using full DetectionInstance model.
+            
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update detections for {file_id}: {e}")
+            return False

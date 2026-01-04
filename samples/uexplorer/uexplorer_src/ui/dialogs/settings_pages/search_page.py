@@ -3,6 +3,7 @@ Search Settings Page
 
 Search defaults and FAISS vector search settings.
 """
+from typing import Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGroupBox, QFormLayout,
     QPushButton, QSpinBox, QComboBox, QSlider
@@ -13,7 +14,8 @@ from PySide6.QtCore import Qt
 class SearchSettingsPage(QWidget):
     """Search/FAISS settings."""
     
-    def __init__(self, parent=None):
+    
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         

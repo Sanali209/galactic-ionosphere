@@ -14,6 +14,7 @@ from src.ucorefs.extractors.metadata import MetadataExtractor
 from src.ucorefs.extractors.clip_extractor import CLIPExtractor
 from src.ucorefs.extractors.blip_extractor import BLIPExtractor
 from src.ucorefs.extractors.grounding_dino_extractor import GroundingDINOExtractor
+from src.ucorefs.extractors.yolo_extractor import YOLOExtractor
 from src.ucorefs.extractors.dino_extractor import DINOExtractor
 from src.ucorefs.extractors.wd_tagger import WDTaggerExtractor
 
@@ -26,8 +27,8 @@ ExtractorRegistry.register(WDTaggerExtractor)
 
 # Auto-register Phase 3 extractors (one-at-a-time)
 ExtractorRegistry.register(BLIPExtractor)
-# GroundingDINO disabled - not needed for current workflow
-# ExtractorRegistry.register(GroundingDINOExtractor)
+ExtractorRegistry.register(GroundingDINOExtractor)
+ExtractorRegistry.register(YOLOExtractor)
 
 
 __all__ = [
@@ -41,6 +42,7 @@ __all__ = [
     "DINOExtractor",
     "BLIPExtractor",
     "GroundingDINOExtractor",
+    "YOLOExtractor",
     "WDTaggerExtractor",
 ]
 

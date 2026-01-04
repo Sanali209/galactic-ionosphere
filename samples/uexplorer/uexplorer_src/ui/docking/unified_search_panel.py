@@ -173,7 +173,69 @@ class UnifiedSearchPanel(QWidget):
         
         layout.addWidget(filter_group)
         
+        # === Detection Tree ===
+        from uexplorer_src.ui.widgets.detection_tree import DetectionTreeWidget
+        
+        detect_group = QGroupBox() # Title set via layout
+        detect_layout = QVBoxLayout(detect_group)
+        
+        # Header with Refresh Button
+        header_layout = QHBoxLayout()
+        header_lbl = QLabel("Detections")
+        header_lbl.setStyleSheet("font-weight: bold;")
+        header_layout.addWidget(header_lbl)
+        header_layout.addStretch()
+        
+        self.btn_refresh_detect = QToolButton()
+        self.btn_refresh_detect.setText("🔄")
+        self.btn_refresh_detect.setToolTip("Refresh Detections")
+        self.btn_refresh_detect.clicked.connect(lambda: self._refresh_detection_counts())
+        header_layout.addWidget(self.btn_refresh_detect)
+        
+        detect_layout.addLayout(header_layout)
+        
+        self.detection_tree = DetectionTreeWidget()
+        self.detection_tree.setMinimumHeight(150)
+        self.detection_tree.filter_changed.connect(self._on_detection_tree_changed)
+        
+        # Load data from service
+        self._refresh_detection_counts()
+        
+        detect_layout.addWidget(self.detection_tree)
+        layout.addWidget(detect_group)
+        
         layout.addStretch()
+        
+    
+    def _refresh_detection_counts(self, query=None):
+        """Fetch detection counts from SearchService."""
+        if not self._locator:
+            return
+            
+        try:
+            from src.ucorefs.search.service import SearchService
+            search_service = self._locator.get_system(SearchService)
+            
+            # Use current query from builder if not provided
+            if query is None and self._query_builder:
+                query = self._query_builder.get_current_query()
+            
+            import asyncio
+            
+            async def fetch():
+                try:
+                    # Pass the raw SearchQuery object
+                    # Note: We need to be careful if SearchQuery isn't importable here directly or picklable?
+                    # It's a dataclass, should be fine.
+                    counts = await search_service.get_detection_counts(query)
+                    self.detection_tree.load_data(counts)
+                except Exception as e:
+                     logger.error(f"Failed to load detection counts: {e}")
+
+            asyncio.create_task(fetch())
+            
+        except Exception as e:
+             logger.warning(f"Could not fetch detection counts: {e}")
     
     def _apply_style(self):
         self.setStyleSheet("""
@@ -212,6 +274,16 @@ class UnifiedSearchPanel(QWidget):
                 width: 14px;
                 margin: -4px 0;
                 border-radius: 7px;
+            }
+            QTreeWidget {
+                background-color: #2b2b2b;
+                color: #ddd;
+                border: 1px solid #3d3d3d;
+            }
+            QHeaderView::section {
+                background-color: #3d3d3d;
+                color: white;
+                padding: 2px;
             }
         """)
     
@@ -371,6 +443,39 @@ class UnifiedSearchPanel(QWidget):
             for album_id in query.album_exclude:
                 album_name = self._get_album_name(album_id)
                 self.active_filters.add_badge(album_id, album_name, "album", include=False)
+        
+        # === DETECTIONS ===
+        if hasattr(query, 'detection_filters') and query.detection_filters:
+            # Update Tree
+            if hasattr(self, 'detection_tree'):
+                self.detection_tree.set_active_filters(query.detection_filters)
+            
+            # Update Badges
+            for det in query.detection_filters:
+                class_name = det.get('class_name', '?')
+                group_name = det.get('group_name', 'any')
+                min_count = det.get('min_count', 1)
+                negate = det.get('negate', False)
+                
+                # Format: Class[:Group] (>=N)
+                text = f"{'!' if negate else ''}{class_name}"
+                suffixes = []
+                if group_name and group_name != 'any':
+                    suffixes.append(group_name)
+                # if min_count > 1: # Always show count? Or only if >1?
+                #     suffixes.append(f"≥{min_count}")
+                if suffixes:
+                    text += ":" + ":".join(suffixes)
+                if min_count > 1:
+                    text += f" (≥{min_count})"
+                    
+                # ID for removal: JSON-like string
+                filter_id = f"{class_name}:{group_name}:{min_count}:{1 if negate else 0}"
+                
+                self.active_filters.add_badge(filter_id, text, "detection", include=not negate)
+        
+        # Refresh detection tree with new scope
+        self._refresh_detection_counts(query)
     
     def _get_directory_name(self, path: str) -> str:
         """Resolve directory path to display name."""
@@ -492,10 +597,58 @@ class UnifiedSearchPanel(QWidget):
                 query.directory_include.remove(filter_id)
             if filter_id in query.directory_exclude:
                 query.directory_exclude.remove(filter_id)
+                
+        elif filter_type == "detection":
+            if hasattr(query, 'detection_filters'):
+                # Parse filter_id to match props or just filter out
+                # filter_id = f"{class_name}:{group_name}:{min_count}:{1 if negate else 0}"
+                parts = filter_id.split(':')
+                if len(parts) >= 4:
+                    c, g, m, n = parts[0], parts[1], int(parts[2]), bool(int(parts[3]))
+                    
+                    # Remove matching filters (might be multiple duplicates? Should remove one)
+                    new_filters = []
+                    removed = False
+                    for f in query.detection_filters:
+                        if not removed and \
+                           f.get('class_name') == c and \
+                           f.get('group_name') == g and \
+                           f.get('min_count') == m and \
+                           f.get('negate') == n:
+                            removed = True
+                            continue
+                        new_filters.append(f)
+                    query.detection_filters = new_filters
         
         # Trigger query update
         self._query_builder._emit_query()
     
+    def _on_detection_tree_changed(self, filters: list):
+        """Handle changes from detection tree."""
+        if not self._query_builder:
+            return
+            
+        current_query = self._query_builder.get_current_query()
+        if hasattr(current_query, 'detection_filters'):
+            # Merge or Replace? 
+            # Tree represents ALL detection filters or just ones from Tree?
+            # Creating complex logic: 
+            # If user typed "!Car", tree doesn't show it (negation supported via tree?).
+            # My tree doesn't support negation.
+            # So replace all *positive* filters with tree state?
+            # Or just update the ones matching classes in tree?
+            
+            # Simple approach: Tree is the source of truth for detections for now?
+            # No, text search "Person:2" also works.
+            # Merging is hard.
+            # Let's say: Tree state overrides current filters.
+            
+            # Preserve negations?
+            negations = [f for f in current_query.detection_filters if f.get('negate')]
+            current_query.detection_filters = filters + negations
+            
+            self._query_builder._emit_query()
+            
     def _on_clear_all(self):
         """Clear all filters."""
         # Clear local
@@ -506,6 +659,10 @@ class UnifiedSearchPanel(QWidget):
         self.cb_docs.setChecked(False)
         self.rating_slider.setValue(0)
         self.cb_unrated.setChecked(False)
+        
+        # Clear tree
+        if hasattr(self, 'detection_tree'):
+            self.detection_tree.set_active_filters([])
         
         # Clear query builder
         if self._query_builder:

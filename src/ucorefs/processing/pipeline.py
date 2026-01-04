@@ -4,7 +4,7 @@ UCoreFS - Processing Pipeline
 Background processing service integrated with TaskSystem.
 Manages Phase 2/3 enrichment queues and worker tasks.
 """
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Dict
 from bson import ObjectId
 from loguru import logger
 import asyncio
@@ -98,6 +98,45 @@ class ProcessingPipeline(BaseSystem):
             self._ai_executor.shutdown(wait=True)
         
         await super().shutdown()
+    
+    def _build_extractor_configs(self) -> Dict[str, dict]:
+        """
+        Build extractor configuration dict from config.
+        
+        Returns:
+            Dict keyed by extractor name with config values
+        """
+        configs = {}
+        
+        try:
+            # Get detection config
+            if hasattr(self.config, 'data') and hasattr(self.config.data, 'processing'):
+                processing = self.config.data.processing
+                
+                if hasattr(processing, 'detection'):
+                    detection = processing.detection
+                    
+                    # YOLO config
+                    if hasattr(detection, 'yolo'):
+                        yolo_config = detection.yolo.model_dump() if hasattr(detection.yolo, 'model_dump') else {}
+                        configs['yolo'] = yolo_config
+                        logger.debug(f"[Pipeline] YOLO config: {yolo_config}")
+                    
+                    # GroundingDINO config
+                    if hasattr(detection, 'grounding_dino'):
+                        gdino_config = detection.grounding_dino.model_dump() if hasattr(detection.grounding_dino, 'model_dump') else {}
+                        configs['grounding_dino'] = gdino_config
+                        logger.debug(f"[Pipeline] GroundingDINO config: {gdino_config}")
+                
+                # WD Tagger config
+                if hasattr(processing, 'wd_tagger'):
+                    wd_config = processing.wd_tagger.model_dump() if hasattr(processing.wd_tagger, 'model_dump') else {}
+                    configs['wd_tagger'] = wd_config
+        
+        except Exception as e:
+            logger.warning(f"Failed to build extractor configs: {e}")
+        
+        return configs
     
     def get_ai_executor(self):
         """
@@ -276,7 +315,9 @@ class ProcessingPipeline(BaseSystem):
             return results
         
         # Get Phase 2 extractors (using injected registry)
-        extractors = self._extractor_registry.get_for_phase(2, locator=self.locator)
+        # Get Phase 2 extractors (using injected registry)
+        extractor_configs = self._build_extractor_configs()
+        extractors = self._extractor_registry.get_for_phase(2, locator=self.locator, config=extractor_configs)
         total_extractors = len(extractors)
         
         logger.info(f"[PHASE2_EXTRACTORS] Found {total_extractors} registered extractors")
@@ -401,7 +442,9 @@ class ProcessingPipeline(BaseSystem):
                 return results
             
             # Get Phase 3 extractors (using injected registry)
-            extractors = self._extractor_registry.get_for_phase(3, locator=self.locator)
+            # Get Phase 3 extractors (using injected registry)
+            extractor_configs = self._build_extractor_configs()
+            extractors = self._extractor_registry.get_for_phase(3, locator=self.locator, config=extractor_configs)
             
             for extractor in extractors:
                 try:

@@ -4,7 +4,8 @@ Active Filters Widget - Display container for filter badges.
 Shows all active filters grouped by category with flow layout.
 Replaces FilterSummaryWidget with badge-based display.
 """
-from typing import Dict, List, Tuple
+
+from typing import Dict, List, Tuple, Optional, Any
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QScrollArea, QLayout, QSizePolicy
@@ -15,16 +16,13 @@ from loguru import logger
 from uexplorer_src.ui.widgets.filter_badge import FilterBadge
 
 
-from PySide6.QtCore import Qt, QRect, QSize, QPoint
-
-
 class QFlowLayout(QLayout):
     """Flow layout that wraps widgets to new lines when they exceed container width."""
     
-    def __init__(self, parent=None, margin=0, spacing=-1):
+    def __init__(self, parent: Optional[QWidget] = None, margin: int = 0, spacing: int = -1) -> None:
         super().__init__(parent)
-        self._items = []
-        self._spacing = spacing
+        self._items: List[Any] = []
+        self._spacing: int = spacing
         
         if parent is not None:
             self.setContentsMargins(margin, margin, margin, margin)
@@ -166,14 +164,15 @@ class ActiveFiltersWidget(QWidget):
     filter_removed = Signal(str, str)  # (filter_type, filter_id)
     clear_all_requested = Signal()
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         
         # Storage for badges by category
         self._badges: Dict[str, List[Tuple[str, FilterBadge]]] = {
             "directory": [],
             "tag": [],
-            "album": []
+            "album": [],
+            "detection": []
         }
         
         self._setup_ui()
@@ -248,10 +247,12 @@ class ActiveFiltersWidget(QWidget):
         self.directory_section = self._create_section("📁 Directories")
         self.tag_section = self._create_section("🏷️ Tags")
         self.album_section = self._create_section("📚 Albums")
+        self.detection_section = self._create_section("👁️ Detections")
         
         self.sections_layout.addWidget(self.directory_section)
         self.sections_layout.addWidget(self.tag_section)
         self.sections_layout.addWidget(self.album_section)
+        self.sections_layout.addWidget(self.detection_section)
         self.sections_layout.addStretch()
         
         scroll.setWidget(scroll_content)
@@ -288,7 +289,7 @@ class ActiveFiltersWidget(QWidget):
         Args:
             filter_id: Unique identifier for this filter (tag_id, path, album_id)
             text: Display text for the badge
-            filter_type: "tag", "directory", "album"
+            filter_type: "tag", "directory", "album", "detection"
             include: True for include (+), False for exclude (-)
         """
         # Create badge
@@ -299,7 +300,8 @@ class ActiveFiltersWidget(QWidget):
         section_map = {
             "directory": self.directory_section,
             "tag": self.tag_section,
-            "album": self.album_section
+            "album": self.album_section,
+            "detection": self.detection_section
         }
         
         section = section_map.get(filter_type)
@@ -336,9 +338,11 @@ class ActiveFiltersWidget(QWidget):
                     section_map = {
                         "directory": self.directory_section,
                         "tag": self.tag_section,
-                        "album": self.album_section
+                        "album": self.album_section,
+                        "detection": self.detection_section
                     }
-                    section_map[filter_type].hide()
+                    if filter_type in section_map:
+                        section_map[filter_type].hide()
                 
                 break
         
@@ -346,7 +350,7 @@ class ActiveFiltersWidget(QWidget):
     
     def clear_all(self):
         """Remove all badges from all sections."""
-        for filter_type in ["directory", "tag", "album"]:
+        for filter_type in ["directory", "tag", "album", "detection"]:
             # Remove all badges
             for filter_id, badge in self._badges[filter_type]:
                 badge.setParent(None)
@@ -358,9 +362,11 @@ class ActiveFiltersWidget(QWidget):
             section_map = {
                 "directory": self.directory_section,
                 "tag": self.tag_section,
-                "album": self.album_section
+                "album": self.album_section,
+                "detection": self.detection_section
             }
-            section_map[filter_type].hide()
+            if filter_type in section_map:
+                section_map[filter_type].hide()
         
         self._update_count()
     
@@ -379,7 +385,8 @@ class ActiveFiltersWidget(QWidget):
         section_map = {
             "directory": self.directory_section,
             "tag": self.tag_section,
-            "album": self.album_section
+            "album": self.album_section,
+            "detection": self.detection_section
         }
         section_map[filter_type].hide()
         

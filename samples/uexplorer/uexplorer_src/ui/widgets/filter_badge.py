@@ -4,6 +4,7 @@ Filter Badge Widget - Removable chip for active filters.
 Displays a single filter with visual indicators and remove button.
 Style inspired by Material Design 3 chips.
 """
+from typing import Optional
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QFont
@@ -21,7 +22,7 @@ class FilterBadge(QWidget):
     
     removed = Signal()
     
-    def __init__(self, text: str, filter_type: str, include: bool = True, parent=None):
+    def __init__(self, text: str, filter_type: str, include: bool = True, parent: Optional[QWidget] = None) -> None:
         """
         Create a filter badge.
         
@@ -90,6 +91,10 @@ class FilterBadge(QWidget):
             "album": {
                 "include": {"bg": "#7a3aa5", "fg": "#ffffff", "indicator": "#d88aff"},
                 "exclude": {"bg": "#a53a7a", "fg": "#ffffff", "indicator": "#ff8ad8"}
+            },
+            "detection": {
+                "include": {"bg": "#20b2aa", "fg": "#ffffff", "indicator": "#e0ffff"},
+                "exclude": {"bg": "#cd5c5c", "fg": "#ffffff", "indicator": "#ffb6c1"}
             }
         }
         

@@ -16,6 +16,7 @@
     },
     "library_path": "./data",
     "processing": {
+        "ai_workers": 2,
         "detection": {
             "enabled": true,
             "backend": "yolo",
@@ -38,6 +39,25 @@
                     0.7
                 ],
                 "use_gpu": true
+            },
+            "grounding_dino": {
+                "enabled": true,
+                "box_threshold": 0.35,
+                "text_threshold": 0.25,
+                "class_mapping": {
+                    "person": "person",
+                    "face": "face",
+                    "human face": "face",
+                    "cat": "cat",
+                    "dog": "dog",
+                    "bird": "bird",
+                    "car": "vehicle",
+                    "truck": "vehicle",
+                    "motorcycle": "vehicle",
+                    "building": "architecture",
+                    "text": "text",
+                    "logo": "logo"
+                }
             }
         },
         "wd_tagger": {

@@ -4,6 +4,7 @@ Relation Panel Widget for UExplorer.
 Shows duplicates, similar files, and other relations.
 """
 import asyncio
+from typing import Optional, Any
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
                                 QPushButton, QLabel, QHBoxLayout)
 from PySide6.QtCore import Qt, Signal
@@ -19,7 +20,7 @@ class RelationPanel(QWidget):
     
     file_selected = Signal(str)  # Emits file_id when clicked
     
-    def __init__(self, locator, parent=None):
+    def __init__(self, locator: Any, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.locator = locator
         self._current_file_id = None
@@ -127,7 +128,7 @@ class RelationTreeWidget(QTreeWidget):
     
     category_selected = Signal(str)  # Emits category name
     
-    def __init__(self, locator, parent=None):
+    def __init__(self, locator: Any, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.locator = locator
         

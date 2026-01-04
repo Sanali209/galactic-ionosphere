@@ -93,6 +93,8 @@ class GroundingDINOExtractor(Extractor):
         
         # Build phrases from class mapping keys
         self._phrases = list(self._class_mapping.keys())
+        
+        logger.info(f"[GroundingDINO] Initialized with {len(self._class_mapping)} class mappings: {list(self._class_mapping.values())}")
 
     
     async def _ensure_model(self) -> bool:
@@ -155,7 +157,7 @@ class GroundingDINOExtractor(Extractor):
     
     async def extract(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
         """
-        Detect objects in images.
+        Detect objects in images in a thread-safe manner.
         
         Args:
             files: List of image files (usually 1 for Phase 3)
@@ -165,9 +167,36 @@ class GroundingDINOExtractor(Extractor):
         """
         if not await self._ensure_model():
             return {}
+            
+        logger.info(f"[GroundingDINO] Starting batch extraction for {len(files)} files")
         
+        # Pre-fetch phrases (async) before offloading heavy compute
+        phrases_map = {}
+        for file in files:
+            if self.can_process(file):
+                phrases_map[file.id] = await self._get_phrases_for_file(file)
+        
+        import asyncio
+        loop = asyncio.get_running_loop()
+        
+        # Get dedicated AI executor if available
+        executor = None
+        if self.locator:
+            try:
+                from src.ucorefs.processing.pipeline import ProcessingPipeline
+                pipeline = self.locator.get_system(ProcessingPipeline)
+                executor = pipeline.get_ai_executor()
+            except (KeyError, AttributeError, ImportError):
+                pass
+        
+        # Offload blocking inference to thread pool
+        return await loop.run_in_executor(executor, self._inference_batch, files, phrases_map)
+
+    def _inference_batch(self, files: List[FileRecord], phrases_map: Dict[ObjectId, List[str]]) -> Dict[ObjectId, Any]:
+        """
+        Blocking inference function to run in worker thread.
+        """
         results = {}
-        
         try:
             import torch
             from PIL import Image
@@ -180,8 +209,8 @@ class GroundingDINOExtractor(Extractor):
                     # Load image
                     image = Image.open(file.path).convert("RGB")
                     
-                    # Get phrases for this file
-                    phrases = await self._get_phrases_for_file(file)
+                    # Get phrases (pre-fetched)
+                    phrases = phrases_map.get(file.id, list(self._phrases))
                     text_prompt = ". ".join(phrases) + "."
                     
                     # Process
@@ -217,7 +246,7 @@ class GroundingDINOExtractor(Extractor):
                             "bbox_format": "xyxy"  # x1, y1, x2, y2
                         })
                     
-                    results[file._id] = {
+                    results[file.id] = {
                         "detections": detections,
                         "model": "grounding-dino-tiny",
                         "phrases_used": phrases,
@@ -225,11 +254,11 @@ class GroundingDINOExtractor(Extractor):
                     }
                     
                 except Exception as e:
-                    logger.error(f"GroundingDINO failed for {file._id}: {e}")
+                    logger.error(f"GroundingDINO failed for {file.id}: {e}")
         
         except Exception as e:
-            logger.error(f"GroundingDINO extraction failed: {e}")
-        
+            logger.error(f"GroundingDINO extraction inference failed: {e}")
+            
         return results
     
     async def store(self, file_id: ObjectId, result: Any) -> bool:

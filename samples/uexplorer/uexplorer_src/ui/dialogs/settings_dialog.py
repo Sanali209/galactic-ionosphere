@@ -6,8 +6,13 @@ Organized by sections: General, Thumbnails, AI, Search, Processing.
 """
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QListWidget, QListWidgetItem, QStackedWidget
+    QListWidget, QListWidgetItem, QStackedWidget, QWidget
 )
+from typing import Optional, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.core.service_locator import ServiceLocator
+    from src.ucorefs.services.maintenance_service import MaintenanceService
 from PySide6.QtCore import Signal
 from loguru import logger
 
@@ -37,7 +42,8 @@ class SettingsDialog(QDialog):
     
     settings_changed = Signal()
     
-    def __init__(self, config_manager=None, locator=None, parent=None):
+    
+    def __init__(self, config_manager: Optional[Any] = None, locator: Optional["ServiceLocator"] = None, parent: Optional[QWidget] = None) -> None:
         """
         Initialize settings dialog.
         
@@ -284,7 +290,7 @@ class SettingsDialog(QDialog):
             }
         """)
     
-    def _on_category_changed(self, row):
+    def _on_category_changed(self, row: int) -> None:
         """Handle category selection."""
         self.stack.setCurrentIndex(row)
     
@@ -371,7 +377,7 @@ class SettingsDialog(QDialog):
         else:
             logger.warning("Cannot run task: ServiceLocator not available")
     
-    async def _execute_maintenance(self, maintenance, task_name: str):
+    async def _execute_maintenance(self, maintenance: "MaintenanceService", task_name: str) -> None:
         """Execute maintenance task asynchronously."""
         try:
             result = None

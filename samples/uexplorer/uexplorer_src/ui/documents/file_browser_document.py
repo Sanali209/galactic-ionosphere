@@ -393,7 +393,7 @@ class FileBrowserDocument(QWidget):
         from src.ui.docking import DockingService
         import uuid
         
-        viewer = ImageViewerDocument(file_path, title)
+        viewer = ImageViewerDocument(file_path, title, locator=self.locator)
         doc_id = f"img_{uuid.uuid4().hex[:8]}"
         
         # Get DockingService and add document to center area

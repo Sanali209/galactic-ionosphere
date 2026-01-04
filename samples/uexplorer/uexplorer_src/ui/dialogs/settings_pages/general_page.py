@@ -3,6 +3,7 @@ General Settings Page
 
 Application appearance and startup configuration.
 """
+from typing import Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGroupBox, QFormLayout,
     QCheckBox, QSpinBox, QComboBox
@@ -12,7 +13,8 @@ from PySide6.QtWidgets import (
 class GeneralSettingsPage(QWidget):
     """General application settings."""
     
-    def __init__(self, parent=None):
+    
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         

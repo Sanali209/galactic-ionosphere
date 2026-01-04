@@ -68,7 +68,7 @@ class YOLOBackend(DetectionBackend):
     
     async def detect(self, image_path: str, settings: Dict[str, Any] = None) -> List[Dict]:
         """
-        Run YOLO detection on image.
+        Run YOLO detection on image in a thread-safe manner.
         
         Args:
             image_path: Path to image
@@ -77,6 +77,17 @@ class YOLOBackend(DetectionBackend):
         Returns:
             List of detection dicts
         """
+        import asyncio
+        loop = asyncio.get_running_loop()
+        
+        # Offload blocking inference to thread pool
+        # We use a lambda or partial to pass arguments to the synchronous method
+        return await loop.run_in_executor(None, self._detect_sync, image_path, settings)
+
+    def _detect_sync(self, image_path: str, settings: Dict[str, Any] = None) -> List[Dict]:
+        """
+        Synchronous detection method to run in worker thread.
+        """
         if self._model is None:
             logger.warning("YOLO model not loaded")
             return []
@@ -84,7 +95,10 @@ class YOLOBackend(DetectionBackend):
         # Merge settings
         conf = settings.get("confidence", self._confidence) if settings else self._confidence
         classes = settings.get("classes", self._classes) if settings else self._classes
-        device = "cuda" if self._use_gpu else "cpu"
+        
+        # Check CUDA availability at runtime, not just config
+        import torch
+        device = "cuda" if (self._use_gpu and torch.cuda.is_available()) else "cpu"
         
         try:
             # Run inference

@@ -3,6 +3,7 @@ Thumbnail Settings Page
 
 Thumbnail generation, cache, and quality settings.
 """
+from typing import Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,
     QPushButton, QSpinBox, QSlider, QLineEdit, QFileDialog
@@ -13,7 +14,8 @@ from PySide6.QtCore import Qt
 class ThumbnailSettingsPage(QWidget):
     """Thumbnail generation settings."""
     
-    def __init__(self, parent=None):
+    
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         
