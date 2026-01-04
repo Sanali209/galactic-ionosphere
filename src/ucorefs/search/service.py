@@ -445,8 +445,9 @@ class SearchService(BaseSystem):
                     # Cap search to avoid massive fetch
                     from src.ucorefs.models.file_record import FileRecord
                     
-                    # Use the find API
-                    matching_files = await FileRecord.find(file_filter, projection={"_id": 1}, limit=10000)
+                    # Use the find API - beanie doesn't support projection kwarg
+                    # Just fetch limited records and extract IDs
+                    matching_files = await FileRecord.find(file_filter).limit(10000).to_list()
                     matching_ids = [f.id for f in matching_files]
                     
                     if not matching_ids:
