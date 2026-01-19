@@ -13,13 +13,9 @@ class ServiceLocator:
     Central registry for application services (Systems).
     Manages initialization and shutdown order.
     """
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(ServiceLocator, cls).__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
+    # Remove Singleton pattern to allow multiple instances (Main vs Engine)
+        # _instance = None 
+        # def __new__(cls): ... REMOVED
 
     def init(self, config_path: str = "config.json"):
         if getattr(self, '_initialized', False):
@@ -27,6 +23,9 @@ class ServiceLocator:
 
         self.config = ConfigManager(config_path)
         self._systems: Dict[Type[BaseSystem], BaseSystem] = {}
+        # Register ConfigManager explicitly
+        self._systems[ConfigManager] = self.config
+        
         self._startup_order: list = []  # Track actual startup order for safe shutdown
         
         # Register EventBus as a core system (initialized in start_all with other systems)
@@ -45,10 +44,12 @@ class ServiceLocator:
         Instantiates and registers a system.
         """
         if system_cls in self._systems:
-             return self._systems[system_cls]
+            logger.warning(f"Register: System {system_cls.__name__} (id={id(system_cls)}) ALREADY registered. Returning existing id={id(self._systems[system_cls])}")
+            return self._systems[system_cls]
         
-        logger.debug(f"Registering system: {system_cls.__name__}")
+        logger.debug(f"Registering system: {system_cls.__name__} (id={id(system_cls)})")
         instance = system_cls(self, self.config)
+        logger.debug(f"Created instance: {system_cls.__name__} (id={id(instance)})")
         self._systems[system_cls] = instance
         return instance
 
@@ -73,6 +74,12 @@ class ServiceLocator:
         if system_cls not in self._systems:
             raise KeyError(f"System {system_cls.__name__} not registered.")
         return self._systems[system_cls]
+
+    def has_system(self, system_cls: Type[BaseSystem]) -> bool:
+        """
+        Check if a system is registered.
+        """
+        return system_cls in self._systems
 
     async def start_all(self):
         """
@@ -151,5 +158,31 @@ class ServiceLocator:
             except Exception as e:
                 logger.error(f"Failed to stop system {system.__class__.__name__}: {e}")
 
-# Global access
-sl = ServiceLocator()
+# Context-aware Global Access
+from contextvars import ContextVar
+import sys
+
+# Create the default Main Thread locator
+_main_sl = ServiceLocator()
+
+# ContextVar holding the current active locator (defaults to Main)
+_current_sl = ContextVar("current_service_locator", default=_main_sl)
+
+class ServiceLocatorProxy:
+    """Proxy that delegates to the context-local ServiceLocator."""
+    def __getattr__(self, name):
+        return getattr(_current_sl.get(), name)
+        
+    def __repr__(self):
+        return repr(_current_sl.get())
+        
+# Export the proxy as 'sl'
+sl = ServiceLocatorProxy()
+
+def set_active_locator(locator: ServiceLocator):
+    """Set the active ServiceLocator for the current context (Thread/Task)."""
+    _current_sl.set(locator)
+    
+def get_active_locator() -> ServiceLocator:
+    """Get the active ServiceLocator."""
+    return _current_sl.get()

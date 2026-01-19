@@ -1,10 +1,10 @@
 {
   "docking": {
-    "layout_bytes": "0000049578daad945d6f82301486eff72b1aee9d05c48f0431c6c5cb2d8bba5d9a52ce5823b4a6adee23fbf16bd11040c45dec0a7acecbdbe79cbc219c7de6193a82544cf0a9e3de630701a722613c9d3a9bf5b237766651f8ace7c991700ac983a03bd35b7d290d397a293f74d046812ccfc66621b8268c9b8a6d47617946cb4c105d5c804d7db5cf98d6a6fc241918892e0c7ad6e0c0f5d4f1af6a7e4a8df7071ff79f7cac662e81a035898bd1d0e22025d8960222e9bbe9bfb224058d1e490e65152d32a120b143f7a3b06f2d6a467ec5489354356d1226816a61a054c3ab2623597cc83b1585792bcd8a7d838a826082fca187c2fee96c9ee795d478bd0a2fcbd32dc5046332f19bdcb1141f261adbf86d14537f1474a1d57c3a10075e805c8c8356c65365e20d6f4d50ddf85e8a3d486d97db60aa743ac8634277a9340949ba5412b2224f152bf7623877e0076830c6b7f0abc9239c8b53549bf8954eeb9dd7a2cc7296117991e573b903df2e1ea376fa7ef91330ef577e2ad1dd2fcf977eb2",
+    "layout_bytes": "0000044678daad54c96ec23014bcf72bacdc6936c222852044c5b15505b4c7ca895f530bc746b6a18bfaf1b543958610422bf594bc379399b7388ea76f05437b908a0a3e71fc6bcf41c0334128cf27ce7ab5e88d9c6912dfeb19d9639e01b911d9c660cb77a5a1400fd5870e5a2b90556c64e6826b4cb9c9583889ab182d98c0ba34f04c7eb965546b93be93140c4597023d2bb0e37ae20467399fbfe0fce8f8ffa46339330918ad705ab686e63b29c1420ab0cc5e0cfe48490e1adde202aa2c9a33a180d8a6dd2476adc491505813d238574d194225645a98a25443eb888659ba2b3a19a5786b354bfa012a89061e0a073e8add436c9edf2339db782ac5ab59ff53fa3c4cb37018356b3fc13becc3b08fa22868b53f64c6c1e05271fd7a7138dbe4d22c8f9c6c86169461d935acad145b90fac2d06b161d2c09ac3c4d3529ffa4fdd1d847be17f4ff327eccb9381cd4668735a4c3d30ed46b3574abbfd6bc9fb90592ab2fcec6670b",
     "documents": {
       "browser_bf7bc375": {
         "title": "Files",
-        "is_active": false,
+        "is_active": true,
         "is_floating": false,
         "is_closed": false,
         "custom_state": {
@@ -16,18 +16,11 @@
             "sort_field": "rating",
             "sort_ascending": true,
             "group_by": "folder",
-            "current_directory": "6956d808145a36184619e7ac",
+            "current_directory": "6968aa3e05e7119bf75f8792",
             "search_text": "",
             "search_mode": "text"
           }
         }
-      },
-      "img_c0a00a93": {
-        "title": "a-guy-too-angry-with-green-shirts-C2TG4M.webp",
-        "is_active": true,
-        "is_floating": false,
-        "is_closed": false,
-        "custom_state": {}
       }
     },
     "panels": {
@@ -89,7 +82,7 @@
       },
       "similar": {
         "title": "Similar Files",
-        "is_visible": false,
+        "is_visible": true,
         "is_floating": false,
         "is_auto_hide": false,
         "custom_state": {}
@@ -103,6 +96,6 @@
       }
     },
     "perspectives": [],
-    "active_document": "img_c0a00a93"
+    "active_document": "browser_bf7bc375"
   }
 }

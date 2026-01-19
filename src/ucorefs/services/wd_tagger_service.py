@@ -52,6 +52,7 @@ class WDTaggerService(BaseSystem):
         self._model = None
         self._transform = None
         self._labels = None
+        self._is_ready = False  # Track if model is loaded and ready
         
         # Config - use defaults if wd_tagger section not in config
         self.enabled = True
@@ -101,13 +102,19 @@ class WDTaggerService(BaseSystem):
             logger.error(f"WDTaggerService failed to initialize: {e}")
             logger.error(traceback.format_exc())
             # Don't raise - allow app to start without tagging
+            self._is_ready = False
+        else:
+            # Model loaded successfully
+            self._is_ready = True
         
         await super().initialize()
-        print(f">>> WDTaggerService: is_ready={self.is_ready}, model={self._model is not None}")  # Debug
+        logger.info(f"WDTaggerService ready: {self.is_ready}")
     
     async def shutdown(self) -> None:
         """Cleanup model resources."""
         logger.info("WDTaggerService shutting down")
+        
+        self._is_ready = False  # Mark as not ready
         
         # Release model (helps with GPU memory)
         self._model = None
@@ -115,6 +122,11 @@ class WDTaggerService(BaseSystem):
         self._labels = None
         
         await super().shutdown()
+    
+    @property
+    def is_ready(self) -> bool:
+        """Check if service is ready to process images."""
+        return self._is_ready and self._model is not None
     
     def _load_model_sync(self) -> None:
         """Synchronous model loading (runs in thread)."""

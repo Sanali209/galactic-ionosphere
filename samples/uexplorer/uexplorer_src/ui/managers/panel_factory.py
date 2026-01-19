@@ -179,17 +179,19 @@ def create_all_panels(
 def _setup_maintenance_panel(panel, locator: "ServiceLocator"):
     """Initialize maintenance panel with services."""
     try:
-        from src.ucorefs.services.maintenance_service import MaintenanceService
+        # Note: MaintenanceService is Engine-only and accessed via EngineProxy
+        # The MaintenancePanel should use EngineProxy for all operations
+        # Scheduler is still Client-side
         from src.core.scheduling import PeriodicTaskScheduler
         
-        maintenance_service = locator.get_system(MaintenanceService)
         scheduler = locator.get_system(PeriodicTaskScheduler)
         
-        if maintenance_service and scheduler:
-            panel.set_services(maintenance_service, scheduler)
-            logger.info("MaintenancePanel connected to services")
+        if scheduler:
+            # Pass only scheduler - panel will use EngineProxy for maintenance ops
+            panel.set_services(None, scheduler)  # maintenance_service=None
+            logger.info("MaintenancePanel connected to scheduler (uses EngineProxy for maintenance)")
     except Exception as e:
-        logger.warning(f"Failed to connect MaintenancePanel to services: {e}")
+        logger.debug(f"MaintenancePanel init warning: {e}")
 
 
 def connect_panel_signals(
@@ -215,7 +217,7 @@ def connect_panel_signals(
         on_search_requested: Handler for search requests
         selection_manager: SelectionManager instance
     """
-    # Directory panel → open browser
+    # Directory panel -> open browser
     if on_directory_selected and "directories" in panels:
         panels["directories"].directory_selected.connect(on_directory_selected)
     
@@ -225,23 +227,23 @@ def connect_panel_signals(
             lambda tag_id, files: logger.info(f"Tagged {len(files)} files with {tag_id}")
         )
     
-    # Album panel → filter
+    # Album panel -> filter
     if on_album_selected and "albums" in panels and hasattr(panels["albums"], 'tree'):
         panels["albums"].tree.album_selected.connect(on_album_selected)
     
-    # Relations panel → filter
+    # Relations panel -> filter
     if on_relation_selected and "relations" in panels and hasattr(panels["relations"], 'tree'):
         panels["relations"].tree.category_selected.connect(on_relation_selected)
     
-    # Properties panel ← selection manager
+    # Properties panel <- selection manager
     if on_active_changed and selection_manager and "properties" in panels:
         selection_manager.active_changed.connect(on_active_changed)
     
-    # Similar items panel → selection manager
+    # Similar items panel -> selection manager
     if selection_manager and "similar" in panels:
         panels["similar"].set_selection_manager(selection_manager)
     
-    # Search panel → search handler
+    # Search panel -> search handler
     if on_search_requested and "search" in panels:
         panels["search"].search_requested.connect(on_search_requested)
         logger.info("Connected UnifiedSearchPanel.search_requested")

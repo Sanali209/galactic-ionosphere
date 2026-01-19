@@ -81,7 +81,7 @@ class FileBrowserDocument(QWidget):
         # Services
         self._thumbnail_service = None
         self._search_service = None
-        self._processing_pipeline = None
+        self._engine_proxy = None
         self._init_services()
         
         # Viewport priority detection (SAN-14 Phase 3)
@@ -114,11 +114,14 @@ class FileBrowserDocument(QWidget):
         except (KeyError, ImportError):
             logger.debug("SearchService not available")
         
+        # EngineProxy for background task submission (ProcessingPipeline lives in Engine)
         try:
-            from src.ucorefs.processing.pipeline import ProcessingPipeline
-            self._processing_pipeline = self.locator.get_system(ProcessingPipeline)
+            from src.core.engine.proxy import EngineProxy
+            self._engine_proxy = self.locator.get_system(EngineProxy)
+            logger.debug("EngineProxy available for background processing")
         except (KeyError, ImportError):
-            logger.debug("ProcessingPipeline not available")
+            logger.debug("EngineProxy not available - background processing disabled")
+            self._engine_proxy = None
     
     def _setup_ui(self):
         """Build the document UI."""
@@ -560,7 +563,7 @@ class FileBrowserDocument(QWidget):
         Handle viewport changes (scroll, resize, results change).
         Debounces and triggers priority queue update.
         """
-        if not self._priority_enabled or not self._processing_pipeline:
+        if not self._priority_enabled or not self._engine_proxy:
             return
         
         # Restart debounce timer
@@ -605,7 +608,7 @@ class FileBrowserDocument(QWidget):
         Queue visible files with HIGH priority for processing.
         Called after debounce timer expires.
         """
-        if not self._processing_pipeline:
+        if not self._engine_proxy:
             return
         
         visible_ids = self.get_visible_file_ids()
@@ -655,9 +658,10 @@ class FileBrowserDocument(QWidget):
             if not pending_ids:
                 return  # All files already processed
             
-            # Enqueue with specified priority
-            task_id = await self._processing_pipeline.enqueue_phase2(
-                pending_ids,
+            # Submit task to Engine via EngineProxy
+            task_id = await self._engine_proxy.submit_task(
+                handler="process_phase2_batch",
+                params={"file_ids": [str(fid) for fid in pending_ids]},
                 priority=priority
             )
             

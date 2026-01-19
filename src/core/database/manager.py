@@ -54,7 +54,12 @@ class DatabaseManager(BaseSystem):
                 db_name = 'app_db'
             
             conn_str = f"mongodb://{host}:{port}"
-            self.client = AsyncIOMotorClient(conn_str)
+            
+            # CRITICAL: Tell Motor to use the current event loop (qasync)
+            # Without this, Motor creates its own loop causing "attached to different loop" errors
+            import asyncio
+            current_loop = asyncio.get_running_loop()
+            self.client = AsyncIOMotorClient(conn_str, io_loop=current_loop)
             self.db = self.client[db_name]
             
             # Verify connection

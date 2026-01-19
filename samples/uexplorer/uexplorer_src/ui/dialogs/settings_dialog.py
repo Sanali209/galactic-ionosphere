@@ -364,46 +364,60 @@ class SettingsDialog(QDialog):
             logger.error(f"Failed to save settings: {e}")
     
     def _on_run_maintenance_task(self, task_name: str):
-        """Handle manual maintenance task execution from settings."""
+        """Handle manual maintenance task execution from settings via EngineProxy."""
         logger.info(f"Running maintenance task from settings: {task_name}")
         
         if self._locator:
-            from src.ucorefs.services.maintenance_service import MaintenanceService
-            maintenance = self._locator.get_system(MaintenanceService)
+            from src.core.engine.proxy import EngineProxy
+            engine_proxy = self._locator.get_system(EngineProxy)
             
-            # Execute in background
+            if not engine_proxy:
+                logger.warning("EngineProxy not available")
+                return
+            
+            # Execute on Engine thread via proxy
             import asyncio
-            asyncio.create_task(self._execute_maintenance(maintenance, task_name))
+            asyncio.create_task(self._execute_maintenance_via_proxy(engine_proxy, task_name))
         else:
             logger.warning("Cannot run task: ServiceLocator not available")
     
-    async def _execute_maintenance(self, maintenance: "MaintenanceService", task_name: str) -> None:
-        """Execute maintenance task asynchronously."""
+    async def _execute_maintenance_via_proxy(self, engine_proxy, task_name: str) -> None:
+        """Execute maintenance task via EngineProxy."""
         try:
-            result = None
+            async def _run_maintenance():
+                from src.core.locator import get_active_locator
+                from src.ucorefs.services.maintenance_service import MaintenanceService
+                sl = get_active_locator()
+                maintenance = sl.get_system(MaintenanceService)
+                
+                result = None
+                
+                if task_name == "reprocess_incomplete_embeddings":
+                    result = await maintenance.reprocess_incomplete_embeddings()
+                elif task_name == "diagnose_pipeline_state":
+                    result = await maintenance.diagnose_pipeline_state()
+                elif task_name == "fix_file_types":
+                    result = await maintenance.fix_file_types()
+                elif task_name == "background_verification":
+                    await maintenance.background_count_verification()
+                elif task_name == "database_optimization":
+                    result = await maintenance.database_optimization()
+                elif task_name == "cache_cleanup":
+                    result = await maintenance.cache_cleanup()
+                elif task_name == "orphaned_cleanup":
+                    result = await maintenance.cleanup_orphaned_file_records()
+                elif task_name == "log_rotation":
+                    result = await maintenance.log_rotation()
+                elif task_name == "database_cleanup":
+                    result = await maintenance.cleanup_old_records()
+                
+                return result
             
-            if task_name == "reprocess_incomplete_embeddings":
-                result = await maintenance.reprocess_incomplete_embeddings()
-            elif task_name == "diagnose_pipeline_state":
-                result = await maintenance.diagnose_pipeline_state()
-            elif task_name == "fix_file_types":
-                result = await maintenance.fix_file_types()
-            elif task_name == "background_verification":
-                await maintenance.background_count_verification()
-            elif task_name == "database_optimization":
-                result = await maintenance.database_optimization()
-            elif task_name == "cache_cleanup":
-                result = await maintenance.cache_cleanup()
-            elif task_name == "orphaned_cleanup":
-                result = await maintenance.cleanup_orphaned_file_records()
-            elif task_name == "log_rotation":
-                result = await maintenance.log_rotation()
-            elif task_name == "database_cleanup":
-                result = await maintenance.cleanup_old_records()
+            future = engine_proxy.submit(_run_maintenance())
+            import asyncio
+            result = await asyncio.wrap_future(future)
             
             logger.info(f"Maintenance task {task_name} complete: {result}")
             
         except Exception as e:
-            logger.error(f"Maintenance task {task_name} failed: {e}", exc_info=True)
-
 

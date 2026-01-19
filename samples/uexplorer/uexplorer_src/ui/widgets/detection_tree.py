@@ -121,6 +121,7 @@ class DetectionTreeWidget(QTreeWidget):
                             "negate": False
                         })
                         
+        logger.debug(f"[DetectionTree] Emitting {len(filters)} detection filters")
         self.filter_changed.emit(filters)
 
     def set_active_filters(self, filters: List[Dict]):

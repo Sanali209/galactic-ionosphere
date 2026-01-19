@@ -37,8 +37,9 @@ class PeriodicTaskScheduler(BaseSystem):
         }
     """
     
-    # Required dependencies for task submission
-    depends_on = ["TaskSystem", "MaintenanceService", "DatabaseManager"]
+    # TaskSystem required for task submission
+    # MaintenanceService is optional (only in EngineBundle)
+    depends_on = ["TaskSystem"]
     
     def __init__(self, locator, config):
         super().__init__(locator, config)
@@ -53,8 +54,15 @@ class PeriodicTaskScheduler(BaseSystem):
         # Get required dependencies (guaranteed by depends_on)
         self.task_system = self.locator.get_system(TaskSystem)
         
-        from src.ucorefs.services.maintenance_service import MaintenanceService
-        self.maintenance_service = self.locator.get_system(MaintenanceService)
+        # MaintenanceService is optional (only exists in EngineBundle, not ClientBundle)
+        try:
+            from src.ucorefs.services.maintenance_service import MaintenanceService
+            self.maintenance_service = self.locator.get_system(MaintenanceService)
+        except KeyError:
+            logger.warning("MaintenanceService not available - periodic tasks disabled")
+            self.maintenance_service = None
+            await super().initialize()
+            return
         
         # Read schedule from config
         schedule = self._get_schedule_config()
@@ -163,7 +171,11 @@ class PeriodicTaskScheduler(BaseSystem):
             return
         
         # Initial delay (optional, to stagger task starts)
+        # ALWAYS wait at least 5 seconds to ensure all handlers are registered
         initial_delay = config.get('initial_delay_seconds', 0)
+        min_delay = 5  # Minimum delay to let MaintenanceService register handlers
+        initial_delay = max(initial_delay, min_delay)
+        
         if initial_delay > 0:
             logger.info(f"Task {task_name}: Initial delay {initial_delay}s")
             try:

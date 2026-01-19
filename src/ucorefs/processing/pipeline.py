@@ -8,7 +8,6 @@ from typing import List, Optional, Set, Dict
 from bson import ObjectId
 from loguru import logger
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
 
 from src.core.base_system import BaseSystem
 from src.core.tasks.system import TaskSystem
@@ -55,24 +54,11 @@ class ProcessingPipeline(BaseSystem):
         self._phase2_pending: Set[str] = set()
         self._phase3_pending: Set[str] = set()
         
-        # SAN-14 Phase 2: Create dedicated AI thread pool for CPU-heavy preprocessing
-        # Default to same count as general task workers (often 8) to maximize throughput
-        default_workers = 8
-        if hasattr(self.config, 'data') and hasattr(self.config.data, 'general'):
-             default_workers = getattr(self.config.data.general, 'task_workers', 8)
-
-        ai_workers = default_workers
-        if hasattr(self.config, 'data') and hasattr(self.config.data, 'processing'):
-            # Override if specifically set in processing config, otherwise use general count
-            configured = getattr(self.config.data.processing, 'ai_workers', None)
-            if configured:
-                ai_workers = configured
+        # AI executor is now managed by TaskSystem (Phase 3 consolidation)
+        # Access via self.task_system.get_ai_executor() or self.get_ai_executor()
         
-        self._ai_executor = ThreadPoolExecutor(
-            max_workers=ai_workers,
-            thread_name_prefix="ai-cpu"
-        )
-        logger.info(f"Created dedicated AI thread pool with {ai_workers} workers")
+        # Cache extractor configs - build once instead of on every task
+        self._extractor_configs = self._build_extractor_configs()
         
         # Subscribe to ChangeMonitor for auto-processing
         try:
@@ -92,10 +78,7 @@ class ProcessingPipeline(BaseSystem):
         """Shutdown pipeline."""
         logger.info("ProcessingPipeline shutting down")
         
-        # SAN-14 Phase 2: Shutdown AI executor
-        if hasattr(self, '_ai_executor') and self._ai_executor:
-            logger.info("Shutting down AI thread pool...")
-            self._ai_executor.shutdown(wait=True)
+        # AI executor is now managed by TaskSystem, no need to shutdown here
         
         await super().shutdown()
     
@@ -109,6 +92,18 @@ class ProcessingPipeline(BaseSystem):
         configs = {}
         
         try:
+            logger.info("[Pipeline] Building extractor configs...")
+            
+            # Add database config for process pool (spawned processes need their own DB connection)
+            if hasattr(self.config, 'data') and hasattr(self.config.data, 'database'):
+                db_config = self.config.data.database
+                configs['db_uri'] = getattr(db_config, 'uri', 'mongodb://localhost:27017')
+                configs['db_name'] = getattr(db_config, 'name', 'foundation_app')
+            else:
+                configs['db_uri'] = 'mongodb://localhost:27017'
+                configs['db_name'] = 'foundation_app'
+
+            
             # Get detection config
             if hasattr(self.config, 'data') and hasattr(self.config.data, 'processing'):
                 processing = self.config.data.processing
@@ -120,32 +115,39 @@ class ProcessingPipeline(BaseSystem):
                     if hasattr(detection, 'yolo'):
                         yolo_config = detection.yolo.model_dump() if hasattr(detection.yolo, 'model_dump') else {}
                         configs['yolo'] = yolo_config
-                        logger.debug(f"[Pipeline] YOLO config: {yolo_config}")
+                        logger.info(f"[Pipeline] YOLO config: {yolo_config}")
                     
                     # GroundingDINO config
                     if hasattr(detection, 'grounding_dino'):
                         gdino_config = detection.grounding_dino.model_dump() if hasattr(detection.grounding_dino, 'model_dump') else {}
                         configs['grounding_dino'] = gdino_config
-                        logger.debug(f"[Pipeline] GroundingDINO config: {gdino_config}")
+                        logger.info(f"[Pipeline] GroundingDINO config: {gdino_config}")
                 
                 # WD Tagger config
                 if hasattr(processing, 'wd_tagger'):
                     wd_config = processing.wd_tagger.model_dump() if hasattr(processing.wd_tagger, 'model_dump') else {}
                     configs['wd_tagger'] = wd_config
+                    logger.info(f"[Pipeline] WDTagger config: {wd_config}")
+                else:
+                    logger.warning("[Pipeline] No wd_tagger config found in processing")
+            else:
+                logger.warning("[Pipeline] No processing config found")
+            
+            logger.info(f"[Pipeline] Built {len(configs)} extractor configs: {list(configs.keys())}")
         
         except Exception as e:
-            logger.warning(f"Failed to build extractor configs: {e}")
+            logger.error(f"Failed to build extractor configs: {e}", exc_info=True)
         
         return configs
     
     def get_ai_executor(self):
         """
-        Get the dedicated AI thread pool executor.
+        Get the shared AI thread pool executor from TaskSystem.
         
         Returns:
             ThreadPoolExecutor for CPU-heavy AI preprocessing tasks, or None
         """
-        return getattr(self, '_ai_executor', None)
+        return self.task_system.get_ai_executor() if self.task_system else None
     
     # ==================== Enqueue Methods ====================
     
@@ -288,6 +290,35 @@ class ProcessingPipeline(BaseSystem):
         logger.info(f"[PHASE2_START] Processing batch of {len(file_ids)} files")
         logger.debug(f"[PHASE2_START] File IDs: {[str(fid)[:8] + '...' for fid in file_ids]}")
         
+        # Try process pool first (bypass GIL for CPU-heavy work)
+        try:
+            from src.ucorefs.processing.process_handlers import process_phase2_batch_sync
+            
+            logger.info("[PHASE2] Using process pool for batch")
+            results = await self.task_system.run_in_process(
+                process_phase2_batch_sync,
+                file_ids_str,
+                self._extractor_configs
+            )
+            
+            # Queue Phase 3 for successfully processed files
+            for file_id in file_ids:
+                await self.enqueue_phase3(file_id)
+            
+            # Remove from pending
+            for file_id in file_ids:
+                self._phase2_pending.discard(str(file_id))
+            
+            # Publish event
+            await self._publish_progress("phase2.complete", results)
+            
+            return results
+            
+        except RuntimeError as e:
+            # Process pool not initialized - fall back to thread-based
+            logger.warning(f"[PHASE2] Process pool not available, using thread-based: {e}")
+        
+        # Fallback: existing thread-based implementation
         results = {
             "processed": 0,
             "errors": 0,
@@ -315,17 +346,24 @@ class ProcessingPipeline(BaseSystem):
             return results
         
         # Get Phase 2 extractors (using injected registry)
-        # Get Phase 2 extractors (using injected registry)
-        extractor_configs = self._build_extractor_configs()
-        extractors = self._extractor_registry.get_for_phase(2, locator=self.locator, config=extractor_configs)
+        extractors = self._extractor_registry.get_for_phase(2, locator=self.locator, config=self._extractor_configs)
         total_extractors = len(extractors)
         
         logger.info(f"[PHASE2_EXTRACTORS] Found {total_extractors} registered extractors")
         for ext in extractors:
             logger.debug(f"[PHASE2_EXTRACTORS]   - {ext.name} (priority={ext.priority})")
         
+        # Get chunk size from config
+        chunk_size = 5
+        if hasattr(self.config, 'data') and hasattr(self.config.data, 'processing'):
+            chunk_size = getattr(self.config.data.processing, 'batch_chunk_size', 5)
+            
         # SAN-14 Phase 2: Track progress per extractor
         for i, extractor in enumerate(extractors):
+            import asyncio
+            # Yield to UI thread before starting new extractor
+            await asyncio.sleep(0)
+            
             try:
                 # Filter to files this extractor can process
                 processable = [f for f in files if extractor.can_process(f)]
@@ -339,7 +377,31 @@ class ProcessingPipeline(BaseSystem):
                         file_types[f.file_type] = file_types.get(f.file_type, 0) + 1
                     logger.debug(f"[PHASE2_EXTRACT_{i+1}] File types: {file_types}")
                     
-                    extractor_results = await extractor.process(processable)
+                    # Process in chunks to prevent UI freeze
+                    extractor_results = {}
+                    total_chunks = (len(processable) + chunk_size - 1) // chunk_size
+                    
+                    for chunk_idx in range(total_chunks):
+                        start_idx = chunk_idx * chunk_size
+                        end_idx = min(start_idx + chunk_size, len(processable))
+                        chunk = processable[start_idx:end_idx]
+                        
+                        # Yield to UI thread before processing chunk
+                        await asyncio.sleep(0)
+                        
+                        try:
+                            chunk_results = await extractor.process(chunk)
+                            extractor_results.update(chunk_results)
+                            
+                            # Publish intermediate progress (optional improvement/extension point)
+                            # Could emit 'phase2.extractor.progress' here if UI supports it
+                            
+                        except Exception as e:
+                            logger.error(f"[PHASE2_EXTRACT_{i+1}] ✗ Chunk {chunk_idx+1}/{total_chunks} failed via {extractor.name}: {e}")
+                            # Mark chunk as failed
+                            for f in chunk:
+                                extractor_results[f._id] = False
+
                     success_count = sum(1 for v in extractor_results.values() if v)
                     
                     logger.info(f"[PHASE2_EXTRACT_{i+1}] ✓ {extractor.name} completed: {success_count}/{len(processable)} successful")
@@ -442,13 +504,13 @@ class ProcessingPipeline(BaseSystem):
                 return results
             
             # Get Phase 3 extractors (using injected registry)
-            # Get Phase 3 extractors (using injected registry)
-            extractor_configs = self._build_extractor_configs()
-            extractors = self._extractor_registry.get_for_phase(3, locator=self.locator, config=extractor_configs)
+            # Extractors now handle LLM vs legacy routing internally via AIExtractor
+            extractors = self._extractor_registry.get_for_phase(3, locator=self.locator, config=self._extractor_configs)
             
             for extractor in extractors:
                 try:
                     if extractor.can_process(file):
+                        # AIExtractor handles LLM worker vs legacy routing internally
                         extractor_results = await extractor.process([file])
                         success = extractor_results.get(file._id, False)
                         results["by_extractor"][extractor.name] = success
@@ -555,6 +617,13 @@ class ProcessingPipeline(BaseSystem):
             
             # Run detection with configured backend
             backend = detection_config.backend
+            
+            # SAN-14: Check if backend is actually available/loaded
+            if not detection_service.get_backend(backend):
+                # Only log once per session ideally, or debug to avoid spam
+                logger.debug(f"Detection backend '{backend}' configured but not available - skipping")
+                return 0
+
             detections = await detection_service.detect(file._id, backend=backend)
             
             return len(detections)

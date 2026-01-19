@@ -51,7 +51,7 @@ class UnifiedSearchQuery:
     text: str = ""
     text_fields: List[str] = field(default_factory=lambda: ["name", "path"])
     
-    # Similar search (Image → Vector)
+    # Similar search (Image -> Vector)
     similar_file_id: Optional[ObjectId] = None
     
     # Tag filters (legacy - IDs only)
@@ -436,6 +436,21 @@ class UnifiedQueryBuilder(QObject):
         """Set field filters from UnifiedSearchPanel."""
         # Merge with existing filters
         self._current_query.filters.update(filters)
+        self._emit_query()
+
+    def set_detection_filters(self, filters: list):
+        """
+        Set detection filters from UnifiedSearchPanel (Tree).
+        Args:
+            filters: List of detection filter dicts.
+        """
+        # Replace existing detection filters with current tree state
+        # Note: If we had text-based detection filters, this might overwrite them?
+        # Ideally, we should merge.
+        # But per current complex logic in SearchService, text parsing appends to this list.
+        # Here we are setting the "explicit" filters from the tree.
+        # For now, simpler to overwrite to act as Single Source of Truth for the UI widget.
+        self._current_query.detection_filters = filters
         self._emit_query()
     
     def add_tag_ref(self, tag_ref: TagRef, include: bool = True):

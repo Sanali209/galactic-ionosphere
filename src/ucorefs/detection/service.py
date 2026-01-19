@@ -104,6 +104,10 @@ class DetectionService(BaseSystem):
         """
         self._backends[backend.name] = backend
         logger.info(f"Registered detection backend: {backend.name}")
+        
+    def get_backend(self, name: str) -> Optional[DetectionBackend]:
+        """Get backend by name."""
+        return self._backends.get(name)
     
     def _load_yolo_backend(self, settings: Dict[str, Any]):
         """Load YOLO backend if available."""

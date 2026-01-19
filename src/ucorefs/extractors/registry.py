@@ -88,14 +88,28 @@ class ExtractorRegistry:
         for extractor_cls in cls._extractors.get(phase, []):
             name = getattr(extractor_cls, 'name', extractor_cls.__name__)
             
-            # Use cached instance or create new
-            if name in cls._instances:
-                instances.append(cls._instances[name])
-            else:
+            instance = None
+            
+            # 1. Try resolving via ServiceLocator (preferred for Singletons/persistence)
+            if locator and hasattr(locator, 'get'):
+                try:
+                    instance = locator.get(extractor_cls)
+                    # Cache it for get_by_name compatibility
+                    cls._instances[name] = instance
+                except (KeyError, AttributeError):
+                    pass
+            
+            # 2. Use locally cached instance
+            if instance is None and name in cls._instances:
+                instance = cls._instances[name]
+                
+            # 3. Create new instance (fallback)
+            if instance is None:
                 extractor_config = config.get(name, {})
                 instance = extractor_cls(locator=locator, config=extractor_config)
                 cls._instances[name] = instance
-                instances.append(instance)
+                
+            instances.append(instance)
         
         # Sort by priority (higher first)
         instances.sort(key=lambda e: e.priority, reverse=True)

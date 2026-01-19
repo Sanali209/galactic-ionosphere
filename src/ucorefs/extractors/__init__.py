@@ -7,6 +7,7 @@ Phase 2 (batch 20): ThumbnailExtractor, MetadataExtractor, CLIPExtractor, DINOEx
 Phase 3 (batch 1): BLIPExtractor, GroundingDINOExtractor
 """
 from src.ucorefs.extractors.base import Extractor
+from src.ucorefs.extractors.ai_extractor import AIExtractor
 from src.ucorefs.extractors.registry import ExtractorRegistry
 from src.ucorefs.extractors.xmp import xmp_extractor, XMPExtractor
 from src.ucorefs.extractors.thumbnail import ThumbnailExtractor
@@ -33,6 +34,7 @@ ExtractorRegistry.register(YOLOExtractor)
 
 __all__ = [
     "Extractor",
+    "AIExtractor",
     "ExtractorRegistry",
     "xmp_extractor",
     "XMPExtractor",

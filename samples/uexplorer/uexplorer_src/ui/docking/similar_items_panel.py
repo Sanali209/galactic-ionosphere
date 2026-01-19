@@ -49,7 +49,8 @@ class SimilarItemsPanel(PanelBase):
             from src.ucorefs.ai.similarity_service import SimilarityService
             self._similarity_service = locator.get_system(SimilarityService)
         except (KeyError, ImportError):
-            logger.warning("SimilarityService not available")
+            # Normal if service is in Engine thread
+            logger.debug("SimilarityService not directly available (Engine System)")
         
         try:
             from src.ucorefs.thumbnails.service import ThumbnailService

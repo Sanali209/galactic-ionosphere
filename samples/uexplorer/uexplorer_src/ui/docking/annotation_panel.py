@@ -52,7 +52,8 @@ class AnnotationPanel(PanelBase):
             from src.ucorefs.annotation.service import AnnotationService
             self._annotation_service = locator.get_system(AnnotationService)
         except (KeyError, ImportError):
-            logger.warning("AnnotationService not available")
+            # Normal if service is in Engine thread
+            logger.debug("AnnotationService not directly available (Engine System)")
         
         try:
             from src.ucorefs.thumbnails.service import ThumbnailService
@@ -192,7 +193,7 @@ class AnnotationPanel(PanelBase):
         self.btn_skip.clicked.connect(self._on_skip)
         nav_layout.addWidget(self.btn_skip)
         
-        self.btn_next = QPushButton("Next →")
+        self.btn_next = QPushButton("Next ->")
         self.btn_next.clicked.connect(self._on_next)
         nav_layout.addWidget(self.btn_next)
         

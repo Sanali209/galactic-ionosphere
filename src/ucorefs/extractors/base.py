@@ -45,6 +45,24 @@ class Extractor(ABC):
         self.locator = locator
         self.config = config or {}
     
+    async def initialize(self) -> None:
+        """
+        Initialize the extractor.
+        
+        Called by ServiceLocator when registered as a system.
+        Override to perform async setup (e.g. model loading).
+        """
+        pass
+        
+    async def shutdown(self) -> None:
+        """
+        Shutdown the extractor.
+        
+        Called by ServiceLocator on app exit.
+        Override to cleanup resources (e.g. unload models).
+        """
+        pass
+    
     @abstractmethod
     async def extract(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
         """
@@ -82,6 +100,8 @@ class Extractor(ABC):
         Returns:
             Dict mapping file_id -> success status
         """
+        import asyncio
+        
         results = {}
         
         try:
@@ -90,7 +110,7 @@ class Extractor(ABC):
             if not extracted:
                 logger.warning(f"{self.name}: extract() returned empty results for {len(files)} files")
             
-            for file_id, data in extracted.items():
+            for i, (file_id, data) in enumerate(extracted.items()):
                 try:
                     success = await self.store(file_id, data)
                     results[file_id] = success
@@ -99,6 +119,10 @@ class Extractor(ABC):
                 except Exception as e:
                     logger.error(f"{self.name}: Failed to store for {file_id}: {e}", exc_info=True)
                     results[file_id] = False
+                
+                # Yield to UI thread every 5 stores to prevent blocking
+                if (i + 1) % 5 == 0:
+                    await asyncio.sleep(0)
                     
         except Exception as e:
             logger.error(f"{self.name}: Extraction failed: {e}", exc_info=True)

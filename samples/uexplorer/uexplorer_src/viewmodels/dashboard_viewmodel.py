@@ -102,14 +102,28 @@ class DashboardViewModel(DocumentViewModel):
             logger.error(f"Failed to fetch core counts: {e}")
 
     async def _add_pipeline_stats(self, items: List[CardItem]):
-        """Fetch processing pipeline queue sizes."""
+        """Fetch processing pipeline queue sizes via EngineProxy."""
         try:
-            from src.ucorefs.processing.pipeline import ProcessingPipeline
-            pipeline = self.locator.get_system(ProcessingPipeline)
+            from src.core.engine.proxy import EngineProxy
+            engine_proxy = self.locator.get_system(EngineProxy)
             
-            # Access internal sets if available (or add public getters later)
-            pending_p2 = len(getattr(pipeline, '_phase2_pending', []))
-            pending_p3 = len(getattr(pipeline, '_phase3_pending', []))
+            if not engine_proxy:
+                return
+            
+            async def _get_pipeline_stats():
+                from src.core.locator import get_active_locator
+                from src.ucorefs.processing.pipeline import ProcessingPipeline
+                sl = get_active_locator()
+                pipeline = sl.get_system(ProcessingPipeline)
+                
+                # Access internal sets (or add public getters later)
+                pending_p2 = len(getattr(pipeline, '_phase2_pending', []))
+                pending_p3 = len(getattr(pipeline, '_phase3_pending', []))
+                return pending_p2, pending_p3
+            
+            future = engine_proxy.submit(_get_pipeline_stats())
+            import asyncio
+            pending_p2, pending_p3 = await asyncio.wrap_future(future)
             
             items.append(self._create_progress_card(
                 "pipeline", "Processing Queue", 
@@ -117,8 +131,8 @@ class DashboardViewModel(DocumentViewModel):
                 pending_p2 + pending_p3, 1000, # arbitrary max for progress visualization
                 "pipeline"
             ))
-        except KeyError:
-            pass # Service not found
+        except Exception as e:
+            logger.debug(f"Pipeline stats not available: {e}")
 
     async def _add_vector_stats(self, items: List[CardItem]):
         """Fetch FAISS index stats."""
@@ -193,11 +207,11 @@ class DashboardViewModel(DocumentViewModel):
     async def _run_maintenance_task(self, task_name: str):
         """Run a maintenance task via TaskSystem."""
         try:
-            from src.core.tasks.system import TaskSystem
-            task_system = self.locator.get_system(TaskSystem)
+            from src.core.engine.proxy import EngineProxy
+            engine = self.locator.get_system(EngineProxy)
             
-            # Fire and forget (TaskSystem handles execution)
-            await task_system.create_task(task_name, {}, priority=10)
+            # Fire and forget (Engine handles execution)
+            engine.submit_task(task_name, priority=10)
             logger.info(f"Started maintenance task: {task_name}")
         except Exception as e:
             logger.error(f"Failed to start task {task_name}: {e}")

@@ -19,15 +19,16 @@ Configurable Ontology:
 """
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+import asyncio
 from bson import ObjectId
 from loguru import logger
 
-from src.ucorefs.extractors.base import Extractor
+from src.ucorefs.extractors.ai_extractor import AIExtractor
 from src.ucorefs.models.file_record import FileRecord
 from src.ucorefs.models.base import ProcessingState
 
 
-class GroundingDINOExtractor(Extractor):
+class GroundingDINOExtractor(AIExtractor):
     """
     Open-vocabulary object detection using GroundingDINO.
     
@@ -85,6 +86,10 @@ class GroundingDINOExtractor(Extractor):
         self._available = False
         
         # Config
+        if config and not isinstance(config, dict):
+            # Handle ServiceLocator injecting ConfigManager
+            config = {}
+            
         config = config or {}
         self._class_mapping = config.get("class_mapping", self.DEFAULT_CLASS_MAPPING)
         self._box_threshold = config.get("box_threshold", 0.35)
@@ -101,30 +106,57 @@ class GroundingDINOExtractor(Extractor):
         """Lazy load GroundingDINO model."""
         if self._model is not None:
             return self._available
-        
+            
+        return await asyncio.to_thread(self._ensure_model_sync)
+
+    def _ensure_model_sync(self) -> bool:
+        """Synchronous implementation of model loading."""
         try:
             import os
             import torch
             from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
             
-            self._device = "cuda" if torch.cuda.is_available() else "cpu"
+            # Determine device
+            use_cuda = torch.cuda.is_available()
+            self._device = "cuda" if use_cuda else "cpu"
             
             # Get HuggingFace token from environment
             hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
             
             model_id = "IDEA-Research/grounding-dino-tiny"
-            self._processor = AutoProcessor.from_pretrained(model_id, token=hf_token)
-            self._model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id, token=hf_token).to(self._device)
+            logger.info(f"[GroundingDINO] Loading model on {self._device}...")
             
+            self._processor = AutoProcessor.from_pretrained(model_id, token=hf_token)
+            
+            # Simple, reliable loading approach - avoid meta tensors entirely
+            # Load directly to CPU first (safest), then move to target device
+            self._model = AutoModelForZeroShotObjectDetection.from_pretrained(
+                model_id, 
+                token=hf_token,
+                torch_dtype=torch.float32,  # Explicit dtype
+                low_cpu_mem_usage=False,    # Avoid accelerate's meta device
+                device_map=None,            # No automatic device mapping
+            )
+            
+            # Now move to target device (this is safe since model has real data)
+            if self._device != "cpu":
+                try:
+                    self._model = self._model.to(self._device)
+                    logger.info(f"[GroundingDINO] Model moved to {self._device}")
+                except Exception as e:
+                    logger.warning(f"[GroundingDINO] Failed to move to {self._device}, using CPU: {e}")
+                    self._device = "cpu"
+            
+            self._model.eval()  # Set to evaluation mode
             self._available = True
-            logger.info(f"GroundingDINO loaded on {self._device}")
+            logger.info(f"[GroundingDINO] ✓ Model loaded successfully on {self._device}")
             
         except ImportError:
             logger.warning("GroundingDINO not available - pip install transformers")
             self._available = False
         except Exception as e:
             import os
-            logger.error(f"Failed to load GroundingDINO: {e}")
+            logger.error(f"[GroundingDINO] Failed to load model: {e}")
             if "401" in str(e) or "403" in str(e) or "not found" in str(e).lower():
                 if not os.environ.get("HF_TOKEN"):
                     logger.critical("Hugging Face token missing! Create a .env file with HF_TOKEN=your_token")
@@ -155,19 +187,19 @@ class GroundingDINOExtractor(Extractor):
         
         return phrases
     
+    # Inherited from AIExtractor: _get_llm_service(), _get_ai_executor()
+    # Note: extract() is overridden due to phrases_map requirement
+    
     async def extract(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
         """
-        Detect objects in images in a thread-safe manner.
+        Detect objects in images.
         
-        Args:
-            files: List of image files (usually 1 for Phase 3)
-            
-        Returns:
-            Dict mapping file_id -> detection results
+        Uses LLMWorkerService for non-blocking inference when available.
+        Falls back to legacy ThreadPoolExecutor method.
         """
-        if not await self._ensure_model():
+        if not files:
             return {}
-            
+        
         logger.info(f"[GroundingDINO] Starting batch extraction for {len(files)} files")
         
         # Pre-fetch phrases (async) before offloading heavy compute
@@ -176,21 +208,85 @@ class GroundingDINOExtractor(Extractor):
             if self.can_process(file):
                 phrases_map[file.id] = await self._get_phrases_for_file(file)
         
-        import asyncio
-        loop = asyncio.get_running_loop()
+        # Try LLMWorkerService first
+        llm_service = self._get_llm_service()
+        if llm_service:
+            return await self._extract_via_service(files, phrases_map, llm_service)
         
-        # Get dedicated AI executor if available
-        executor = None
-        if self.locator:
-            try:
-                from src.ucorefs.processing.pipeline import ProcessingPipeline
-                pipeline = self.locator.get_system(ProcessingPipeline)
-                executor = pipeline.get_ai_executor()
-            except (KeyError, AttributeError, ImportError):
-                pass
+        # Fallback to legacy executor
+        return await self._extract_legacy(files, phrases_map)
+    
+    async def _extract_via_service(self, files: List[FileRecord], phrases_map: Dict[ObjectId, List[str]], llm_service) -> Dict[ObjectId, Any]:
+        """Extract detections using LLMWorkerService."""
+        from src.core.llm.models import LLMJobRequest
         
-        # Offload blocking inference to thread pool
-        return await loop.run_in_executor(executor, self._inference_batch, files, phrases_map)
+        file_paths = [str(f.path) for f in files if f.id in phrases_map]
+        path_to_id = {str(f.path): f.id for f in files}
+        
+        # Convert ObjectId keys to string for serialization
+        phrases_by_path = {str(f.path): phrases_map.get(f.id, self._phrases) for f in files}
+        
+        request = LLMJobRequest(
+            task_type="grounding_dino",
+            file_paths=file_paths,
+            options={
+                "phrases_by_path": phrases_by_path,
+                "class_mapping": self._class_mapping,
+                "box_threshold": self._box_threshold,
+                "text_threshold": self._text_threshold
+            }
+        )
+        
+        try:
+            future = await llm_service.submit_job(request)
+            result = await future
+            
+            if not result.success:
+                logger.warning(f"GroundingDINO worker job failed: {result.error}, falling back to legacy")
+                return await self._extract_legacy(files, phrases_map)
+            
+            # Map path-based results back to ObjectId keys
+            results = {}
+            has_real_data = False
+            for file_path, data in (result.data or {}).items():
+                file_id = path_to_id.get(file_path)
+                if file_id:
+                    results[file_id] = data
+                    if data is not None:
+                        has_real_data = True
+            
+            # If worker returned all None (stub), fall back to legacy
+            if not has_real_data:
+                logger.debug("[GroundingDINO] Worker returned empty data, falling back to legacy")
+                return await self._extract_legacy(files, phrases_map)
+            
+            logger.info(f"[GroundingDINO] Processed {len(results)}/{len(files)} via LLMWorkerService")
+            return results
+            
+        except Exception as e:
+            logger.error(f"GroundingDINO extraction via service failed: {e}")
+            return await self._extract_legacy(files, phrases_map)
+    
+    async def _extract_legacy(self, files: List[FileRecord], phrases_map: Dict[ObjectId, List[str]]) -> Dict[ObjectId, Any]:
+        """Legacy: Extract using shared AI executor."""
+        if not await self._ensure_model():
+            return {}
+        
+        # Use inherited helper for standardized executor access
+        return await self._run_in_ai_executor(self._inference_batch, files, phrases_map)
+    
+    async def _extract_via_worker(self, files: List[FileRecord], llm_service) -> Dict[ObjectId, Any]:
+        """
+        Required by AIExtractor but not used directly.
+        
+        GroundingDINO has custom extract() that handles phrases_map,
+        so this is a stub that raises NotImplementedError.
+        The actual worker logic is in _extract_via_llm_service().
+        """
+        raise NotImplementedError(
+            "GroundingDINO uses custom extract() with phrases_map. "
+            "See _extract_via_llm_service() for worker-based extraction."
+        )
 
     def _inference_batch(self, files: List[FileRecord], phrases_map: Dict[ObjectId, List[str]]) -> Dict[ObjectId, Any]:
         """
@@ -220,25 +316,39 @@ class GroundingDINOExtractor(Extractor):
                         return_tensors="pt"
                     ).to(self._device)
                     
+                    
                     with torch.no_grad():
                         outputs = self._model(**inputs)
                     
-                    # Post-process
-                    result = self._processor.post_process_grounded_object_detection(
-                        outputs,
-                        inputs.input_ids,
-                        box_threshold=self._box_threshold,
-                        text_threshold=self._text_threshold,
-                        target_sizes=[image.size[::-1]]
-                    )[0]
+                    # Validate outputs before post-processing
+                    if not outputs or not hasattr(outputs, 'logits'):
+                        logger.warning(f"Invalid model outputs for {file.id}, skipping")
+                        continue
                     
-                    # Format detections
+                    # Post-process (newer transformers API - no threshold params)
+                    try:
+                        result = self._processor.post_process_grounded_object_detection(
+                            outputs,
+                            inputs.input_ids,
+                            target_sizes=[image.size[::-1]]
+                        )[0]
+                    except (IndexError, RuntimeError) as e:
+                        logger.error(f"Post-processing failed for {file.id}: {e}")
+                        # This often happens with corrupted tensors or meta device issues
+                        # Skip this file and continue
+                        continue
+                    
+                    # Format detections with manual threshold filtering
                     detections = []
                     for box, score, label in zip(
                         result["boxes"],
                         result["scores"],
                         result["labels"]
                     ):
+                        # Apply thresholds manually
+                        if float(score) < self._box_threshold:
+                            continue
+                            
                         detections.append({
                             "label": label,
                             "confidence": float(score),
@@ -255,6 +365,8 @@ class GroundingDINOExtractor(Extractor):
                     
                 except Exception as e:
                     logger.error(f"GroundingDINO failed for {file.id}: {e}")
+                    import traceback
+                    logger.debug(f"Traceback: {traceback.format_exc()}")
         
         except Exception as e:
             logger.error(f"GroundingDINO extraction inference failed: {e}")

@@ -258,7 +258,7 @@ class FileCardWidget(CardItemWidget):
         if self._data_context:
             # Emit signal for saving
             self.rating_changed.emit(self._data_context.id, new_rating)
-            logger.debug(f"Rating changed: {self._data_context.id} → {new_rating}")
+            logger.debug(f"Rating changed: {self._data_context.id} -> {new_rating}")
     
     def clear_content(self):
         """Clear content for recycling."""

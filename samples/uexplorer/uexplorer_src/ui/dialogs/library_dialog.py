@@ -141,15 +141,54 @@ class LibraryDialog(QDialog):
                 
                 QTimer.singleShot(0, _update_ui)
                 
-                # Trigger background scan
+                
+                # Trigger background scan via EngineProxy (DiscoveryService is Engine-only)
                 try:
-                    from src.ucorefs.discovery.service import DiscoveryService
-                    discovery = self.locator.get_system(DiscoveryService)
-                    if discovery:
-                        asyncio.create_task(discovery.scan_root(root._id, background=True))
-                        logger.info(f"Triggered background scan for {folder}")
+                    from src.core.engine.proxy import EngineProxy
+                    from bson import ObjectId
+                    
+                    engine_proxy = self.locator.get_system(EngineProxy)
+                    
+                    if not engine_proxy:
+                        logger.error("EngineProxy not available for scan trigger")
+                    else:
+                        root_id = root._id  # Keep as ObjectId, not string
+                        
+                        logger.info(f"Attempting to trigger scan for root {root_id}")
+                        
+                        async def _trigger_scan():
+                            try:
+                                from PySide6.QtCore import QThread
+                                from src.ucorefs.discovery.service import DiscoveryService
+                                
+                                # Get locator from EngineThread (bypass ContextVar issues)
+                                thread = QThread.currentThread()
+                                if hasattr(thread, 'locator') and thread.locator:
+                                    sl = thread.locator
+                                    logger.info(f"[SCAN TRIGGER] Got locator from EngineThread")
+                                else:
+                                    # Fallback to ContextVar (shouldn't happen)
+                                    from src.core.locator import get_active_locator
+                                    sl = get_active_locator()
+                                    logger.warning(f"[SCAN TRIGGER] Fallback to ContextVar locator")
+                                
+                                discovery = sl.get_system(DiscoveryService)
+                                logger.info(f"[SCAN TRIGGER] Got DiscoveryService: {discovery}")
+                                
+                                # scan_root expects ObjectId, not string
+                                logger.info(f"[SCAN TRIGGER] Calling scan_root({root_id}, background=True)")
+                                task_id = await discovery.scan_root(root_id, background=True)
+                                logger.info(f"[SCAN TRIGGER] Scan submitted successfully, task_id={task_id}")
+                                return task_id
+                            except Exception as e:
+                                logger.error(f"[SCAN TRIGGER] Error inside _trigger_scan: {e}", exc_info=True)
+                                raise
+                        
+                        # Submit to engine
+                        future = engine_proxy.submit(_trigger_scan())
+                        logger.info(f"Triggered background scan for {folder}, future={future}")
                 except Exception as e:
-                    logger.error(f"Failed to trigger scan: {e}")
+                    logger.error(f"Failed to trigger scan: {e}", exc_info=True)
                     
             except Exception as e:
                 logger.error(f"Failed to add root: {e}")

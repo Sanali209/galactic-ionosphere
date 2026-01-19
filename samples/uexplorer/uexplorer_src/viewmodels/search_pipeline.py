@@ -3,8 +3,8 @@ SearchPipeline - Executes searches with 3 modes.
 
 Modes:
 - text: MongoDB regex search on selected fields
-- vector: Text → Embedding → FAISS similarity
-- image: Image → Embedding → FAISS similarity
+- vector: Text -> Embedding -> FAISS similarity
+- image: Image -> Embedding -> FAISS similarity
 """
 from typing import TYPE_CHECKING, List, Optional, Dict, Any
 from PySide6.QtCore import QObject, Signal
@@ -98,11 +98,16 @@ class SearchPipeline(QObject):
     
     async def _text_search(self, query: SearchQuery) -> List["FileRecord"]:
         """
-        Text search using MongoDB regex.
+        Text search using MongoDB regex or SearchService if detection filters present.
         
         Searches selected fields with case-insensitive regex.
         """
         from src.ucorefs.models import FileRecord
+        
+        # If detection filters are present, route to SearchService
+        if query.detection_filters:
+            logger.info(f"Text search has {len(query.detection_filters)} detection filters - routing to SearchService")
+            return await self._text_search_with_detections(query)
         
         conditions = []
         
@@ -144,11 +149,80 @@ class SearchPipeline(QObject):
         logger.info(f"Text search found {len(results)} results")
         return results
     
+    async def _text_search_with_detections(self, query: SearchQuery) -> List["FileRecord"]:
+        """
+        Text search with detection filters using SearchService.
+        """
+        from src.ucorefs.search.service import SearchService, SearchQuery as SvcSearchQuery
+        from src.ucorefs.models import FileRecord
+        
+        logger.info(f"[TEXT_WITH_DETECTIONS] Starting text search with detection filters")
+        logger.info(f"[TEXT_WITH_DETECTIONS] Query text: '{query.text}'")
+        logger.info(f"[TEXT_WITH_DETECTIONS] Detection filters: {query.detection_filters}")
+        
+        try:
+            search_service = self._locator.get_system(SearchService)
+            logger.info(f"[TEXT_WITH_DETECTIONS] ✓ SearchService available")
+        except KeyError as e:
+            logger.error(f"[TEXT_WITH_DETECTIONS] ✗ SearchService not available: {e}")
+            logger.error(f"[TEXT_WITH_DETECTIONS] Cannot apply detection filters without SearchService")
+            # Fallback to regular text search without detection filters
+            return await self._text_search(SearchQuery(
+                text=query.text,
+                mode=query.mode,
+                fields=query.fields,
+                filters=query.filters,
+                tags=query.tags,
+                tag_mode=query.tag_mode,
+                directory=query.directory,
+                limit=query.limit
+            ))
+        
+        try:
+            # Build SearchQuery using Foundation's SearchService dataclass
+            svc_query = SvcSearchQuery(
+                text=query.text,
+                vector_search=False,  # Text search, not vector
+                filters=query.filters,
+                limit=query.limit,
+                detection_filters=query.detection_filters
+            )
+            
+            logger.info(f"[TEXT_WITH_DETECTIONS] Built SearchService query")
+            
+            # Execute unified search
+            logger.info(f"[TEXT_WITH_DETECTIONS] Executing SearchService.search()...")
+            results = await search_service.search(svc_query)
+            
+            logger.info(f"[TEXT_WITH_DETECTIONS] SearchService returned {len(results)} SearchResults")
+            
+            if not results:
+                logger.warning(f"[TEXT_WITH_DETECTIONS] No results returned from SearchService")
+                return []
+            
+            # Get FileRecords from result IDs
+            file_ids = [r.file_id for r in results]
+            logger.info(f"[TEXT_WITH_DETECTIONS] Retrieving {len(file_ids)} FileRecords from database")
+            files = await FileRecord.find({"_id": {"$in": file_ids}})
+            
+            # MongoDB $in doesn't preserve order, so reorder to match ranking
+            file_dict = {f._id: f for f in files}
+            ordered_files = [file_dict[fid] for fid in file_ids if fid in file_dict]
+            
+            logger.info(f"[TEXT_WITH_DETECTIONS] ✓ Text search with detections complete: {len(ordered_files)} FileRecords")
+            return ordered_files
+            
+        except Exception as e:
+            logger.error(f"[TEXT_WITH_DETECTIONS] ✗ Search failed: {e}")
+            import traceback
+            logger.error(f"[TEXT_WITH_DETECTIONS] Traceback: {traceback.format_exc()}")
+            return []
+    
     async def _vector_search(self, query: SearchQuery) -> List["FileRecord"]:
         """
         Vector search using unified SearchService.
         
-        Uses SearchService for combined text→embedding→FAISS similarity.
+        Uses SearchService for combined text->embedding->FAISS similarity.
         This demonstrates proper use of Foundation's unified search API.
         """
         from src.ucorefs.search.service import SearchService, SearchQuery as SvcSearchQuery
@@ -173,7 +247,8 @@ class SearchPipeline(QObject):
                 vector_search=True,
                 vector_provider="clip",
                 filters=query.filters,
-                limit=query.limit
+                limit=query.limit,
+                detection_filters=query.detection_filters
             )
             
             logger.info(f"[VECTOR_SEARCH] Built SearchService query:")

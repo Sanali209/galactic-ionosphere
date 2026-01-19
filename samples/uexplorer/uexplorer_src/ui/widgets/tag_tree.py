@@ -1,221 +1,209 @@
 """
 Tag Tree Widget for UExplorer navigation panel.
 
-Supports:
-- Hierarchical tag display
-- Drag-and-drop tagging (drop files on tags)
-- Context menu operations
-- MVVM sync via TagViewModel
+OPTIMIZED VERSION: Uses QTreeView + TagTreeModel (Virtualization + Lazy Loading).
 """
-from typing import TYPE_CHECKING, Optional, Dict
+from typing import TYPE_CHECKING, Optional, Dict, List
 import asyncio
-from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox, QWidget
-from PySide6.QtCore import Qt, Signal, QTimer
-from PySide6.QtGui import QAction, QColor, QDragEnterEvent, QDropEvent
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QTreeView, QLineEdit, QMenu, 
+    QAbstractItemView, QInputDialog, QMessageBox, QPushButton
+)
+from PySide6.QtCore import Qt, Signal, QSortFilterProxyModel, QModelIndex
+from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent
 from loguru import logger
 from bson import ObjectId
 
 from src.ucorefs.tags.manager import TagManager
 from src.ucorefs.tags.models import Tag
+from uexplorer_src.ui.models.tag_tree_model import TagTreeModel
 
 if TYPE_CHECKING:
     from src.core.service_locator import ServiceLocator
-    from uexplorer_src.viewmodels.tag_viewmodel import TagViewModel
 
 
-class TagTreeWidget(QTreeWidget):
-    """Tree widget displaying hierarchical tags from database."""
+class TagTreeView(QTreeView):
+    """Custom TreeView to handle file drops."""
     
-    tag_selected = Signal(str)  # Emits tag ID when selected
-    files_dropped_on_tag = Signal(str, list)  # Emits (tag_id, list of file_ids)
-    include_requested = Signal(str)  # Emits tag_id to include in filter
-    exclude_requested = Signal(str)  # Emits tag_id to exclude from filter
-    
-    def __init__(self, locator: "ServiceLocator", parent: Optional[QWidget] = None) -> None:
-        super().__init__(parent)
-        self.locator: "ServiceLocator" = locator
-        self.tag_manager: TagManager = locator.get_system(TagManager)
-        
-        # Try to get TagViewModel if registered
-        self._viewmodel: Optional["TagViewModel"] = None
-        try:
-            from src.viewmodels.tag_viewmodel import TagViewModel
-            self._viewmodel = locator.get_system(TagViewModel)
-            if self._viewmodel:
-                self._viewmodel.tags_loaded.connect(self._on_tags_loaded)
-                self._viewmodel.tag_created.connect(self._on_tag_created)
-                self._viewmodel.tag_deleted.connect(self._on_tag_deleted)
-        except (KeyError, ImportError):
-            pass
-        
-        self.setHeaderLabel("Tags")
-        self.setStyleSheet("QTreeWidget { background: #2d2d2d; color: #cccccc; border: none; }")
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.customContextMenuRequested.connect(self._show_context_menu)
-        
-        # Left-click adds tag to filter as include
-        self.itemClicked.connect(self._on_item_clicked)
-        
-        # Enable drag-and-drop
-        self.setAcceptDrops(True)
-        self.setDragEnabled(False)  # Don't drag tags themselves
-        self.setDropIndicatorShown(True)
-        
-        # Drag throttling state - prevents UI freeze during drag
-        self._last_drag_item: Optional[QTreeWidgetItem] = None
-        self._drag_throttle_timer: QTimer = QTimer()
-        self._drag_throttle_timer.setSingleShot(True)
-        self._drag_throttle_timer.setInterval(50)  # 50ms throttle
-        self._drag_throttle_pending_item: Optional[QTreeWidgetItem] = None
-        self._drag_throttle_timer.timeout.connect(self._apply_drag_highlight)
-        
-        # Tag ID to TreeWidgetItem mapping
-        self._tag_items: Dict[str, QTreeWidgetItem] = {}
-        
-        # Defer tag loading until event loop is running
-        # NOTE: PyMongo AsyncMongoClient requires active event loop
-        QTimer.singleShot(100, self._deferred_refresh)
-    
-    def _deferred_refresh(self):
-        """Deferred refresh called after event loop is ready."""
-        try:
-            asyncio.ensure_future(self.refresh_tags())
-        except RuntimeError as e:
-            logger.warning(f"Could not refresh tags on init: {e}")
-    
-    def _on_tags_loaded(self, tags):
-        """Handle tags loaded from ViewModel."""
-        asyncio.ensure_future(self.refresh_tags())
-    
-    def _on_tag_created(self, tag):
-        """Handle new tag from ViewModel."""
-        asyncio.ensure_future(self.refresh_tags())
-    
-    def _on_tag_deleted(self, tag_id):
-        """Handle tag deletion from ViewModel."""
-        asyncio.ensure_future(self.refresh_tags())
-        
-    async def refresh_tags(self):
-        """Load all tags from database and populate tree."""
-        try:
-            self.clear()
-            self._tag_items = {}
-            
-            # Get all root tags (no parent)
-            root_tags = await self.tag_manager.get_children(None)
-            
-            if not root_tags:
-                # Show placeholder if no tags exist
-                placeholder = QTreeWidgetItem(self, ["(Drop files here to tag)"])
-                placeholder.setForeground(0, Qt.gray)
-                return
-            
-            # Build tree recursively
-            for tag in root_tags:
-                await self._add_tag_item(tag, None)
-                
-            self.expandAll()
-            
-        except Exception as e:
-            logger.error(f"Failed to load tags: {e}")
-            placeholder = QTreeWidgetItem(self, [f"Error loading tags: {str(e)}"])
-            placeholder.setForeground(0, Qt.red)
-    
-    async def _add_tag_item(self, tag: Tag, parent_item: QTreeWidgetItem = None):
-        """Add tag and its children to tree."""
-        # Create item
-        if parent_item:
-            item = QTreeWidgetItem(parent_item, [tag.name])
-        else:
-            item = QTreeWidgetItem(self, [tag.name])
-        
-        # Store tag ID in item data
-        item.setData(0, Qt.UserRole, str(tag._id))
-        
-        # Show file count if available
-        if tag.file_count > 0:
-            item.setText(0, f"{tag.name} ({tag.file_count})")
-        
-        # Apply color if set
-        if tag.color:
-            try:
-                item.setForeground(0, QColor(tag.color))
-            except:
-                pass
-        
-        # Store in mapping
-        self._tag_items[str(tag._id)] = item
-        
-        # Load children recursively
-        children = await self.tag_manager.get_children(tag._id)
-        for child_tag in children:
-            await self._add_tag_item(child_tag, item)
-    
-    def _on_item_clicked(self, item, column):
-        """Handle left-click - add tag to filter as include."""
-        tag_id = item.data(0, Qt.UserRole)
-        if tag_id:
-            self.include_requested.emit(tag_id)
-    
-    # ==================== Drag and Drop ====================
+    files_dropped = Signal(QModelIndex, list)  # index, file_ids
     
     def dragEnterEvent(self, event: QDragEnterEvent):
-        """Accept drops from file pane."""
         if event.mimeData().hasFormat('application/x-file-ids'):
             event.acceptProposedAction()
         else:
-            event.ignore()
-    
-    def _apply_drag_highlight(self):
-        """Apply throttled drag highlight (timer callback)."""
-        if self._drag_throttle_pending_item:
-            self.setCurrentItem(self._drag_throttle_pending_item)
-            self._last_drag_item = self._drag_throttle_pending_item
-            self._drag_throttle_pending_item = None
-    
+            super().dragEnterEvent(event)
+
     def dragMoveEvent(self, event):
-        """Highlight target tag during drag (throttled)."""
-        item = self.itemAt(event.position().toPoint())
-        if item and item.data(0, Qt.UserRole):
-            # Reason: Only update highlight if item changed to reduce repaints
-            if item != self._last_drag_item:
-                self._drag_throttle_pending_item = item
-                if not self._drag_throttle_timer.isActive():
-                    self._drag_throttle_timer.start()
+        if event.mimeData().hasFormat('application/x-file-ids'):
             event.acceptProposedAction()
         else:
-            event.ignore()
-    
-    def dragLeaveEvent(self, event):
-        """Clear drag state when leaving widget."""
-        self._last_drag_item = None
-        self._drag_throttle_pending_item = None
-        self._drag_throttle_timer.stop()
-        super().dragLeaveEvent(event)
-    
+            super().dragMoveEvent(event)
+
     def dropEvent(self, event: QDropEvent):
-        """Handle files dropped on tag."""
-        item = self.itemAt(event.position().toPoint())
-        if not item:
-            return
-        
-        tag_id = item.data(0, Qt.UserRole)
-        if not tag_id:
-            return
-        
-        # Get file IDs from mime data
         if event.mimeData().hasFormat('application/x-file-ids'):
             data = event.mimeData().data('application/x-file-ids')
             file_ids = data.data().decode('utf-8').split(',')
             
+            index = self.indexAt(event.position().toPoint())
+            if index.isValid():
+                self.files_dropped.emit(index, file_ids)
+                event.acceptProposedAction()
+        else:
+            super().dropEvent(event)
+
+
+class TagTreeWidget(QWidget):
+    """
+    Virtualized Tag Tree with Search.
+    Wraps QTreeView and manages TagTreeModel.
+    """
+    
+    # Signals matching legacy interface
+    tag_selected = Signal(str)
+    files_dropped_on_tag = Signal(str, list)
+    include_requested = Signal(str)
+    exclude_requested = Signal(str)
+    
+    # New signal for clicked item (index) compatibility
+    itemClicked = Signal(object, int)  # Emits (QModelIndex, column)
+    
+    def __init__(self, locator: "ServiceLocator", parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.locator = locator
+        self.tag_manager: TagManager = locator.get_system(TagManager)
+        
+        self.setup_ui()
+        self.setup_model()
+        
+    def setup_ui(self):
+        """Build the UI."""
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        
+        # Header Toolbar (matching directory panel style)
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(4, 4, 4, 4)
+        header_layout.setSpacing(4)
+        
+        # Search Filter
+        self.search_box = QLineEdit()
+        self.search_box.setPlaceholderText("Filter tags...")
+        self.search_box.setStyleSheet("""
+            QLineEdit {
+                background-color: #3d3d3d;
+                color: #ffffff;
+                border: 1px solid #555;
+                border-radius: 3px;
+                padding: 4px;
+            }
+        """)
+        self.search_box.textChanged.connect(self._on_search_changed)
+        header_layout.addWidget(self.search_box)
+        
+        # Refresh button
+        self.refresh_btn = QPushButton("⟳")
+        self.refresh_btn.setToolTip("Refresh tags")
+        self.refresh_btn.setFixedSize(28, 28)
+        self.refresh_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4d4d4d;
+                color: #ffffff;
+                border: 1px solid #555;
+                border-radius: 3px;
+                font-size: 16px;
+            }
+            QPushButton:hover {
+                background-color: #5d5d5d;
+            }
+            QPushButton:pressed {
+                background-color: #3d3d3d;
+            }
+        """)
+        self.refresh_btn.clicked.connect(lambda: asyncio.create_task(self.refresh_tags()))
+        header_layout.addWidget(self.refresh_btn)
+        
+        layout.addLayout(header_layout)
+        
+        # Tree View
+        self.view = TagTreeView()
+        self.view.setHeaderHidden(True)
+        self.view.setUniformRowHeights(True)  # Optimization
+        self.view.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.view.setDragEnabled(True)
+        self.view.setAcceptDrops(True)
+        self.view.setDragDropMode(QAbstractItemView.DropOnly)
+        self.view.setContextMenuPolicy(Qt.CustomContextMenu)
+        
+        # Stylesheet
+        self.view.setStyleSheet("""
+            QTreeView { 
+                background: #2d2d2d; 
+                color: #cccccc; 
+                border: none; 
+            }
+            QTreeView::item:hover { background: #3d3d3d; }
+            QTreeView::item:selected { background: #4d4d4d; }
+        """)
+        
+        # Signals
+        self.view.clicked.connect(self._on_view_clicked)
+        self.view.customContextMenuRequested.connect(self._show_context_menu)
+        self.view.files_dropped.connect(self._on_files_dropped)
+        
+        layout.addWidget(self.view)
+
+    def setup_model(self):
+        """Initialize model and proxy."""
+        self.model = TagTreeModel(self.tag_manager)
+        
+        # Proxy for filtering
+        self.proxy = QSortFilterProxyModel(self)
+        self.proxy.setSourceModel(self.model)
+        self.proxy.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        self.proxy.setRecursiveFilteringEnabled(True) # Requires Qt 5.10+
+        
+        self.view.setModel(self.proxy)
+
+    async def refresh_tags(self):
+        """Refresh the model."""
+        if hasattr(self, 'model'):
+            self.model.refresh_roots()
+
+    def _on_search_changed(self, text: str):
+        """Filter tags."""
+        self.proxy.setFilterRegularExpression(text)
+        if text:
+            # Expand all matches? Can be slow. 
+            # With recursive filtering, it should just show matches.
+            self.view.expandAll()
+        else:
+            self.view.collapseAll()
+
+    def _on_view_clicked(self, index: QModelIndex):
+        """Handle click."""
+        # Map proxy index to source index
+        source_index = self.proxy.mapToSource(index)
+        
+        # Get Tag ID
+        tag_id = self.model.data(source_index, Qt.UserRole)
+        
+        if tag_id:
+            # Emit legacy signal
+            self.tag_selected.emit(tag_id)
+            # Emit compatibility signal (passing INDEX as 'item')
+            self.itemClicked.emit(index, 0)
+
+    def _on_files_dropped(self, proxy_index: QModelIndex, file_ids: list):
+        """Handle files dropped on tree view item."""
+        source_index = self.proxy.mapToSource(proxy_index)
+        tag_id = self.model.data(source_index, Qt.UserRole)
+        
+        if tag_id:
             logger.info(f"Dropped {len(file_ids)} files on tag {tag_id}")
             self.files_dropped_on_tag.emit(tag_id, file_ids)
-            
-            # Apply tags async
             asyncio.ensure_future(self._apply_tag_to_files(tag_id, file_ids))
-            
-            event.acceptProposedAction()
-    
+
     async def _apply_tag_to_files(self, tag_id: str, file_ids: list):
         """Apply tag to dropped files."""
         try:
@@ -244,47 +232,42 @@ class TagTreeWidget(QTreeWidget):
             await tag.save()
             
             logger.info(f"Tagged {count} files with '{tag.name}'")
-            await self.refresh_tags()
+            self.refresh_tags()
             
         except Exception as e:
             logger.error(f"Failed to apply tags: {e}")
-    
-    # ==================== Context Menu ====================
-    
+
     def _show_context_menu(self, position):
-        """Show context menu for tag operations."""
-        item = self.itemAt(position)
-        if not item:
+        """Show context menu."""
+        index = self.view.indexAt(position)
+        if not index.isValid():
             return
+            
+        source_index = self.proxy.mapToSource(index)
+        tag_id = self.model.data(source_index, Qt.UserRole)
+        tag_name = self.model.data(source_index, Qt.DisplayRole)
         
-        tag_id = item.data(0, Qt.UserRole)
         if not tag_id:
             return
-        
+
         menu = QMenu(self)
         
-        # === Filter actions (top) ===
         include_action = QAction("✓ Include in Filter", self)
-        include_action.setShortcut("I")
         include_action.triggered.connect(lambda: self.include_requested.emit(tag_id))
         menu.addAction(include_action)
         
         exclude_action = QAction("✗ Exclude from Filter", self)
-        exclude_action.setShortcut("E")
         exclude_action.triggered.connect(lambda: self.exclude_requested.emit(tag_id))
         menu.addAction(exclude_action)
         
         menu.addSeparator()
         
-        # === Tag operations ===
         add_child_action = QAction("Add Child Tag", self)
         add_child_action.triggered.connect(lambda: self._add_child_tag(tag_id))
         menu.addAction(add_child_action)
         
-        menu.addSeparator()
-        
         rename_action = QAction("Rename", self)
-        rename_action.triggered.connect(lambda: self._rename_tag(tag_id, item))
+        rename_action.triggered.connect(lambda: self._rename_tag(tag_id, tag_name))
         menu.addAction(rename_action)
         
         delete_action = QAction("Delete", self)
@@ -293,75 +276,66 @@ class TagTreeWidget(QTreeWidget):
         
         menu.addSeparator()
         
-        # Recalculate count action
         recalc_action = QAction("🔄 Recalculate Count", self)
         recalc_action.triggered.connect(lambda: self._recalculate_tag_count(tag_id))
         menu.addAction(recalc_action)
         
-        menu.exec_(self.mapToGlobal(position))
+        menu.exec_(self.view.mapToGlobal(position))
+
+    # === Helper Methods ===
     
-    def _add_child_tag(self, parent_tag_id):
-        """Show dialog to add child tag."""
+    def _add_child_tag(self, parent_id):
         name, ok = QInputDialog.getText(self, "Add Child Tag", "Tag name:")
         if ok and name.strip():
-            asyncio.ensure_future(self._create_child_tag(parent_tag_id, name.strip()))
-    
-    async def _create_child_tag(self, parent_id: str, name: str):
-        """Create child tag."""
+            asyncio.ensure_future(self._create_child_tag(parent_id, name.strip()))
+
+    async def _create_child_tag(self, parent_id, name):
         try:
             await self.tag_manager.create_tag(name=name, parent_id=ObjectId(parent_id))
-            await self.refresh_tags()
+            # Refresh specific parent? Model doesn't support fine-grained refresh yet.
+            self.refresh_tags() 
         except Exception as e:
-            logger.error(f"Failed to create child tag: {e}")
-    
-    def _rename_tag(self, tag_id: str, item: QTreeWidgetItem):
-        """Rename tag."""
-        current_name = item.text(0).split(" (")[0]  # Remove file count suffix
-        new_name, ok = QInputDialog.getText(self, "Rename Tag", "New name:", text=current_name)
-        if ok and new_name.strip() and new_name.strip() != current_name:
+            logger.error(f"Failed to create tag: {e}")
+
+    def _rename_tag(self, tag_id, current_name):
+        # Clean current name (remove count)
+        clean_name = current_name.split(" (")[0]
+        new_name, ok = QInputDialog.getText(self, "Rename Tag", "New name:", text=clean_name)
+        if ok and new_name.strip():
             asyncio.ensure_future(self._rename_tag_async(tag_id, new_name.strip()))
-    
-    async def _rename_tag_async(self, tag_id: str, new_name: str):
-        """Rename tag in database."""
+            
+    async def _rename_tag_async(self, tag_id, new_name):
         try:
             tag = await Tag.get(ObjectId(tag_id))
             if tag:
                 tag.name = new_name
                 await tag.save()
-                await self.refresh_tags()
-        except Exception as e:
-            logger.error(f"Failed to rename tag: {e}")
-    
-    def _delete_tag(self, tag_id: str):
-        """Delete tag after confirmation."""
-        reply = QMessageBox.question(
-            self, "Delete Tag", 
-            "Are you sure you want to delete this tag?\n\nThis will NOT delete the files, only the tag.",
-            QMessageBox.Yes | QMessageBox.No
-        )
-        
+                self.refresh_tags()
+        except Exception:
+            pass
+
+    def _delete_tag(self, tag_id):
+        reply = QMessageBox.question(self, "Delete Tag", "Are you sure?", QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             asyncio.ensure_future(self._delete_tag_async(tag_id))
-    
-    async def _delete_tag_async(self, tag_id: str):
-        """Delete tag from database."""
+
+    async def _delete_tag_async(self, tag_id):
         try:
             await self.tag_manager.delete_tag(ObjectId(tag_id))
-            await self.refresh_tags()
-            logger.info(f"Deleted tag: {tag_id}")
-        except Exception as e:
-            logger.error(f"Failed to delete tag: {e}")
-    
-    def _recalculate_tag_count(self, tag_id: str):
-        """Recalculate count for this tag."""
-        asyncio.ensure_future(self._recalculate_tag_count_async(tag_id))
-    
-    async def _recalculate_tag_count_async(self, tag_id: str):
-        """Recalculate tag count and refresh display."""
-        try:
-            count = await self.tag_manager.update_tag_count(ObjectId(tag_id))
-            logger.info(f"Recalculated tag count: {count}")
-            await self.refresh_tags()
-        except Exception as e:
-            logger.error(f"Failed to recalculate tag count: {e}")
+            self.refresh_tags()
+        except Exception:
+            pass
+
+    def _recalculate_tag_count(self, tag_id):
+        asyncio.ensure_future(self.tag_manager.update_tag_count(ObjectId(tag_id)))
+        self.refresh_tags()
+
+    # === Compatibility APIs ===
+    def get_expanded_items(self):
+        # Stub: Future implementation: traverse model and check expanded state
+        return []
+
+    def expand_items(self, items):
+        # Stub
+        pass
 

@@ -6,7 +6,7 @@ Supports include/exclude filtering.
 """
 from typing import TYPE_CHECKING, List, Set, Optional
 from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 
 import sys
 from pathlib import Path
@@ -121,8 +121,17 @@ class TagPanel(PanelBase):
         if not item:
             return
         
-        # Get tag ID from item
-        tag_id = item.data(0, 0x0100)  # Qt.UserRole
+        # Get tag ID from item (handle QModelIndex or legacy QTreeWidgetItem)
+        try:
+            # QModelIndex
+            if hasattr(item, 'isValid') and hasattr(item, 'data'):
+                tag_id = item.data(Qt.UserRole)
+            else:
+                # QTreeWidgetItem
+                tag_id = item.data(0, Qt.UserRole)
+        except Exception:
+            tag_id = None
+            
         if not tag_id:
             return
         

@@ -363,8 +363,8 @@ class MetadataPanel(QWidget):
         Display ProcessingState with color-coded indicator.
         
         Demonstrates UCoreFS pipeline phases:
-        - DISCOVERED (0) → REGISTERED (10) → METADATA_READY (20)
-        - THUMBNAIL_READY (30) → INDEXED (40) → ANALYZED (50) → COMPLETE (100)
+        - DISCOVERED (0) -> REGISTERED (10) -> METADATA_READY (20)
+        - THUMBNAIL_READY (30) -> INDEXED (40) -> ANALYZED (50) -> COMPLETE (100)
         """
         from src.ucorefs.models.base import ProcessingState
         
@@ -451,14 +451,28 @@ class MetadataPanel(QWidget):
             self.detections_label.setText("-")
     
     def _trigger_blip(self):
-        """Manually trigger BLIP caption generation for current file."""
+        """Manually trigger BLIP caption generation for current file via EngineProxy."""
         if not self.current_file:
             return
         
         try:
-            from src.ucorefs.processing.pipeline import ProcessingPipeline
-            pipeline = self.locator.get_system(ProcessingPipeline)
-            asyncio.ensure_future(pipeline.enqueue_phase3(self.current_file._id))
+            from src.core.engine.proxy import EngineProxy
+            engine_proxy = self.locator.get_system(EngineProxy)
+            
+            if not engine_proxy:
+                logger.error("EngineProxy not available")
+                return
+            
+            file_id = self.current_file._id
+            
+            async def _enqueue_phase3():
+                from src.core.locator import get_active_locator
+                from src.ucorefs.processing.pipeline import ProcessingPipeline
+                sl = get_active_locator()
+                pipeline = sl.get_system(ProcessingPipeline)
+                await pipeline.enqueue_phase3(file_id)
+            
+            engine_proxy.submit(_enqueue_phase3())
             logger.info(f"Queued Phase 3 (BLIP) processing for {self.current_file.name}")
         except Exception as e:
             logger.error(f"Failed to queue BLIP processing: {e}")

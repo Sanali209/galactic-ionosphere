@@ -151,18 +151,39 @@ class SearchService(BaseSystem):
                 {"ai_description": {"$regex": query.text, "$options": "i"}},
             ]
         
-        logger.info(f"[SearchService] MongoDB Filter: {mongo_filter}")
+        
+        # Clean up filter - remove empty lists that custom ORM might not handle well
+        mongo_filter_clean = {}
+        for key, value in mongo_filter.items():
+            # Skip empty list values
+            if isinstance(value, list) and len(value) == 0:
+                continue
+            # Keep everything else
+            mongo_filter_clean[key] = value
+        
+        logger.info(f"[SearchService] MongoDB Filter (cleaned): {mongo_filter_clean}")
         
         # Execute MongoDB query
         mongo_limit = query.limit * 2 if query.vector_search else query.limit
         logger.info(f"[SearchService] Executing MongoDB query (limit={mongo_limit})...")
         
         files = await FileRecord.find(
-            mongo_filter,
+            mongo_filter_clean,
             limit=mongo_limit
         )
         
         logger.info(f"[SearchService] MongoDB returned {len(files)} FileRecords")
+        
+        # Debug: Check if detection filter IDs exist
+        if query.detection_filters and "_id" in mongo_filter and "$in" in mongo_filter["_id"]:
+            requested_ids = mongo_filter["_id"]["$in"]
+            logger.info(f"[SearchService] Requested {len(requested_ids)} IDs from detection filter")
+            if len(files) == 0 and len(requested_ids) > 0:
+                logger.warning(f"[SearchService] Detection filter found {len(requested_ids)} IDs but FileRecord.find returned 0!")
+                logger.warning(f"[SearchService] Sample requested IDs: {requested_ids[:3]}")
+                # Check if these IDs actually exist as FileRecords
+                test_file = await FileRecord.find({"_id": requested_ids[0]}, limit=1)
+                logger.warning(f"[SearchService] Direct query for first ID returned: {len(test_file)} files")
         
         # Add to results
         for file in files:
@@ -445,9 +466,8 @@ class SearchService(BaseSystem):
                     # Cap search to avoid massive fetch
                     from src.ucorefs.models.file_record import FileRecord
                     
-                    # Use the find API - beanie doesn't support projection kwarg
-                    # Just fetch limited records and extract IDs
-                    matching_files = await FileRecord.find(file_filter).limit(10000).to_list()
+                    # Use custom ORM find() API with limit parameter
+                    matching_files = await FileRecord.find(file_filter, limit=10000)
                     matching_ids = [f.id for f in matching_files]
                     
                     if not matching_ids:
@@ -458,40 +478,49 @@ class SearchService(BaseSystem):
                         "$match": {"file_id": {"$in": matching_ids}}
                     })
             
-            # Group by class_id
+            # Group by class_id AND group_name for subgroups
             pipeline.append({
                 "$group": {
-                    "_id": "$detection_class_id", 
+                    "_id": {
+                        "class_id": "$detection_class_id",
+                        "group": "$group_name"
+                    },
                     "count": {"$sum": 1}
                 }
             })
             
             # Execute aggregation
-            # Execute aggregation
             cursor = DetectionInstance.get_collection().aggregate(pipeline)
             
             counts = []
-            class_ids = []
-            id_to_count = {}
+            # Map (class_id, group) -> count
+            group_counts = {}
+            class_ids_set = set()
             
             async for doc in cursor:
-                c_id = doc["_id"]
+                id_obj = doc["_id"]
+                c_id = id_obj.get("class_id")
+                g_name = id_obj.get("group", "unknown")
+                
                 if c_id:
-                    class_ids.append(c_id)
-                    id_to_count[c_id] = doc["count"]
+                    class_ids_set.add(c_id)
+                    group_counts[(c_id, g_name)] = doc["count"]
             
-            if not class_ids:
+            if not class_ids_set:
                 return []
             
             # Resolve class names
-            classes = await DetectionClass.find({"_id": {"$in": class_ids}})
-            for cls in classes:
-                count = id_to_count.get(cls.id, 0)
+            classes = await DetectionClass.find({"_id": {"$in": list(class_ids_set)}})
+            class_map = {cls.id: cls.class_name for cls in classes}
+            
+            # Build result with groups
+            for (class_id, group_name), count in group_counts.items():
+                class_name = class_map.get(class_id, "Unknown")
                 counts.append({
-                    "class_name": cls.class_name,
-                    "group_name": "any",  # TODO: Sub-grouping (DetectionObject?)
+                    "class_name": class_name,
+                    "group_name": group_name,
                     "count": count,
-                    "class_id": str(cls.id)
+                    "class_id": str(class_id)
                 })
             
             return counts
@@ -675,11 +704,17 @@ class SearchService(BaseSystem):
                     {"$match": {"count": {"$gte": min_count}}}
                 ]
                 
-                # Execute aggregation
-                cursor = DetectionInstance.objects().aggregate(pipeline)
+                
+                # Execute aggregation using DatabaseManager
+                from src.core.database.manager import DatabaseManager
+                db_manager = self.locator.get_system(DatabaseManager)
+                collection = db_manager.db[DetectionInstance._collection_name]
+                cursor = collection.aggregate(pipeline)
                 found_ids = set()
                 async for doc in cursor:
                     found_ids.add(doc['_id'])
+                
+                logger.info(f"[DETECTION_FILTER] Aggregation found {len(found_ids)} file IDs for class_name='{class_name}': {list(found_ids)[:10]}")
                 
                 if negate:
                     excluded_ids.update(found_ids)
@@ -689,6 +724,11 @@ class SearchService(BaseSystem):
                         first_include = False
                     else:
                         included_ids.intersection_update(found_ids)
+            
+            logger.info(f"[DETECTION_FILTER] Final included_ids: {len(included_ids)} IDs")
+            logger.info(f"[DETECTION_FILTER] Final excluded_ids: {len(excluded_ids)} IDs")
+            if included_ids:
+                logger.info(f"[DETECTION_FILTER] Sample included IDs: {list(included_ids)[:5]}")
             
             return included_ids, excluded_ids
 

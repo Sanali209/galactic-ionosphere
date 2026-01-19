@@ -2,11 +2,11 @@
     "general": {
         "debug_mode": true,
         "theme": "dark",
-        "task_workers": 3
+        "task_workers": 8
     },
     "ai": {
         "provider_id": "clip_local",
-        "device": "cuda",
+        "device": "cpu",
         "result_limit": 50
     },
     "mongo": {
@@ -14,9 +14,17 @@
         "port": 27017,
         "database_name": "foundation_app"
     },
+    "ui": {
+        "window_state": null,
+        "window_width": 1400,
+        "window_height": 900,
+        "recent_directories": []
+    },
     "library_path": "./data",
     "processing": {
-        "ai_workers": 2,
+        "process_workers": 4,
+        "ai_workers": 4,
+        "batch_chunk_size": 5,
         "detection": {
             "enabled": true,
             "backend": "yolo",
@@ -24,14 +32,11 @@
                 "enabled": true,
                 "model": "yolov8n.pt",
                 "confidence": 0.25,
-                "classes": [
-                    "person",
-                    "car"
-                ],
+                "classes": null,
                 "use_gpu": true
             },
             "mtcnn": {
-                "enabled": true,
+                "enabled": false,
                 "min_face_size": 20,
                 "thresholds": [
                     0.6,
@@ -47,10 +52,8 @@
                 "class_mapping": {
                     "person": "person",
                     "face": "face",
-                    "human face": "face",
                     "cat": "cat",
                     "dog": "dog",
-                    "bird": "bird",
                     "car": "vehicle",
                     "truck": "vehicle",
                     "motorcycle": "vehicle",
@@ -64,17 +67,70 @@
             "enabled": true,
             "model_repo": "SmilingWolf/wd-vit-tagger-v3",
             "general_threshold": 0.35,
-            "character_threshold": 0.35
+            "character_threshold": 0.6
         },
         "embeddings": {
             "clip": {
-                "enabled": true
+                "enabled": true,
+                "model": null
             },
             "dino": {
                 "enabled": true,
                 "model": "vit_small_patch16_224.dino"
             },
             "blip": {
+                "enabled": true,
+                "model": null
+            }
+        }
+    },
+    "metadata": {
+        "auto_fill_description_from_blip": true,
+        "prefer_xmp_over_existing": false
+    },
+    "thumbnail": {
+        "default_size": 128,
+        "sizes": [
+            128,
+            256,
+            512
+        ],
+        "cache_path": null,
+        "max_cache_mb": 1000,
+        "jpeg_quality": 85
+    },
+    "search": {
+        "default_limit": 100,
+        "min_similarity": 0.7,
+        "faiss_index_type": "Flat"
+    },
+    "similarity": {
+        "threshold": 0.7
+    },
+    "llm": {
+        "enabled": false,
+        "provider": "openai",
+        "model": null
+    },
+    "llm_workers": {
+        "enabled": true,
+        "num_workers": 2,
+        "queue_max_size": 100,
+        "idle_unload_seconds": 300,
+        "models": {
+            "clip": {
+                "enabled": true
+            },
+            "blip": {
+                "enabled": true
+            },
+            "wdtagger": {
+                "enabled": true
+            },
+            "yolo": {
+                "enabled": true
+            },
+            "grounding_dino": {
                 "enabled": true
             }
         }

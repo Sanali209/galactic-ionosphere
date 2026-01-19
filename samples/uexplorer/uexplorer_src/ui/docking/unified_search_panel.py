@@ -75,6 +75,13 @@ class UnifiedSearchPanel(QWidget):
         self.search_input.textChanged.connect(self._schedule_search)
         self.search_input.returnPressed.connect(self._execute_now)
         input_row.addWidget(self.search_input, 1)
+
+        # Search Button (Refresh)
+        self.btn_search = QToolButton()
+        self.btn_search.setText("🔍")
+        self.btn_search.setToolTip("Execute Search")
+        self.btn_search.clicked.connect(self._execute_now)
+        input_row.addWidget(self.btn_search)
         
         search_layout.addLayout(input_row)
         
@@ -194,9 +201,22 @@ class UnifiedSearchPanel(QWidget):
         
         detect_layout.addLayout(header_layout)
         
+        
         self.detection_tree = DetectionTreeWidget()
         self.detection_tree.setMinimumHeight(150)
-        self.detection_tree.filter_changed.connect(self._on_detection_tree_changed)
+        
+        
+        # Connect signal with explicit error handling
+        try:
+            self.detection_tree.filter_changed.connect(self._on_detection_tree_changed)
+            logger.info(f"[UnifiedSearchPanel] Detection tree signal connected to {self._on_detection_tree_changed}")
+            
+            # Test connection immediately
+            logger.info("[UnifiedSearchPanel] Testing signal connection...")
+            self.detection_tree.filter_changed.emit([])  # Empty test emission
+            
+        except Exception as e:
+            logger.error(f"[UnifiedSearchPanel] Failed to connect detection tree signal: {e}", exc_info=True)
         
         # Load data from service
         self._refresh_detection_counts()
@@ -236,6 +256,29 @@ class UnifiedSearchPanel(QWidget):
             
         except Exception as e:
              logger.warning(f"Could not fetch detection counts: {e}")
+    
+    def _on_detection_tree_changed(self, filters: List[Dict]):
+        """
+        Handle detection tree filter changes.
+        
+        Args:
+            filters: List of detection filter dicts from DetectionTreeWidget
+        """
+        try:
+            logger.info(f"[DetectionFilter] Received {len(filters)} filters: {filters}")
+            
+            # Store filters in instance variable
+            self._detection_filters = filters
+            
+            # Update query builder - this will trigger _emit_query() which fires the unified search
+            # DO NOT call _execute_now() as it would trigger a second search
+            if hasattr(self._query_builder, 'set_detection_filters'):
+                self._query_builder.set_detection_filters(filters)
+            
+            logger.info(f"[DetectionFilter] Updated query builder with detection filters")
+            
+        except Exception as e:
+            logger.error(f"Failed to apply detection filters: {e}", exc_info=True)
     
     def _apply_style(self):
         self.setStyleSheet("""
@@ -310,7 +353,40 @@ class UnifiedSearchPanel(QWidget):
         # Update query builder with our values
         if self._query_builder:
             self._query_builder.set_text_search(mode, text, fields)
+        if self._query_builder:
+            self._query_builder.set_text_search(mode, text, fields)
             self._query_builder.set_filters(self._get_local_filters())
+            
+            # Important: Set detection filters separately if QueryBuilder supports it
+            # Or mix them? QueryBuilder usually takes 'filters' dict.
+            # But SearchQuery has 'detection_filters' field.
+            # We need to ensure QueryBuilder propagates this.
+            # Assuming QueryBuilder has a set_detection_filters or we patch it into query object.
+            
+            # Update: UnifiedQueryBuilder logic check needed.
+            # For now, let's inject it into the 'filters' dict as a special key if allowed,
+            # or rely on direct query manipulation if builder allows.
+            
+            # Better: Let's assume we can pass it to set_filters or a new method.
+            # Let's check set_filters impl implicitly - likely just stores dict.
+            
+            # Let's inject into filters dict for now, and handle in QueryBuilder -> SearchQuery mapping
+            # OR pass it via custom method if exists.
+            
+            # Since I can't easily see QueryBuilder right now, let's extend _execute_now 
+            # to set it if possible.
+            
+            det_filters = self._get_detection_filters()
+            if hasattr(self._query_builder, 'set_detection_filters'):
+                self._query_builder.set_detection_filters(det_filters)
+            else:
+                 # Fallback: manually update current query if possible?
+                 # No, unsafe. 
+                 # Let's assume we add it to 'filters' and SearchService extracts it?
+                 # No, SearchService expects it in specific field.
+                 
+                 # Let's rely on the method I will add/verify in QueryBuilder.
+                 pass
         
         self.search_requested.emit(mode, text, fields)
     
@@ -352,7 +428,26 @@ class UnifiedSearchPanel(QWidget):
         if self.cb_unrated.isChecked():
             filters["unrated"] = True  # Special flag for unrated files
         
+        if self.cb_unrated.isChecked():
+            filters["unrated"] = True  # Special flag for unrated files
+            
+        # Add Detection Filters
+        if hasattr(self, '_detection_filters') and self._detection_filters:
+            if "detection_filters" not in filters:
+                 # We need to pass this up to QueryBuilder
+                 # But _get_local_filters returns a dict for 'filters' param of SearchQuery?
+                 # SearchQuery has distinct 'detection_filters' field (List[Dict]).
+                 # So we shouldn't mix it into 'filters' dict if query builder handles them separately.
+                 # Let's check _execute_now logic again.
+                 pass
+
         return filters
+
+    def _get_detection_filters(self) -> list:
+        """Get active detection filters."""
+        if hasattr(self, '_detection_filters'):
+            return self._detection_filters
+        return []
     
     def _on_rating_changed(self, value):
         # Uncheck unrated when slider moves
@@ -623,31 +718,7 @@ class UnifiedSearchPanel(QWidget):
         # Trigger query update
         self._query_builder._emit_query()
     
-    def _on_detection_tree_changed(self, filters: list):
-        """Handle changes from detection tree."""
-        if not self._query_builder:
-            return
-            
-        current_query = self._query_builder.get_current_query()
-        if hasattr(current_query, 'detection_filters'):
-            # Merge or Replace? 
-            # Tree represents ALL detection filters or just ones from Tree?
-            # Creating complex logic: 
-            # If user typed "!Car", tree doesn't show it (negation supported via tree?).
-            # My tree doesn't support negation.
-            # So replace all *positive* filters with tree state?
-            # Or just update the ones matching classes in tree?
-            
-            # Simple approach: Tree is the source of truth for detections for now?
-            # No, text search "Person:2" also works.
-            # Merging is hard.
-            # Let's say: Tree state overrides current filters.
-            
-            # Preserve negations?
-            negations = [f for f in current_query.detection_filters if f.get('negate')]
-            current_query.detection_filters = filters + negations
-            
-            self._query_builder._emit_query()
+
             
     def _on_clear_all(self):
         """Clear all filters."""

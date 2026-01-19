@@ -11,11 +11,11 @@ from pathlib import Path
 from bson import ObjectId
 from loguru import logger
 
-from src.ucorefs.extractors.base import Extractor
+from src.ucorefs.extractors.ai_extractor import AIExtractor
 from src.ucorefs.models.file_record import FileRecord
 
 
-class WDTaggerExtractor(Extractor):
+class WDTaggerExtractor(AIExtractor):
     """
     WD-Tagger auto-tagging extractor.
     
@@ -72,22 +72,65 @@ class WDTaggerExtractor(Extractor):
         ext = (file.extension or "").lower().lstrip(".")
         return ext in self.IMAGE_EXTENSIONS
     
-    async def extract(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
-        """
-        Extract tags from images using WDTaggerService.
+    # Inherited from AIExtractor: _get_llm_service(), extract()
+    
+    async def _extract_via_worker(self, files: List[FileRecord], llm_service) -> Dict[ObjectId, Any]:
+        """Extract tags using LLMWorkerService."""
+        from src.core.llm.models import LLMJobRequest
         
-        Using parallelism to maximize throughput.
-        """
+        file_paths = [str(f.path) for f in files]
+        path_to_id = {str(f.path): f._id for f in files}
+        
+        request = LLMJobRequest(
+            task_type="wdtagger",
+            file_paths=file_paths,
+            options={
+                "general_threshold": self.general_threshold,
+                "character_threshold": self.character_threshold,
+                "model_repo": self.model_repo
+            }
+        )
+        
+        try:
+            future = await llm_service.submit_job(request)
+            result = await future
+            
+            if not result.success:
+                logger.warning(f"WDTagger worker job failed: {result.error}, falling back to legacy")
+                return await self._extract_legacy(files)
+            
+            # Check if worker returned actual data (not just None placeholders)
+            results = {}
+            has_real_data = False
+            for file_path, data in (result.data or {}).items():
+                file_id = path_to_id.get(file_path)
+                if file_id:
+                    results[file_id] = data
+                    if data is not None:
+                        has_real_data = True
+            
+            # If worker returned all None (stub not implemented), fall back to legacy
+            if not has_real_data and results:
+                logger.debug("[WDTagger] Worker returned empty data, falling back to legacy")
+                return await self._extract_legacy(files)
+            
+            logger.info(f"[WDTagger] Processed {len(results)}/{len(files)} via LLMWorkerService")
+            return results
+            
+        except Exception as e:
+            logger.error(f"WDTagger extraction via service failed: {e}")
+            return await self._extract_legacy(files)
+    
+    async def _extract_legacy(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
+        """Legacy: Extract tags using WDTaggerService with semaphore concurrency."""
         import asyncio
         results = {}
         
-        # Get service from locator
         service = self._get_tagger_service()
         if not service:
             logger.warning("WDTaggerService not available, skipping tagging")
             return {f._id: None for f in files}
         
-        # Get concurrency limit from config
         ai_workers = 4
         if self.locator and self.locator.config:
             try:
@@ -107,11 +150,9 @@ class WDTaggerExtractor(Extractor):
                     logger.error(f"WD-Tagger failed for {file_record.path}: {e}")
                     return file_record._id, None
 
-        # Execute in parallel
         tasks = [_process_single(f) for f in files]
         batch_results = await asyncio.gather(*tasks)
         
-        # Map results
         for fid, res in batch_results:
             results[fid] = res
         
@@ -129,6 +170,8 @@ class WDTaggerExtractor(Extractor):
     
     async def store(self, file_id: ObjectId, result: Any) -> bool:
         """Store extracted tags in database via TagManager."""
+        import asyncio
+        
         if result is None:
             return False
         
@@ -167,8 +210,11 @@ class WDTaggerExtractor(Extractor):
             
             # Store tags via TagManager or directly on FileRecord
             if tag_manager:
-                for tag_full_name in auto_tags:
+                for i, tag_full_name in enumerate(auto_tags):
                     await tag_manager.add_tag_to_file(file_id, tag_full_name)
+                    # Yield to UI every 5 tags to prevent blocking
+                    if (i + 1) % 5 == 0:
+                        await asyncio.sleep(0)
             else:
                 # Fallback: store in file's auto_tags field
                 current_tags = file.auto_tags or []

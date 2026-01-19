@@ -54,7 +54,8 @@ class YOLOBackend(DetectionBackend):
             logger.error("ultralytics package not installed. Install with: pip install ultralytics")
             raise
         except Exception as e:
-            logger.error(f"Failed to load YOLO model: {e}")
+            import traceback
+            logger.error(f"Failed to load YOLO model: {e}\n{traceback.format_exc()}")
             raise
     
     def get_default_settings(self) -> Dict[str, Any]:

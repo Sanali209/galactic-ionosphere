@@ -14,6 +14,54 @@
         "database_name": "foundation_app"
     },
     "library_path": "./data",
+    "processing": {
+        "ai_workers": 4,
+        "batch_chunk_size": 5,
+        "detection": {
+            "enabled": true,
+            "backend": "yolo",
+            "yolo": {
+                "enabled": true,
+                "model": "yolov8n.pt",
+                "confidence": 0.25,
+                "classes": null,
+                "use_gpu": true
+            },
+            "grounding_dino": {
+                "enabled": true,
+                "box_threshold": 0.35,
+                "text_threshold": 0.25,
+                "class_mapping": {
+                    "person": "person",
+                    "face": "face",
+                    "cat": "cat",
+                    "dog": "dog",
+                    "car": "vehicle",
+                    "truck": "vehicle",
+                    "motorcycle": "vehicle",
+                    "building": "architecture",
+                    "text": "text",
+                    "logo": "logo"
+                }
+            }
+        },
+        "wd_tagger": {
+            "enabled": true,
+            "model_repo": "SmilingWolf/wd-vit-tagger-v3",
+            "general_threshold": 0.35,
+            "character_threshold": 0.6
+        },
+        "embeddings": {
+            "clip": {
+                "enabled": true,
+                "model": null
+            },
+            "blip": {
+                "enabled": true,
+                "model": null
+            }
+        }
+    },
     "metadata": {
         "auto_fill_description_from_blip": true,
         "prefer_xmp_over_existing": false

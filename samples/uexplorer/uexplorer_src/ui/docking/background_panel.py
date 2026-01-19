@@ -133,20 +133,13 @@ class BackgroundPanel(QWidget):
         self._timer.stop()
     
     def _get_systems(self):
-        """Get TaskSystem and ProcessingPipeline."""
-        if not self._task_system:
+        """Get EngineProxy."""
+        if not hasattr(self, '_engine_proxy'):
             try:
-                from src.core.tasks.system import TaskSystem
-                self._task_system = self.locator.get_system(TaskSystem)
+                from src.core.engine.proxy import EngineProxy
+                self._engine_proxy = self.locator.get_system(EngineProxy)
             except Exception:
-                pass
-        
-        if not self._pipeline:
-            try:
-                from src.ucorefs.processing.pipeline import ProcessingPipeline
-                self._pipeline = self.locator.get_system(ProcessingPipeline)
-            except Exception:
-                pass
+                self._engine_proxy = None
     
     def _refresh(self):
         """Refresh task data from database."""
@@ -251,24 +244,35 @@ class BackgroundPanel(QWidget):
             self.recent_table.setItem(row, 2, result_item)
     
     def _update_stats(self, active_tasks: List):
-        """Update queue stats labels."""
-        # Worker count from config
-        worker_count = 3
-        if hasattr(self.locator, 'config'):
-            try:
-                worker_count = self.locator.config.data.general.task_workers
-            except Exception:
-                pass
+        """Update queue stats using TaskSystem introspection methods."""
+        # Try TaskSystem first (new unified approach)
+        try:
+            from src.core.tasks.system import TaskSystem
+            task_system = self.locator.get_system(TaskSystem)
+            
+            # Use new introspection methods
+            handlers = task_system.get_registered_handlers()
+            queue_size = task_system._queue.qsize() if hasattr(task_system, '_queue') else 0
+            worker_count = len(task_system._workers) if task_system._running else 0
+            
+            self.workers_label.setText(f"Workers: {worker_count}")
+            self.phase2_label.setText(f"Queue: {queue_size}")
+            self.phase3_label.setText(f"Handlers: {len(handlers)}")
+            return
+            
+        except (KeyError, AttributeError):
+            pass
         
-        self.workers_label.setText(f"Workers: {worker_count}")
-        
-        # Phase counts from pipeline if available
-        phase2_count = 0
-        phase3_count = 0
-        
-        if self._pipeline:
-            phase2_count = len(getattr(self._pipeline, '_phase2_pending', set()))
-            phase3_count = len(getattr(self._pipeline, '_phase3_pending', set()))
-        
-        self.phase2_label.setText(f"Phase 2: {phase2_count}")
-        self.phase3_label.setText(f"Phase 3: {phase3_count}")
+        # Fallback to Engine stats
+        if hasattr(self, '_engine_proxy') and self._engine_proxy:
+            stats = self._engine_proxy.get_task_stats()
+            worker_count = stats.get("workers", 3)
+            queue_count = stats.get("queue", 0)
+            
+            self.workers_label.setText(f"Workers: {worker_count}")
+            self.phase2_label.setText(f"Queue: {queue_count}")
+            self.phase3_label.setText("-")
+        else:
+            self.workers_label.setText("Workers: ?")
+            self.phase2_label.setText("Queue: ?")
+            self.phase3_label.setText("-")

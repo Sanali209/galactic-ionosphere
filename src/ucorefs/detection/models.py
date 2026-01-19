@@ -61,6 +61,9 @@ class DetectionInstance(FSRecord):
     detection_class_id: Optional[ObjectId] = Field(default=None, index=True)
     detection_object_id: Optional[ObjectId] = Field(default=None, index=True)
     
+    # Group/subclass within the detection class (e.g., "sedan", "SUV" for "car")
+    group_name: str = Field(default="unknown", index=True)
+    
     # Bounding box (normalized 0-1)
     bbox: Dict = Field(default_factory=lambda: {"x": 0, "y": 0, "w": 0, "h": 0})
     

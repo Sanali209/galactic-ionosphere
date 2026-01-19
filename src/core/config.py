@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 import json
 import os
 from pydantic import BaseModel, Field
@@ -35,11 +35,30 @@ class MTCNNSettings(BaseModel):
     thresholds: List[float] = Field(default_factory=lambda: [0.6, 0.7, 0.7])
     use_gpu: bool = True
 
+class GroundingDINOSettings(BaseModel):
+    """GroundingDINO zero-shot object detection settings."""
+    enabled: bool = True
+    box_threshold: float = 0.35
+    text_threshold: float = 0.25
+    class_mapping: Dict[str, str] = Field(default_factory=lambda: {
+        "person": "person", "face": "face", "cat": "cat", "dog": "dog",
+        "car": "vehicle", "truck": "vehicle", "motorcycle": "vehicle",
+        "building": "architecture", "text": "text", "logo": "logo"
+    })
+
 class DetectionSettings(BaseModel):
     enabled: bool = False
     backend: str = "yolo"
     yolo: YOLOSettings = Field(default_factory=YOLOSettings)
     mtcnn: MTCNNSettings = Field(default_factory=MTCNNSettings)
+    grounding_dino: GroundingDINOSettings = Field(default_factory=GroundingDINOSettings)
+
+class WDTaggerSettings(BaseModel):
+    """WD-Tagger auto-tagging settings."""
+    enabled: bool = True
+    model_repo: str = "SmilingWolf/wd-vit-tagger-v3"
+    general_threshold: float = 0.35
+    character_threshold: float = 0.6
 
 class EmbeddingModelSettings(BaseModel):
     enabled: bool = True
@@ -50,9 +69,61 @@ class EmbeddingsSettings(BaseModel):
     dino: EmbeddingModelSettings = Field(default_factory=lambda: EmbeddingModelSettings(model="vit_small_patch16_224.dino"))
     blip: EmbeddingModelSettings = Field(default_factory=EmbeddingModelSettings)
 
+class UISettings(BaseModel):
+    """UI layout and state persistence settings."""
+    window_state: Optional[str] = None
+    window_width: int = 1400
+    window_height: int = 900
+    recent_directories: List[str] = Field(default_factory=list)
+
+class ThumbnailSettings(BaseModel):
+    """Thumbnail generation and caching settings."""
+    default_size: int = 128
+    sizes: List[int] = Field(default_factory=lambda: [128, 256, 512])
+    cache_path: Optional[str] = None
+    max_cache_mb: int = 1000
+    jpeg_quality: int = 85
+
+class SearchSettings(BaseModel):
+    """Search and FAISS settings."""
+    default_limit: int = 100
+    min_similarity: float = 0.7
+    faiss_index_type: str = "Flat"
+
+class SimilaritySettings(BaseModel):
+    """Similarity search threshold settings."""
+    threshold: float = 0.7
+
+class LLMSettings(BaseModel):
+    """LLM provider settings."""
+    enabled: bool = False
+    provider: str = "openai"
+    model: Optional[str] = None
+
+class LLMWorkerModelSettings(BaseModel):
+    """Per-model enablement for LLM workers."""
+    enabled: bool = True
+
+class LLMWorkerSettings(BaseModel):
+    """LLM worker pool settings for non-blocking inference."""
+    enabled: bool = False  # Enable/disable LLM worker process
+    num_workers: int = 2  # Number of worker processes
+    queue_max_size: int = 100
+    idle_unload_seconds: int = 300  # Unload models after idle time
+    models: Dict[str, LLMWorkerModelSettings] = Field(default_factory=lambda: {
+        "clip": LLMWorkerModelSettings(enabled=True),
+        "blip": LLMWorkerModelSettings(enabled=True),
+        "wdtagger": LLMWorkerModelSettings(enabled=True),
+        "yolo": LLMWorkerModelSettings(enabled=False),
+        "grounding_dino": LLMWorkerModelSettings(enabled=False),
+    })
+
 class ProcessingSettings(BaseModel):
+    process_workers: int = 4  # Number of process pool workers for CPU-heavy non-LLM tasks
     ai_workers: int = 4  # Number of concurrent AI threads (CPU heavy)
+    batch_chunk_size: int = 5  # Files to process before yielding to UI
     detection: DetectionSettings = Field(default_factory=DetectionSettings)
+    wd_tagger: WDTaggerSettings = Field(default_factory=WDTaggerSettings)
     embeddings: EmbeddingsSettings = Field(default_factory=EmbeddingsSettings)
 
 class MetadataSettings(BaseModel):
@@ -63,9 +134,15 @@ class AppConfig(BaseModel):
     general: GeneralSettings = Field(default_factory=GeneralSettings)
     ai: AISettings = Field(default_factory=AISettings)
     mongo: MongoSettings = Field(default_factory=MongoSettings)
+    ui: UISettings = Field(default_factory=UISettings)
     library_path: str = "./data"
     processing: ProcessingSettings = Field(default_factory=ProcessingSettings)
     metadata: MetadataSettings = Field(default_factory=MetadataSettings)
+    thumbnail: ThumbnailSettings = Field(default_factory=ThumbnailSettings)
+    search: SearchSettings = Field(default_factory=SearchSettings)
+    similarity: SimilaritySettings = Field(default_factory=SimilaritySettings)
+    llm: LLMSettings = Field(default_factory=LLMSettings)
+    llm_workers: LLMWorkerSettings = Field(default_factory=LLMWorkerSettings)
 
 # --- Manager ---
 class ConfigManager:
@@ -127,3 +204,14 @@ class ConfigManager:
                 json.dump(self._data.model_dump(), f, indent=4) # Pydantic v2
         except Exception as e:
             logger.error(f"Failed to save config to {self.filepath}: {e}")
+
+    # --- BaseSystem Interface ---
+    depends_on = [] 
+
+    async def initialize(self):
+        """No-op init for compatibility with ServiceLocator."""
+        pass
+        
+    async def shutdown(self):
+        """No-op shutdown."""
+        pass

@@ -2,17 +2,17 @@
 UCoreFS - DINO Extractor
 
 Extracts DINO embeddings for image files using ViT-Small model.
-Ported from SLM/vision/imagetotensor/backends/DINO.py.
 """
 from typing import List, Dict, Any, Optional
+import asyncio
 from bson import ObjectId
 from loguru import logger
 
-from src.ucorefs.extractors.base import Extractor
+from src.ucorefs.extractors.ai_extractor import AIExtractor
 from src.ucorefs.models.file_record import FileRecord
 
 
-class DINOExtractor(Extractor):
+class DINOExtractor(AIExtractor):
     """
     DINO embedding extractor for images.
     
@@ -53,11 +53,15 @@ class DINOExtractor(Extractor):
         self._model_name = self.config.get("model", "vit_small_patch16_224.dino")
         self._use_gpu = self.config.get("use_gpu", True)
     
-    def _ensure_model_loaded(self):
-        """Lazy-load model on first use."""
+    async def _ensure_model_loaded(self):
+        """Lazy-load model on first use (async)."""
         if self._model is not None:
             return
+            
+        await asyncio.to_thread(self._ensure_model_sync)
         
+    def _ensure_model_sync(self):
+        """Synchronous model loading implementation."""
         try:
             import timm
             import torch
@@ -91,30 +95,38 @@ class DINOExtractor(Extractor):
         if not file.extension:
             return False
         return file.extension.lower() in self.IMAGE_EXTENSIONS
-    
+
     async def extract(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
-        """
-        Extract DINO embeddings from images.
-        
-        Args:
-            files: List of FileRecord objects
-            
-        Returns:
-            Dict mapping file_id -> embedding ndarray
-        """
-        results = {}
-        
+        """Extract DINO embeddings from images."""
         try:
-            self._ensure_model_loaded()
+            await self._ensure_model_loaded()
         except Exception:
-            return results
+            return {}
         
+        # Use inherited helper for standardized executor access
+        return await self._run_in_ai_executor(self._inference_batch, files)
+    
+    async def _extract_via_worker(self, files: List[FileRecord], llm_service) -> Dict[ObjectId, Any]:
+        """DINO worker not yet implemented."""
+        raise NotImplementedError("DINO worker not implemented")
+    
+    async def _extract_legacy(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
+        """Legacy extraction using shared AI executor."""
+        return await self.extract(files)
+
+    def _inference_batch(self, files: List[FileRecord]) -> Dict[ObjectId, Any]:
+        """Synchronous batch inference running in worker thread."""
+        results = {}
         import torch
         from PIL import Image
-        
+        import asyncio
+
         for file in files:
             try:
                 # Load and preprocess image
+                if not self.can_process(file):
+                    continue
+
                 img = Image.open(file.path).convert("RGB")
                 img_tensor = self._transform(img).unsqueeze(0).to(self._device)
                 

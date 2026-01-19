@@ -1,9 +1,9 @@
-"""
+'''
 UExplorer Main Window
 
 Directory Opus-inspired dual-pane file manager.
 Now powered by PySide6-QtAds for professional docking!
-"""
+'''
 from pathlib import Path
 import asyncio
 
@@ -20,7 +20,7 @@ from src.ui.docking import DockingService
 from src.ui.navigation.service import NavigationService, NavigationContext
 
 class MainWindow(QMainWindow):
-    """
+    '''
     UExplorer main window with dual-pane layout.
     
     Layout:
@@ -39,15 +39,15 @@ class MainWindow(QMainWindow):
     ├──────────────────────────────────────┤
     │ Status Bar                           │
     └──────────────────────────────────────┘
-    """
+    '''
     
     def __init__(self, viewmodel):
-        """
+        '''
         Initialize UExplorer main window.
         
         Args:
             viewmodel: MainViewModel instance (contains locator reference)
-        """
+        '''
         super().__init__()
         
         # Extract locator from viewmodel (run_app passes viewmodel)
@@ -101,17 +101,17 @@ class MainWindow(QMainWindow):
         logger.info("UExplorer main window initialized")
     
     def _restore_browser_document(self, doc_id: str, doc_state: dict):
-        """Restore a browser document from saved state (delegate to session_manager)."""
+        '''Restore a browser document from saved state (delegate to session_manager).'''
         from uexplorer_src.ui.managers import restore_browser_document
         restore_browser_document(self, self.locator, self.docking_service, doc_id, doc_state)
     
     def _open_browser_for_directory(self, directory_id: str):
-        """Open a new browser tab and navigate to directory (delegate to session_manager)."""
+        '''Open a new browser tab and navigate to directory (delegate to session_manager).'''
         from uexplorer_src.ui.managers import open_browser_for_directory
         open_browser_for_directory(self, self.locator, self.docking_service, directory_id)
     
     def _init_managers(self):
-        """Initialize centralized UI managers."""
+        '''Initialize centralized UI managers.'''
         from uexplorer_src.ui.managers import FilterManager, SelectionManager
         
         # Create managers
@@ -154,7 +154,7 @@ class MainWindow(QMainWindow):
     from qasync import asyncSlot
     @asyncSlot()
     async def load_initial_roots(self):
-        """Load library roots into file panes (call after event loop starts)."""
+        '''Load library roots into file panes (call after event loop starts).'''
         from loguru import logger
         logger.info("MainWindow: Triggering initial root load...")
         
@@ -170,20 +170,36 @@ class MainWindow(QMainWindow):
             logger.info("  - Loading roots into left pane")
             await self.left_pane.model.refresh_roots()
             
-        # Trigger background scan of all roots
+        # Trigger background scan of all roots via EngineProxy
         try:
-            from src.ucorefs.discovery.service import DiscoveryService
-            discovery = self.locator.get_system(DiscoveryService)
-            if discovery:
+            from src.core.engine.proxy import EngineProxy
+            engine_proxy = self.locator.get_system(EngineProxy)
+            
+            if engine_proxy:
+                async def _scan_all():
+                    from PySide6.QtCore import QThread
+                    from src.ucorefs.discovery.service import DiscoveryService
+                    
+                    # Get locator from EngineThread (bypass ContextVar issues)
+                    thread = QThread.currentThread()
+                    if hasattr(thread, 'locator') and thread.locator:
+                        sl = thread.locator
+                    else:
+                        from src.core.locator import get_active_locator
+                        sl = get_active_locator()
+                    
+                    discovery = sl.get_system(DiscoveryService)
+                    await discovery.scan_all_roots(background=True)
+                
                 logger.info("  - Triggering background library scan...")
-                await discovery.scan_all_roots(background=True)
+                engine_proxy.submit(_scan_all())
         except Exception as e:
             logger.error(f"Failed to trigger initial scan: {e}")
         
         logger.info("✓ Initial root load triggered")
     
     def closeEvent(self, event):
-        """Handle window close event - save session via SessionManager."""
+        '''Handle window close event - save session via SessionManager.'''
         logger.info("=" * 50)
         logger.info("🚪 WINDOW CLOSE - Saving session")
         logger.info("=" * 50)
@@ -197,7 +213,7 @@ class MainWindow(QMainWindow):
         logger.info("Window closed")
     
     def setup_window(self):
-        """Setup main window properties."""
+        '''Setup main window properties.'''
         ui_config = self.config.data.ui if hasattr(self.config.data, 'ui') else None
         
         width = ui_config.window_width if ui_config else 1400
@@ -207,7 +223,7 @@ class MainWindow(QMainWindow):
         self.resize(width, height)
     
     def setup_action_registry(self):
-        """Initialize ActionRegistry with all UExplorer actions."""
+        '''Initialize ActionRegistry with all UExplorer actions.'''
         from src.ui.menus.action_registry import ActionRegistry
         from uexplorer_src.ui.actions.action_definitions import register_all_actions
         
@@ -220,7 +236,7 @@ class MainWindow(QMainWindow):
         logger.info("ActionRegistry initialized with UExplorer actions")
     
     def create_menu_bar(self):
-        """Create menu bar using MenuManager."""
+        '''Create menu bar using MenuManager.'''
         from uexplorer_src.ui.managers import MenuManager
         
         self.menu_manager = MenuManager(self, self.action_registry)
@@ -231,7 +247,7 @@ class MainWindow(QMainWindow):
 
     
     def create_toolbar(self):
-        """Create toolbar using ToolbarManager."""
+        '''Create toolbar using ToolbarManager.'''
         from uexplorer_src.ui.managers import ToolbarManager
         
         self.toolbar_manager = ToolbarManager(self, self.action_registry)
@@ -240,13 +256,13 @@ class MainWindow(QMainWindow):
         logger.info("Toolbar created via ToolbarManager")
     
     def create_central_widget(self):
-        """
+        '''
         Create the central widget area.
         
         With Unified Docking (QtAds Manager of Central Widget),
         we do not strictly need a central widget as QtAds manages the space.
         However, we set a dummy one if needed, or just let QtAds handle it.
-        """
+        '''
         # Unified Docking: QtAds manages the central widget area
         logger.info("Central widget managed by DockingService (QtAds)")
         pass
@@ -256,7 +272,7 @@ class MainWindow(QMainWindow):
 
     
     def on_selection_changed(self, record_ids):
-        """Handle selection change (any pane)."""
+        '''Handle selection change (any pane).'''
         if not record_ids:
             self._clear_metadata()
             self.status_label.setText("Ready")
@@ -269,14 +285,14 @@ class MainWindow(QMainWindow):
         asyncio.ensure_future(self._update_metadata(record_ids[0]))
 
     def _clear_metadata(self):
-        """Clear metadata panel if available."""
+        '''Clear metadata panel if available.'''
         if hasattr(self, 'properties_panel') and self.properties_panel:
             mp = self.properties_panel.metadata_panel
             if mp:
                 mp.clear()
 
     async def _update_metadata(self, record_id_str):
-        """Fetch record and update panel."""
+        '''Fetch record and update panel.'''
         try:
             from bson import ObjectId
             from src.ucorefs.models.file_record import FileRecord
@@ -301,7 +317,7 @@ class MainWindow(QMainWindow):
 
     
     def create_status_bar(self):
-        """Create status bar."""
+        '''Create status bar.'''
         status = QStatusBar()
         self.setStatusBar(status)
         
@@ -326,44 +342,80 @@ class MainWindow(QMainWindow):
         status.addPermanentWidget(self.progress_bar)
     
     def setup_task_progress(self):
-        """
-        TaskSystem integration note.
+        '''
+        Connect TaskSystem signals for real-time task status updates.
         
-        Foundation's TaskSystem manages tasks via database (TaskRecord),
-        not Qt signals. UI progress tracking would require:
-        1. Polling TaskRecord.find({"status": "running"})
-        2. Custom signal emission in task handlers
-        3. Or use DiscoveryService progress callbacks
-        
-        For demonstration, we verify TaskSystem is available.
-        """
-        from src.core.tasks.system import TaskSystem
-        
+        TaskSystem emits Qt signals for:
+        - task_started: When a background task begins
+        - task_completed: When a task finishes successfully
+        - task_failed: When a task fails
+        - task_progress: Progress updates during execution
+        '''
         try:
+            from src.core.tasks.system import TaskSystem
             task_system = self.locator.get_system(TaskSystem)
-            if not task_system:
-                logger.warning("TaskSystem not available")
-                return
             
-            logger.info("TaskSystem available - tasks tracked in database")
-            # Note: DiscoveryService already uses TaskSystem internally
-            # and provides its own progress updates via scan completion
+            # Connect TaskSystem signals to UI handlers
+            task_system.signals.task_started.connect(self._on_task_started)
+            task_system.signals.task_completed.connect(self._on_task_completed)
+            task_system.signals.task_failed.connect(self._on_task_failed)
+            task_system.signals.task_progress.connect(self._on_task_progress)
             
-        except Exception as e:
-            logger.error(f"Failed to setup task progress: {e}")
+            logger.info("TaskSystem signals connected to MainWindow")
+            
+        except (KeyError, ImportError) as e:
+            logger.debug(f"TaskSystem signals not connected: {e}")
+        
+        # Also verify Engine is available
+        try:
+            from src.core.engine.proxy import EngineProxy
+            engine = self.locator.get_system(EngineProxy)
+            if engine:
+                logger.info("Engine available - handling heavy background tasks")
+        except Exception:
+            pass
+    
+    def _on_task_started(self, task_id: str):
+        '''Handle TaskSystem task_started signal.'''
+        self.status_label.setText(f"⏳ Task started: {task_id[:8]}...")
+        logger.debug(f"UI: Task started {task_id[:8]}")
+    
+    def _on_task_completed(self, task_id: str, result):
+        '''Handle TaskSystem task_completed signal.'''
+        success = result.get("success", True) if isinstance(result, dict) else True
+        if success:
+            self.status_label.setText(f"✓ Task completed: {task_id[:8]}")
+        else:
+            error = result.get("error", "Unknown error") if isinstance(result, dict) else ""
+            self.status_label.setText(f"⚠ Task finished with error: {error[:30]}")
+        self.progress_bar.setVisible(False)
+        logger.debug(f"UI: Task completed {task_id[:8]}")
+    
+    def _on_task_failed(self, task_id: str, error: str):
+        '''Handle TaskSystem task_failed signal.'''
+        self.status_label.setText(f"✗ Task failed: {error[:40]}")
+        self.progress_bar.setVisible(False)
+        logger.warning(f"UI: Task failed {task_id[:8]}: {error}")
+    
+    def _on_task_progress(self, task_id: str, percent: int, message: str):
+        '''Handle TaskSystem task_progress signal.'''
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(percent)
+        if message:
+            self.status_label.setText(f"{message} ({percent}%)")
     
     def show_progress(self, visible: bool, value: int = 0, maximum: int = 100):
-        """Show/hide progress bar in status bar."""
+        '''Show/hide progress bar in status bar.'''
         self.progress_bar.setVisible(visible)
         self.progress_bar.setMaximum(maximum)
         self.progress_bar.setValue(value)
     
     def update_progress(self, value: int):
-        """Update progress bar value."""
+        '''Update progress bar value.'''
         self.progress_bar.setValue(value)
     
     def open_dashboard(self):
-        """Open the System Dashboard."""
+        '''Open the System Dashboard.'''
         from uexplorer_src.ui.documents.dashboard_document import DashboardDocument
         
         # Check if already open
@@ -389,7 +441,7 @@ class MainWindow(QMainWindow):
 
     
     def new_browser(self):
-        """Create a new CardView file browser document tab."""
+        '''Create a new CardView file browser document tab.'''
         from uexplorer_src.ui.documents.file_browser_document import FileBrowserDocument
         
         # Generate unique doc_id
@@ -427,7 +479,7 @@ class MainWindow(QMainWindow):
         logger.info(f"Created new browser: {doc_id}")
     
     def show_library_dialog(self):
-        """Show library settings dialog."""
+        '''Show library settings dialog.'''
         from pathlib import Path
         
         # Import from correct location
@@ -446,7 +498,7 @@ class MainWindow(QMainWindow):
     # ==================== Maintenance Commands (Delegated) ====================
     
     def _get_maintenance_ui(self):
-        """Get MaintenanceUI instance for command callbacks."""
+        '''Get MaintenanceUI instance for command callbacks.'''
         from uexplorer_src.commands import MaintenanceUI
         return MaintenanceUI(
             parent_widget=self,
@@ -458,7 +510,7 @@ class MainWindow(QMainWindow):
         )
     
     def reprocess_selection(self):
-        """Reprocess selected files through Phase 2/3 pipeline."""
+        '''Reprocess selected files through Phase 2/3 pipeline.'''
         from uexplorer_src.commands import reprocess_selection
         
         if not hasattr(self, 'selection_manager'):
@@ -471,37 +523,46 @@ class MainWindow(QMainWindow):
         ))
     
     def reindex_all_files(self):
-        """Reindex all unprocessed files in database via background tasks."""
+        '''Reindex all unprocessed files in database via background tasks.'''
         from uexplorer_src.commands import reindex_all_files
         asyncio.ensure_future(reindex_all_files(
             self.locator, self._get_maintenance_ui()
         ))
     
     def rebuild_all_counts(self):
-        """Rebuild file counts for tags, albums, directories."""
+        '''Rebuild file counts for tags, albums, directories.'''
         from uexplorer_src.commands import rebuild_all_counts
         
-        def refresh_panels():
+        async def refresh_panels_async():
+            '''Refresh all panels with coordinated concurrent execution.'''
+            tasks = []
             if hasattr(self, 'tags_panel') and self.tags_panel:
-                asyncio.create_task(self.tags_panel._tree.refresh_tags())
+                tasks.append(self.tags_panel._tree.refresh_tags())
             if hasattr(self, 'albums_panel') and self.albums_panel:
-                asyncio.create_task(self.albums_panel._tree.refresh_albums())
+                tasks.append(self.albums_panel._tree.refresh_albums())
             if hasattr(self, 'directory_panel') and self.directory_panel:
-                asyncio.create_task(self.directory_panel.on_update())
+                tasks.append(self.directory_panel.on_update())
+            
+            if tasks:
+                # Run all refreshes concurrently but await completion together
+                await asyncio.gather(*tasks, return_exceptions=True)
+        
+        def refresh_panels():
+            asyncio.create_task(refresh_panels_async())
         
         asyncio.ensure_future(rebuild_all_counts(
             self.locator, self._get_maintenance_ui(), refresh_panels
         ))
     
     def verify_references(self):
-        """Verify data integrity."""
+        '''Verify data integrity.'''
         from uexplorer_src.commands import verify_references
         asyncio.ensure_future(verify_references(
             self.locator, self._get_maintenance_ui()
         ))
     
     def cleanup_orphaned_records(self):
-        """Cleanup orphaned references."""
+        '''Cleanup orphaned references.'''
         from uexplorer_src.commands import cleanup_orphaned_records
         asyncio.ensure_future(cleanup_orphaned_records(
             self.locator, self._get_maintenance_ui()
@@ -511,23 +572,23 @@ class MainWindow(QMainWindow):
     
     # Helper methods for non-blocking messages
     def _show_error(self, message: str):
-        """Show error message without blocking event loop."""
+        '''Show error message without blocking event loop.'''
         from PySide6.QtWidgets import QMessageBox
         QMessageBox.critical(self, "Error", message)
     
     def _show_warning(self, message: str):
-        """Show warning message without blocking event loop."""
+        '''Show warning message without blocking event loop.'''
         from PySide6.QtWidgets import QMessageBox
         QMessageBox.warning(self, "Warning", message)
     
     def _show_success(self, message: str):
-        """Show success message without blocking event loop."""
+        '''Show success message without blocking event loop.'''
         from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(self, "Success", message)
     
     def show_settings_dialog(self):
 
-        """Show settings dialog integrated with ConfigManager."""
+        '''Show settings dialog integrated with ConfigManager.'''
         try:
             from uexplorer_src.ui.dialogs.settings_dialog import SettingsDialog
             
@@ -543,18 +604,18 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Error", f"Could not open settings: {e}")
     
     def _on_album_selected(self, album_id: str, is_smart: bool, query: dict):
-        """Handle album selection - filter files."""
+        '''Handle album selection - filter files.'''
         logger.info(f"Album selected: {album_id}, smart={is_smart}, query={query}")
         self.status_label.setText(f"Viewing album (smart={is_smart})")
         # TODO: Filter file panes based on album contents
     
     def _on_relation_category_selected(self, category: str):
-        """Handle relation category selection."""
+        '''Handle relation category selection.'''
         logger.info(f"Relation category selected: {category}")
         self.status_label.setText(f"Viewing {category} relations")
     
     def _on_directory_selected(self, directory_id: str, path: str):
-        """
+        '''
         Handle directory selection from DirectoryPanel.
         
         Opens a FileBrowserDocument tab with files from the selected folder.
@@ -562,7 +623,7 @@ class MainWindow(QMainWindow):
         Args:
             directory_id: MongoDB ObjectId of directory
             path: Filesystem path of directory
-        """
+        '''
         logger.info(f"Directory selected: {path} (ID: {directory_id})")
         
         # Use NavigationService for intelligent routing
@@ -584,7 +645,7 @@ class MainWindow(QMainWindow):
     
     
     def setup_docking_service(self):
-        """Initialize NEW docking system with DockingService (PySide6-QtAds)."""
+        '''Initialize NEW docking system with DockingService (PySide6-QtAds).'''
         logger.info("Setting up DockingService (PySide6-QtAds)...")
         
         # Create docking service
@@ -603,13 +664,13 @@ class MainWindow(QMainWindow):
         logger.info("✓ DockingService initialized successfully!")
     
     def _on_document_tab_activated(self, doc_id: str):
-        """Handle document tab activation - update DocumentManager."""
+        '''Handle document tab activation - update DocumentManager.'''
         if hasattr(self, 'document_manager'):
             self.document_manager.set_active(doc_id)
             logger.info(f"Active document switched to: {doc_id}")
     
     def _create_file_documents(self):
-        """Create CardView-based file browser documents."""
+        '''Create CardView-based file browser documents.'''
         import json
         from pathlib import Path
         from uexplorer_src.ui.documents.file_browser_document import FileBrowserDocument
@@ -696,12 +757,12 @@ class MainWindow(QMainWindow):
         logger.info(f"✓ Created {len(session_browsers)} CardView browser(s)")
 
     async def _delayed_browse(self, doc, dir_id):
-        """Helper to trigger browse after UI init."""
+        '''Helper to trigger browse after UI init.'''
         await asyncio.sleep(0.1)
         doc.browse_directory(dir_id)
     
     def _connect_pane_to_managers(self, pane):
-        """Connect a file pane to FilterManager and SelectionManager."""
+        '''Connect a file pane to FilterManager and SelectionManager.'''
         if hasattr(self, 'filter_manager') and hasattr(self, 'selection_manager'):
             pane.set_managers(
                 filter_manager=self.filter_manager,
@@ -712,12 +773,12 @@ class MainWindow(QMainWindow):
             logger.debug(f"Connected pane to managers")
     
     def _connect_panes_to_managers(self):
-        """Legacy compatibility - connect file_pane_left if exists."""
+        '''Legacy compatibility - connect file_pane_left if exists.'''
         if hasattr(self, 'file_pane_left') and self.file_pane_left:
             self._connect_pane_to_managers(self.file_pane_left)
     
     def _create_tool_panels(self):
-        """Create tool panels using panel_factory (delegated)."""
+        '''Create tool panels using panel_factory (delegated).'''
         from uexplorer_src.ui.managers import create_all_panels, connect_panel_signals
         
         # Create all panels
@@ -751,7 +812,7 @@ class MainWindow(QMainWindow):
         self._setup_unified_query_builder()
     
     def _setup_unified_query_builder(self):
-        """Initialize and connect UnifiedQueryBuilder to all filter panels."""
+        '''Initialize and connect UnifiedQueryBuilder to all filter panels.'''
         from uexplorer_src.viewmodels.unified_query_builder import UnifiedQueryBuilder
         
         self.query_builder = UnifiedQueryBuilder(self.locator, self)
@@ -774,21 +835,21 @@ class MainWindow(QMainWindow):
         logger.info("✓ UnifiedQueryBuilder connected to all panels")
     
     def _on_active_file_changed(self, file_id):
-        """Update properties panel when active file changes."""
+        '''Update properties panel when active file changes.'''
         if file_id and hasattr(self, 'properties_panel'):
             self.properties_panel.set_file(str(file_id))
     
     def _on_search_requested(self, mode: str, query: str, fields: list):
-        """
+        '''
         Handle search request using SearchPipeline.
         
         Results automatically go to active document via DocumentManager.
-        """
+        '''
         import asyncio
         asyncio.ensure_future(self._perform_search(mode, query, fields))
     
     async def _perform_search(self, mode: str, query_text: str, fields: list = None):
-        """Execute search via SearchPipeline."""
+        '''Execute search via SearchPipeline.'''
         from uexplorer_src.viewmodels.search_query import SearchQuery
         
         if fields is None:
@@ -816,12 +877,12 @@ class MainWindow(QMainWindow):
             await self.search_pipeline.execute(search_query)
     
     def _on_find_similar_image(self, file_id):
-        """Handle Find Similar request - execute image→vector search."""
+        '''Handle Find Similar request - execute image->vector search.'''
         import asyncio
         asyncio.ensure_future(self._perform_image_search(file_id))
     
     async def _perform_image_search(self, file_id):
-        """Execute image similarity search via SearchPipeline."""
+        '''Execute image similarity search via SearchPipeline.'''
         from uexplorer_src.viewmodels.search_query import SearchQuery
         from bson import ObjectId
         
@@ -839,13 +900,13 @@ class MainWindow(QMainWindow):
             await self.search_pipeline.execute(search_query)
     
     def _on_search_requested(self, mode: str, query: str, fields: list):
-        """Handle search requested from SearchDockPanel."""
+        '''Handle search requested from SearchDockPanel.'''
         logger.info(f">>> _on_search_requested CALLED: mode={mode}, query='{query}', fields={fields}")
         import asyncio
         asyncio.ensure_future(self._execute_search(mode, query, fields))
     
     async def _execute_search(self, mode: str, query: str, fields: list):
-        """Execute search with given parameters."""
+        '''Execute search with given parameters.'''
         from uexplorer_src.viewmodels.search_query import SearchQuery
         
         logger.info(f"Search requested: mode={mode}, query='{query}', fields={fields}")
@@ -861,17 +922,17 @@ class MainWindow(QMainWindow):
             await self.search_pipeline.execute(search_query)
     
     def _on_unified_query_changed(self, unified_query):
-        """
+        '''
         Handle unified query change from any panel.
         
         This is the primary entry point for the new unified search system.
         Called when search panel, tag panel, album panel, or filter panel changes.
-        """
+        '''
         import asyncio
         asyncio.ensure_future(self._execute_unified_search(unified_query))
     
     async def _execute_unified_search(self, unified_query):
-        """Execute search with unified query from all panels."""
+        '''Execute search with unified query from all panels.'''
         from uexplorer_src.viewmodels.search_query import SearchQuery
         
         logger.info(f"[MainWindow] ========== UNIFIED SEARCH START ==========")
@@ -881,11 +942,11 @@ class MainWindow(QMainWindow):
         logger.info(f"[MainWindow] Has Filters: {unified_query.has_filters()}")
         logger.info(f"[MainWindow] Limit: {unified_query.limit}")
         
-        # Mode conversion: "semantic" → "vector" for SearchPipeline
+        # Mode conversion: "semantic" -> "vector" for SearchPipeline
         converted_mode = unified_query.mode
         if unified_query.mode == "semantic":
             converted_mode = "vector"
-            logger.info(f"[MainWindow] >>> Converting mode 'semantic' → 'vector' for SearchPipeline")
+            logger.info(f"[MainWindow] >>> Converting mode 'semantic' -> 'vector' for SearchPipeline")
         
         # Build SearchQuery from UnifiedSearchQuery
         search_query = SearchQuery(
@@ -902,7 +963,9 @@ class MainWindow(QMainWindow):
                 "directory_include": unified_query.directory_include,
                 "directory_exclude": unified_query.directory_exclude,
                 **unified_query.filters
-            }
+            },
+            # Pass detection filters - CRITICAL FIX
+            detection_filters=unified_query.detection_filters
         )
         
         logger.info(f"[MainWindow] Built SearchQuery:")
@@ -923,12 +986,12 @@ class MainWindow(QMainWindow):
             logger.error(f"[MainWindow] No search_pipeline available!")
     
     def _on_filters_applied(self):
-        """Handle filters applied - execute filter-only search."""
+        '''Handle filters applied - execute filter-only search.'''
         import asyncio
         asyncio.ensure_future(self._perform_filter_search())
     
     async def _perform_filter_search(self):
-        """Execute search with only filter conditions (no text query)."""
+        '''Execute search with only filter conditions (no text query).'''
         from uexplorer_src.viewmodels.search_query import SearchQuery
         
         logger.info("Filters applied - refreshing results")
@@ -952,12 +1015,12 @@ class MainWindow(QMainWindow):
             await self.search_pipeline.execute(search_query)
     
     def _toggle_panel(self, panel_name: str):
-        """Toggle panel visibility."""
+        '''Toggle panel visibility.'''
         if hasattr(self, 'docking_service'):
             self.docking_service.toggle_panel(panel_name)
     
     def save_layout(self):
-        """Save docking layout state to config."""
+        '''Save docking layout state to config.'''
         if not hasattr(self, 'docking_service'):
             logger.warning("No docking_service to save layout from")
             return
@@ -999,7 +1062,7 @@ class MainWindow(QMainWindow):
             logger.error(f"Failed to save docking layout: {e}")
     
     def restore_docking_layout(self):
-        """Restore docking layout from saved state."""
+        '''Restore docking layout from saved state.'''
         if not hasattr(self, 'docking_service'):
             logger.warning("No docking_service to restore layout to")
             return False
@@ -1022,7 +1085,7 @@ class MainWindow(QMainWindow):
             return False
     
     def _split_horizontal(self):
-        """Split current pane horizontally (side by side) - Now with drag & drop!"""
+        '''Split current pane horizontally (side by side) - Now with drag & drop!'''
         from src.ui.documents.split_manager import SplitOrientation
         from PySide6.QtWidgets import QSplitter
         from PySide6.QtCore import Qt
@@ -1087,7 +1150,7 @@ class MainWindow(QMainWindow):
                 )
     
     def _split_vertical(self):
-        """Split current pane vertically (top/bottom) - Now with drag & drop!"""
+        '''Split current pane vertically (top/bottom) - Now with drag & drop!'''
         from src.ui.documents.split_manager import SplitOrientation
         from PySide6.QtWidgets import QSplitter
         from PySide6.QtCore import Qt
@@ -1152,7 +1215,7 @@ class MainWindow(QMainWindow):
                 )
     
     def _close_split(self):
-        """Close current split and merge with sibling."""
+        '''Close current split and merge with sibling.'''
         logger.info("Close split requested (not yet fully implemented for new system)")
         from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(
@@ -1163,7 +1226,7 @@ class MainWindow(QMainWindow):
         )
 
     def new_browser(self):
-        """Open a new file browser tab."""
+        '''Open a new file browser tab.'''
         import uuid
         from uexplorer_src.ui.documents.file_browser_document import FileBrowserDocument
         
@@ -1184,7 +1247,7 @@ class MainWindow(QMainWindow):
 
     
     def show_command_palette(self):
-        """Show command palette dialog."""
+        '''Show command palette dialog.'''
         from src.ui.commands.command_palette import CommandPalette
         
         palette = CommandPalette(self.action_registry, self)
@@ -1193,7 +1256,7 @@ class MainWindow(QMainWindow):
         logger.info("Command palette shown")
     
     def show_shortcuts_dialog(self):
-        """Show keyboard shortcuts dialog."""
+        '''Show keyboard shortcuts dialog.'''
         from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QPushButton, QHeaderView
         
         dialog = QDialog(self)
@@ -1238,7 +1301,7 @@ class MainWindow(QMainWindow):
         dialog.exec()
     
     def show_about_dialog(self):
-        """Show about dialog."""
+        '''Show about dialog.'''
         from PySide6.QtWidgets import QMessageBox
         
         QMessageBox.about(
@@ -1259,13 +1322,13 @@ class MainWindow(QMainWindow):
     # Docking layout is now saved in docking_layout.bin
     
     def reset_layout(self):
-        """
+        '''
         Reset layout to default configuration:
         Left: Directories
         Center: Files (Browser 1)
         Right: Properties
         Hidden: All others
-        """
+        '''
         from loguru import logger
         from pathlib import Path
         
@@ -1335,47 +1398,23 @@ class MainWindow(QMainWindow):
             logger.error(f"Failed to reset layout: {e}")
     
     def apply_theme(self):
-        """Apply dark theme stylesheet."""
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #1e1e1e;
-            }
-            QMenuBar {
-                background-color: #2d2d2d;
-                color: #ffffff;
-                padding: 4px;
-            }
-            QMenuBar::item:selected {
-                background-color: #3d3d3d;
-            }
-            QMenu {
-                background-color: #2d2d2d;
-                color: #ffffff;
-                border: 1px solid #3d3d3d;
-            }
-            QMenu::item:selected {
-                background-color: #0e639c;
-            }
-            QToolBar {
-                background-color: #2d2d2d;
-                border: none;
-                spacing: 3px;
-                padding: 4px;
-            }
-            QStatusBar {
-                background-color: #007acc;
-                color: #ffffff;
-            }
-            QLabel {
-                color: #cccccc;
-            }
-            QSplitter::handle {
-                background-color: #3d3d3d;
-            }
-        """)
+        '''Apply dark theme stylesheet.'''
+        # Use concatenated strings to avoid Unicode quote parsing issues
+        stylesheet = (
+            'QMainWindow { background-color: #1e1e1e; }'
+            'QMenuBar { background-color: #2d2d2d; color: #ffffff; padding: 4px; }'
+            'QMenuBar::item:selected { background-color: #3d3d3d; }'
+            'QMenu { background-color: #2d2d2d; color: #ffffff; border: 1px solid #3d3d3d; }'
+            'QMenu::item:selected { background-color: #0e639c; }'
+            'QToolBar { background-color: #2d2d2d; border: none; spacing: 3px; padding: 4px; }'
+            'QStatusBar { background-color: #007acc; color: #ffffff; }'
+            'QLabel { color: #cccccc; }'
+            'QSplitter::handle { background-color: #3d3d3d; }'
+        )
+        self.setStyleSheet(stylesheet)
     
     def show_rules_dialog(self):
-        """Show the Rule Manager dialog."""
+        '''Show the Rule Manager dialog.'''
         from uexplorer_src.ui.dialogs.rule_manager_dialog import RuleManagerDialog
         
         dialog = RuleManagerDialog(locator=self.locator, parent=self)
@@ -1383,7 +1422,7 @@ class MainWindow(QMainWindow):
         logger.info("Rule Manager dialog closed")
     
     def show_settings_dialog(self):
-        """Show the Settings dialog."""
+        '''Show the Settings dialog.'''
         from uexplorer_src.ui.dialogs.settings_dialog import SettingsDialog
         
         dialog = SettingsDialog(config_manager=self.locator.config, locator=self.locator, parent=self)

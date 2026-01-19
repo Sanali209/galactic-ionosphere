@@ -33,6 +33,7 @@ class SearchQuery:
     tag_mode: str = "any"
     directory: Optional[ObjectId] = None
     limit: int = 100
+    detection_filters: List[Dict[str, Any]] = field(default_factory=list)
     
     def is_empty(self) -> bool:
         """Check if query has no search criteria."""
@@ -48,7 +49,7 @@ class SearchQuery:
         return self.mode == "text" and bool(self.text)
     
     def is_vector_search(self) -> bool:
-        """Check if this is a vector (text→embedding) search."""
+        """Check if this is a vector (text->embedding) search."""
         return self.mode == "vector" and bool(self.text)
     
     def is_image_search(self) -> bool:

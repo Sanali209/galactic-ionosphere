@@ -1,11 +1,11 @@
 """
 Maintenance Commands for UExplorer
 
-Encapsulates maintenance operations as standalone commands.
-Extracted from MainWindow for modularity.
+Simplified commands using TaskSystem.submit_background for non-blocking execution.
+Results are delivered via TaskSystem signals connected in MainWindow.
 """
 import asyncio
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import TYPE_CHECKING, Callable, List
 from bson import ObjectId
 from loguru import logger
 
@@ -49,6 +49,15 @@ class MaintenanceUI:
         self.show_success = show_success
 
 
+def _get_task_system(locator: "ServiceLocator"):
+    """Get TaskSystem from locator, or None if not available."""
+    try:
+        from src.core.tasks.system import TaskSystem
+        return locator.get_system(TaskSystem)
+    except (KeyError, ImportError):
+        return None
+
+
 async def reprocess_selection(
     locator: "ServiceLocator",
     file_ids: List[str],
@@ -56,6 +65,9 @@ async def reprocess_selection(
 ) -> None:
     """
     Reprocess selected files through Phase 2/3 pipeline.
+    
+    Uses TaskSystem.submit_background for non-blocking execution.
+    Results delivered via TaskSystem signals.
     
     Args:
         locator: ServiceLocator for accessing services
@@ -66,24 +78,21 @@ async def reprocess_selection(
         ui.set_status("No files selected to reprocess")
         return
     
-    object_ids = [ObjectId(str(fid)) for fid in file_ids]
+    task_system = _get_task_system(locator)
+    if not task_system:
+        ui.set_status("TaskSystem not available")
+        return
     
     try:
-        from src.ucorefs.processing.pipeline import ProcessingPipeline
-        pipeline = locator.get_system(ProcessingPipeline)
+        # Submit via non-blocking background API
+        task_id = task_system.submit_background(
+            "uexplorer.reprocess",
+            file_ids,
+            priority=task_system.PRIORITY_HIGH
+        )
         
-        if not pipeline:
-            ui.set_status("ProcessingPipeline not available")
-            return
-        
-        # Enqueue Phase 2 (metadata, thumbnails, embeddings)
-        task_id = await pipeline.enqueue_phase2(object_ids, force=True)
-        
-        if task_id:
-            ui.set_status(f"Queued {len(object_ids)} files for reprocessing")
-            logger.info(f"Reprocess: Queued {len(object_ids)} files - Task {task_id}")
-        else:
-            ui.set_status("Files already in processing queue")
+        ui.set_status(f"Queued {len(file_ids)} files for reprocessing")
+        logger.info(f"Reprocess submitted: {len(file_ids)} files, task {task_id[:8]}")
         
     except Exception as e:
         logger.error(f"Failed to queue reprocessing: {e}")
@@ -98,34 +107,32 @@ async def reindex_all_files(
     """
     Reindex all files in database via background tasks.
     
+    Uses TaskSystem.submit_background for non-blocking execution.
+    
     Args:
         locator: ServiceLocator for accessing services
         ui: MaintenanceUI for callbacks
         include_processed: Whether to include already-processed files
     """
+    task_system = _get_task_system(locator)
+    if not task_system:
+        ui.set_status("TaskSystem not available")
+        return
+    
     try:
-        from src.ucorefs.processing.pipeline import ProcessingPipeline
-        pipeline = locator.get_system(ProcessingPipeline)
-        
-        if not pipeline:
-            ui.set_status("ProcessingPipeline not available")
-            return
-        
         ui.set_status("Starting reindex...")
         
-        result = await pipeline.reindex_all(include_processed=include_processed)
+        task_id = task_system.submit_background(
+            "uexplorer.reindex",
+            include_processed,
+            priority=task_system.PRIORITY_NORMAL
+        )
         
-        total = result.get("total_files", 0)
-        batches = result.get("batches_queued", 0)
-        
-        if total > 0:
-            ui.set_status(f"Reindex: {total} files in {batches} batches queued")
-            logger.info(f"Reindex started: {total} files, {batches} tasks")
-        else:
-            ui.set_status("No unprocessed files to reindex")
+        ui.set_status(f"Reindex started (task: {task_id[:8]}...)")
+        logger.info(f"Reindex submitted, task {task_id[:8]}")
         
     except Exception as e:
-        logger.error(f"Failed to reindex: {e}")
+        logger.error(f"Failed to start reindex: {e}")
         ui.set_status(f"Reindex failed: {e}")
 
 
@@ -137,56 +144,42 @@ async def rebuild_all_counts(
     """
     Rebuild file counts for tags, albums, directories.
     
+    Uses TaskSystem.submit_background for non-blocking execution.
+    
     Args:
         locator: ServiceLocator for accessing services
         ui: MaintenanceUI for callbacks
         refresh_panels: Optional callback to refresh UI panels after completion
     """
-    from src.ucorefs.services.maintenance_service import MaintenanceService
+    task_system = _get_task_system(locator)
+    if not task_system:
+        ui.set_status("TaskSystem not available")
+        return
     
     try:
-        maintenance = locator.get_system(MaintenanceService)
-        if not maintenance:
-            ui.show_error("MaintenanceService not available")
-            return
-        
         ui.set_progress(True, 0, 100)
         ui.set_status("Rebuilding file counts...")
         
-        try:
-            result = await maintenance.rebuild_all_counts()
-            
-            total_updated = (
-                result.get("tags_updated", 0) + 
-                result.get("albums_updated", 0) + 
-                result.get("directories_updated", 0)
-            )
-            
-            message = (
-                f"Count rebuild complete!\n\n"
-                f"Tags: {result.get('tags_updated', 0)} | "
-                f"Albums: {result.get('albums_updated', 0)} | "
-                f"Dirs: {result.get('directories_updated', 0)}\n"
-                f"Duration: {result.get('duration', 0):.2f}s"
-            )
-            
-            if result.get("errors"):
-                message += f"\n\nErrors: {len(result['errors'])}"
-            
-            # Refresh UI panels
-            if refresh_panels:
+        task_id = task_system.submit_background(
+            "uexplorer.rebuild_counts",
+            priority=task_system.PRIORITY_NORMAL
+        )
+        
+        ui.set_status(f"Count rebuild started (task: {task_id[:8]}...)")
+        logger.info(f"Rebuild counts submitted, task {task_id[:8]}")
+        
+        # Note: refresh_panels will be called via signal handler when task completes
+        # For now, schedule it with delay as workaround
+        if refresh_panels:
+            async def _delayed_refresh():
+                await asyncio.sleep(2)  # Give task time to complete
                 refresh_panels()
-            
-            ui.show_success(message)
-            logger.info(f"Count rebuild complete: {total_updated} records updated")
-            
-        finally:
-            ui.set_progress(False, 0, 0)
-            ui.set_status("Ready")
-            
+            asyncio.create_task(_delayed_refresh())
+        
     except Exception as e:
-        ui.show_error(f"Rebuild failed: {e}")
-        logger.error(f"Count rebuild failed: {e}")
+        logger.error(f"Failed to start count rebuild: {e}")
+        ui.set_status(f"Rebuild failed: {e}")
+        ui.set_progress(False, 0, 0)
 
 
 async def verify_references(
@@ -196,53 +189,33 @@ async def verify_references(
     """
     Verify ObjectId references for data integrity.
     
+    Uses TaskSystem.submit_background for non-blocking execution.
+    
     Args:
         locator: ServiceLocator for accessing services
         ui: MaintenanceUI for callbacks
     """
-    from src.ucorefs.services.maintenance_service import MaintenanceService
+    task_system = _get_task_system(locator)
+    if not task_system:
+        ui.set_status("TaskSystem not available")
+        return
     
     try:
-        maintenance = locator.get_system(MaintenanceService)
-        if not maintenance:
-            ui.show_error("MaintenanceService not available")
-            return
-        
         ui.set_progress(True, 0, 0)  # Indeterminate
         ui.set_status("Verifying data integrity...")
         
-        try:
-            result = await maintenance.verify_references()
-            
-            total_broken = (
-                result.get("broken_tag_refs", 0) + 
-                result.get("broken_album_refs", 0) + 
-                result.get("broken_dir_refs", 0)
-            )
-            
-            if total_broken == 0:
-                message = f"✓ All references valid! ({result.get('files_checked', 0)} files checked)"
-                ui.show_success(message)
-            else:
-                message = (
-                    f"⚠ Found {total_broken} broken references:\n\n"
-                    f"Tags: {result.get('broken_tag_refs', 0)} | "
-                    f"Albums: {result.get('broken_album_refs', 0)} | "
-                    f"Dirs: {result.get('broken_dir_refs', 0)}\n"
-                    f"Files checked: {result.get('files_checked', 0)}\n\n"
-                    f"Run 'Cleanup Orphaned Records' to fix."
-                )
-                ui.show_warning(message)
-            
-            logger.info(f"Reference verification complete: {total_broken} broken references")
-            
-        finally:
-            ui.set_progress(False, 0, 0)
-            ui.set_status("Ready")
-            
+        task_id = task_system.submit_background(
+            "uexplorer.verify_refs",
+            priority=task_system.PRIORITY_NORMAL
+        )
+        
+        ui.set_status(f"Verification started (task: {task_id[:8]}...)")
+        logger.info(f"Verify refs submitted, task {task_id[:8]}")
+        
     except Exception as e:
-        ui.show_error(f"Verification failed: {e}")
-        logger.error(f"Reference verification failed: {e}")
+        logger.error(f"Failed to start verification: {e}")
+        ui.set_status(f"Verification failed: {e}")
+        ui.set_progress(False, 0, 0)
 
 
 async def cleanup_orphaned_records(
@@ -253,57 +226,47 @@ async def cleanup_orphaned_records(
     """
     Cleanup orphaned references from database.
     
+    Uses TaskSystem.submit_background for non-blocking execution.
+    
     Args:
         locator: ServiceLocator for accessing services
         ui: MaintenanceUI for callbacks
         confirmed: Whether user has already confirmed the action
     """
     from PySide6.QtWidgets import QMessageBox
-    from src.ucorefs.services.maintenance_service import MaintenanceService
+    
+    # Confirm action if not already confirmed
+    if not confirmed:
+        reply = QMessageBox.question(
+            ui.parent,
+            "Cleanup Orphaned Records",
+            "This will remove invalid references from your database.\n\n"
+            "This operation is safe but cannot be undone.\n\n"
+            "Continue?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply != QMessageBox.Yes:
+            return
+    
+    task_system = _get_task_system(locator)
+    if not task_system:
+        ui.set_status("TaskSystem not available")
+        return
     
     try:
-        # Confirm action if not already confirmed
-        if not confirmed:
-            reply = QMessageBox.question(
-                ui.parent,
-                "Cleanup Orphaned Records",
-                "This will remove invalid references from your database.\n\n"
-                "This operation is safe but cannot be undone.\n\n"
-                "Continue?",
-                QMessageBox.Yes | QMessageBox.No
-            )
-            
-            if reply != QMessageBox.Yes:
-                return
-        
-        maintenance = locator.get_system(MaintenanceService)
-        if not maintenance:
-            ui.show_error("MaintenanceService not available")
-            return
-        
         ui.set_progress(True, 0, 0)  # Indeterminate
         ui.set_status("Cleaning up orphaned records...")
         
-        try:
-            result = await maintenance.cleanup_orphaned_records()
-            
-            message = (
-                f"✓ Cleanup complete!\n\n"
-                f"Files cleaned: {result.get('files_cleaned', 0)}\n"
-                f"Tag refs removed: {result.get('tags_removed', 0)}\n"
-                f"Album refs removed: {result.get('albums_removed', 0)}"
-            )
-            
-            if result.get("errors"):
-                message += f"\n\nErrors: {len(result['errors'])}"
-            
-            ui.show_success(message)
-            logger.info(f"Cleanup complete: {result.get('files_cleaned', 0)} files cleaned")
-            
-        finally:
-            ui.set_progress(False, 0, 0)
-            ui.set_status("Ready")
-            
+        task_id = task_system.submit_background(
+            "uexplorer.cleanup",
+            priority=task_system.PRIORITY_NORMAL
+        )
+        
+        ui.set_status(f"Cleanup started (task: {task_id[:8]}...)")
+        logger.info(f"Cleanup submitted, task {task_id[:8]}")
+        
     except Exception as e:
-        ui.show_error(f"Cleanup failed: {e}")
-        logger.error(f"Cleanup failed: {e}")
+        logger.error(f"Failed to start cleanup: {e}")
+        ui.set_status(f"Cleanup failed: {e}")
+        ui.set_progress(False, 0, 0)
