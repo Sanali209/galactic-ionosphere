@@ -91,9 +91,9 @@ class ExtractorRegistry:
             instance = None
             
             # 1. Try resolving via ServiceLocator (preferred for Singletons/persistence)
-            if locator and hasattr(locator, 'get'):
+            if locator and hasattr(locator, 'get_system'):
                 try:
-                    instance = locator.get(extractor_cls)
+                    instance = locator.get_system(extractor_cls)
                     # Cache it for get_by_name compatibility
                     cls._instances[name] = instance
                 except (KeyError, AttributeError):

@@ -5,6 +5,9 @@ Groups UExplorer-specific UI services for easy registration.
 """
 from src.core.bootstrap import SystemBundle
 
+# Import engine integration
+from uexplorer_src.engine_bundle import EngineIntegrationBundle, start_engine
+
 if False:  # TYPE_CHECKING
     from src.core.bootstrap import ApplicationBuilder
 
@@ -31,3 +34,6 @@ class UExplorerUIBundle(SystemBundle):
         
         builder.add_system(SessionState)        # UI session persistence
         builder.add_system(NavigationService)   # Smart Selection Routing
+
+
+__all__ = ["UExplorerUIBundle", "EngineIntegrationBundle", "start_engine"]

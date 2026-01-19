@@ -27,6 +27,7 @@ class CLIPExtractor(AIExtractor):
     priority = 50  # After thumbnails/metadata
     batch_supported = True
     is_cpu_heavy = True
+    needs_model = True  # Requires CLIP model
     
     SUPPORTED_TYPES = {"image"}
     MODEL_NAME = "ViT-B/32"

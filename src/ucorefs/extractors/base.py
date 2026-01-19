@@ -33,6 +33,7 @@ class Extractor(ABC):
     priority: int = 0
     batch_supported: bool = True
     is_cpu_heavy: bool = False  # SAN-14: Flag for CPU-intensive extractors
+    needs_model: bool = False   # If True, requires AI model (not suitable for subprocess)
     
     def __init__(self, locator=None, config: Dict[str, Any] = None):
         """
@@ -124,6 +125,16 @@ class Extractor(ABC):
                 if (i + 1) % 5 == 0:
                     await asyncio.sleep(0)
                     
+        except RuntimeError as e:
+            # Catch executor shutdown errors during application exit
+            if "shutdown" in str(e).lower():
+                logger.debug(f"{self.name}: Skipping extraction - executor shutdown in progress")
+                # Return empty results - task will stay 'running' and be recovered on restart
+                return {}
+            else:
+                logger.error(f"{self.name}: Extraction failed: {e}", exc_info=True)
+                for file in files:
+                    results[file._id] = False
         except Exception as e:
             logger.error(f"{self.name}: Extraction failed: {e}", exc_info=True)
             for file in files:

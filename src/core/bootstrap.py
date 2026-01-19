@@ -12,8 +12,8 @@ from pathlib import Path
 if TYPE_CHECKING:
     from .bootstrap import ApplicationBuilder
 
-from PySide6.QtWidgets import QApplication
-from qasync import QEventLoop
+# PySide6 imports removed from top level - now optional!
+# They are lazily imported in run_app() only when needed for GUI applications.
 from loguru import logger
 
 from .locator import ServiceLocator, sl
@@ -23,6 +23,7 @@ from .commands.bus import CommandBus
 from .journal.service import JournalService
 from .assets.manager import AssetManager
 from .tasks.system import TaskSystem
+
 
 
 class SystemBundle(ABC):
@@ -74,6 +75,74 @@ class ApplicationBuilder:
         self._systems: List[Type[BaseSystem]] = []
         self._use_default_systems = True
         self._logging_configured = False
+    
+    @classmethod
+    def for_console(cls, name: str, config_path: str = "config.json") -> "ApplicationBuilder":
+        """
+        Preset for console applications (no GUI).
+        
+        Includes:
+        - Default systems (DatabaseManager, TaskSystem, etc.)
+        - Logging enabled
+        
+        Example:
+            locator = await ApplicationBuilder.for_console("MyCLI").build()
+        
+        Args:
+            name: Application name
+            config_path: Path to config file
+            
+        Returns:
+            Configured ApplicationBuilder
+        """
+        return (cls(name, config_path)
+            .with_default_systems()
+            .with_logging(True))
+    
+    @classmethod
+    def for_gui(cls, name: str, config_path: str = "config.json") -> "ApplicationBuilder":
+        """
+        Preset for GUI applications (with PySide6).
+        
+        Includes:
+        - Default systems
+        - Logging enabled
+        - Ready for .add_bundle(PySideBundle())
+        
+        Example:
+            builder = ApplicationBuilder.for_gui("MyApp")
+            builder.add_bundle(PySideBundle())
+            locator = await builder.build()
+        
+        Args:
+            name: Application name
+            config_path: Path to config file
+            
+        Returns:
+            Configured ApplicationBuilder
+        """
+        return (cls(name, config_path)
+            .with_default_systems()
+            .with_logging(True))
+    
+    @classmethod
+    def for_engine(cls, name: str, config_path: str = "config.json") -> "ApplicationBuilder":
+        """
+        Preset for headless processing engine (no GUI).
+        
+        Same as for_console() but with semantic naming for background workers.
+        
+        Example:
+            locator = await ApplicationBuilder.for_engine("ProcessingEngine").build()
+        
+        Args:
+            name: Application name
+            config_path: Path to config file
+            
+        Returns:
+            Configured ApplicationBuilder
+        """
+        return cls.for_console(name, config_path)
         
     def with_default_systems(self, enable: bool = True):
         """
@@ -191,10 +260,12 @@ def run_app(
     viewmodel_cls,
     builder: Optional[ApplicationBuilder] = None,
     app_name: str = "Foundation App",
-    config_path: str = "config.json"
+    config_path: str = "config.json",
+    post_build: Optional[callable] = None,
+    post_window: Optional[callable] = None
 ):
     """
-    One-liner to run a complete Foundation application.
+    One-liner to run a complete Foundation application with lifecycle hooks.
     
     Handles:
     - Qt application setup
@@ -203,17 +274,30 @@ def run_app(
     - Main window creation
     - Graceful shutdown
     
+    Lifecycle Hooks:
+        post_build: Optional async function(locator) -> None
+            Called after builder.build() completes, before window creation.
+            Use for engine startup, background workers, etc.
+            
+        post_window: Optional function(window, locator) -> None
+            Called after window.show(), for post-UI initialization.
+            Use for loading initial data, starting timers, etc.
+    
     Example:
-        from foundation import run_app, ApplicationBuilder
-        from .ui.main_window import MainWindow
-        from .ui.viewmodels.main_viewmodel import MainViewModel
-        from .core.search_service import SearchService
+        async def start_engine(locator):
+            proxy = locator.get_system(EngineProxy)
+            await proxy.start()
         
-        builder = (ApplicationBuilder("My App")
-                   .with_default_systems()
-                   .add_system(SearchService))
+        def load_data(window, locator):
+            window.load_initial_data()
         
-        run_app(MainWindow, MainViewModel, builder=builder)
+        run_app(
+            MainWindow,
+            MainViewModel,
+            builder=builder,
+            post_build=start_engine,
+            post_window=load_data
+        )
     
     Args:
         main_window_cls: MainWindow class
@@ -221,24 +305,52 @@ def run_app(
         builder: Optional pre-configured ApplicationBuilder
         app_name: Application name (used if builder not provided)
         config_path: Config path (used if builder not provided)
+        post_build: Optional async hook called after build
+        post_window: Optional hook called after window shown
     """
+    
+    # Lazy import PySide6 - only needed for GUI applications
+    try:
+        from PySide6.QtWidgets import QApplication
+        from qasync import QEventLoop
+    except ImportError as e:
+        raise RuntimeError(
+            "run_app() requires PySide6 and qasync for GUI applications.\n\n"
+            "Install with:\n"
+            "  pip install PySide6 qasync\n\n"
+            "For console applications, use ApplicationBuilder directly:\n"
+            "  async def main():\n"
+            "      locator = await ApplicationBuilder.for_console('MyApp').build()\n"
+            "      # ... your code ...\n"
+            "  asyncio.run(main())\n"
+        ) from e
     
     # Create builder if not provided
     if builder is None:
         builder = ApplicationBuilder(app_name, config_path).with_default_systems()
     
     async def async_main():
-        """Async application entry point."""
-        # Initialize all systems
+        """Async application entry point with lifecycle hooks."""
+        # 1. Initialize all systems
         service_locator = await builder.build()
         
-        # Create main window
+        # 2. Post-build hook (e.g., start engine, initialize background workers)
+        if post_build:
+            logger.debug("Running post_build hook...")
+            await post_build(service_locator)
+        
+        # 3. Create main window
         from ..ui.mvvm.provider import ViewModelProvider
         provider = ViewModelProvider(service_locator)
         main_vm = provider.get(viewmodel_cls)
         
         window = main_window_cls(main_vm)
         window.show()
+        
+        # 4. Post-window hook (e.g., load initial data)
+        if post_window:
+            logger.debug("Running post_window hook...")
+            post_window(window, service_locator)
         
         logger.info(f"{builder.name} started successfully")
         return service_locator
@@ -271,3 +383,4 @@ def run_app(
     except RuntimeError as e:
         if "Event loop stopped" not in str(e):
             raise
+

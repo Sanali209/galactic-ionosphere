@@ -36,6 +36,7 @@ class WDTaggerExtractor(AIExtractor):
     priority: int = 50  # Run after thumbnails, before embeddings
     batch_supported: bool = True  # Supports batching via parallelism
     is_cpu_heavy: bool = True  # SAN-14: AI inference with image preprocessing (PIL operations)
+    needs_model: bool = True  # Requires WD-Tagger model
     
     # Model configuration (passed to service via config)
     DEFAULT_MODEL_REPO = "SmilingWolf/wd-vit-tagger-v3"
@@ -131,6 +132,11 @@ class WDTaggerExtractor(AIExtractor):
             logger.warning("WDTaggerService not available, skipping tagging")
             return {f._id: None for f in files}
         
+        # Check if service is ready
+        if not service.is_ready:
+            logger.warning(f"WDTaggerService not ready (is_ready={service.is_ready}), skipping tagging")
+            return {f._id: None for f in files}
+        
         ai_workers = 4
         if self.locator and self.locator.config:
             try:
@@ -145,6 +151,9 @@ class WDTaggerExtractor(AIExtractor):
             async with semaphore:
                 try:
                     tags_result = await service.tag_image(Path(file_record.path))
+                    if tags_result:
+                        tag_count = len(tags_result.get("tags", []))
+                        logger.debug(f"WDTagger: {file_record.name} -> {tag_count} tags")
                     return file_record._id, tags_result
                 except Exception as e:
                     logger.error(f"WD-Tagger failed for {file_record.path}: {e}")
@@ -152,6 +161,9 @@ class WDTaggerExtractor(AIExtractor):
 
         tasks = [_process_single(f) for f in files]
         batch_results = await asyncio.gather(*tasks)
+        
+        success = sum(1 for _, r in batch_results if r is not None)
+        logger.info(f"WDTagger: {success}/{len(files)} files tagged successfully")
         
         for fid, res in batch_results:
             results[fid] = res

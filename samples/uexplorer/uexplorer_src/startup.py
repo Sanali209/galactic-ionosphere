@@ -35,7 +35,14 @@ class StartupOrchestrator:
         await orchestrator.run_preload(locator)
     """
     
-    def __init__(self, dialog: "LoadingDialog"):
+    def __init__(self, dialog: Optional["LoadingDialog"] = None):
+        """
+        Initialize startup orchestrator.
+        
+        Args:
+            dialog: Optional LoadingDialog for visual progress feedback.
+                   If None, progress is logged instead.
+        """
         self.dialog = dialog
         self.locator: Optional["ServiceLocator"] = None
         self._preloaders: Dict[str, ModelPreloader] = {}
@@ -115,24 +122,30 @@ class StartupOrchestrator:
         enabled = [p for p in self._preloaders.values() if p.enabled]
         
         for preloader in enabled:
-            self.dialog.set_stage(preloader.id, "loading")
+            # Update dialog if available
+            if self.dialog:
+                self.dialog.set_stage(preloader.id, "loading")
+            logger.info(f"Preloading {preloader.name}...")
             
             try:
                 result = await preloader.loader(locator)
                 
                 if result:
-                    self.dialog.set_stage(preloader.id, "done")
-                    logger.info(f"{preloader.name} preloaded")
+                    if self.dialog:
+                        self.dialog.set_stage(preloader.id, "done")
+                    logger.info(f"✓ {preloader.name} preloaded")
                 else:
-                    self.dialog.set_stage(preloader.id, "skip")
-                    logger.warning(f"{preloader.name} not available")
+                    if self.dialog:
+                        self.dialog.set_stage(preloader.id, "skip")
+                    logger.warning(f"– {preloader.name} not available")
                     
                     if preloader.required:
                         success = False
                         
             except Exception as e:
-                logger.error(f"{preloader.name} preload failed: {e}")
-                self.dialog.set_stage(preloader.id, "error")
+                logger.error(f"✗ {preloader.name} preload failed: {e}")
+                if self.dialog:
+                    self.dialog.set_stage(preloader.id, "error")
                 
                 if preloader.required:
                     success = False

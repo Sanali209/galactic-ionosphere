@@ -79,6 +79,11 @@ class WDTaggerService(BaseSystem):
             except (AttributeError, ValueError):
                 pass
     
+    @property
+    def is_ready(self) -> bool:
+        """Whether the service is ready to tag images."""
+        return self._is_ready and self._model is not None
+    
     async def initialize(self) -> None:
         """Load model at startup (called by ServiceLocator)."""
         print(">>> WDTaggerService.initialize() CALLED")  # Debug

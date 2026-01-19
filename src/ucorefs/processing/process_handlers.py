@@ -45,6 +45,7 @@ async def _process_phase2_with_db(file_ids: List[ObjectId], config: Dict[str, An
     """Initialize DB and run Phase 2 processing."""
     from motor.motor_asyncio import AsyncIOMotorClient
     from src.core.database.manager import DatabaseManager
+    from src.core.locator import get_active_locator
     from loguru import logger
     
     # Create standalone DB connection for this process
@@ -52,14 +53,17 @@ async def _process_phase2_with_db(file_ids: List[ObjectId], config: Dict[str, An
         client = AsyncIOMotorClient(db_uri)
         db = client[db_name]
         
-        # Initialize DatabaseManager with this client
-        # Use singleton pattern workaround for process isolation
-        DatabaseManager._instance = None  # Reset singleton
-        db_manager = DatabaseManager.__new__(DatabaseManager)
-        db_manager._client = client
-        db_manager._db = db
-        db_manager._collections = {}
-        DatabaseManager._instance = db_manager
+        # Initialize DatabaseManager for subprocess
+        # Create a minimal db_manager and register with ServiceLocator
+        db_manager = object.__new__(DatabaseManager)
+        db_manager.client = client
+        db_manager.db = db
+        db_manager.locator = None
+        db_manager.config = None
+        
+        # Register with the subprocess's ServiceLocator
+        locator = get_active_locator()
+        locator._systems[DatabaseManager] = db_manager
         
         logger.debug(f"[PROCESS] Initialized DB connection to {db_name}")
         
@@ -67,12 +71,14 @@ async def _process_phase2_with_db(file_ids: List[ObjectId], config: Dict[str, An
         
         # Cleanup
         client.close()
-        DatabaseManager._instance = None
+        locator._systems.pop(DatabaseManager, None)
         
         return result
         
     except Exception as e:
         logger.error(f"[PROCESS] DB initialization failed: {e}")
+        import traceback
+        logger.debug(f"[PROCESS] Traceback: {traceback.format_exc()}")
         return {"processed": 0, "errors": len(file_ids), "by_extractor": {}}
 
 
@@ -109,11 +115,18 @@ async def _process_phase2_async(file_ids: List[ObjectId], config: Dict[str, Any]
         logger.warning("[PROCESS] No files loaded")
         return results
     
-    # Get Phase 2 extractors
-    # NOTE: locator is None in process context, config passed as dict
-    extractors = ExtractorRegistry.get_for_phase(2, locator=None, config=config)
+    # Get Phase 2 extractors - but ONLY CPU-only ones (no model loading)
+    # AI extractors (clip, dino, wd_tagger) stay in Engine thread where models are preloaded
+    all_extractors = ExtractorRegistry.get_for_phase(2, locator=None, config=config)
     
-    logger.info(f"[PROCESS] Running {len(extractors)} extractors")
+    # Filter: only run extractors that don't need models (thumbnail, metadata)
+    extractors = [e for e in all_extractors if not getattr(e, 'needs_model', False)]
+    
+    skipped = [e.name for e in all_extractors if getattr(e, 'needs_model', False)]
+    if skipped:
+        logger.info(f"[PROCESS] Skipping AI extractors (run in thread pool): {skipped}")
+    
+    logger.info(f"[PROCESS] Running {len(extractors)} CPU-only extractors")
     
     # Process with each extractor
     for extractor in extractors:

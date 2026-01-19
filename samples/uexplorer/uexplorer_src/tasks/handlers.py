@@ -26,10 +26,10 @@ async def handle_reprocess_files(file_ids: List[str]) -> Dict[str, Any]:
         Dict with task_id and file_count
     """
     from src.ucorefs.processing.pipeline import ProcessingPipeline
-    from src.core.locator import ServiceLocator
+    from src.core.locator import get_active_locator
     
     try:
-        locator = ServiceLocator.instance()
+        locator = get_active_locator()
         pipeline = locator.get_system(ProcessingPipeline)
         
         oids = [ObjectId(fid) for fid in file_ids]
@@ -56,10 +56,10 @@ async def handle_reindex_all(include_processed: bool = False) -> Dict[str, Any]:
         Dict with total_files and batches_queued
     """
     from src.ucorefs.processing.pipeline import ProcessingPipeline
-    from src.core.locator import ServiceLocator
+    from src.core.locator import get_active_locator
     
     try:
-        locator = ServiceLocator.instance()
+        locator = get_active_locator()
         pipeline = locator.get_system(ProcessingPipeline)
         
         result = await pipeline.reindex_all(include_processed=include_processed)
@@ -83,10 +83,10 @@ async def handle_rebuild_counts() -> Dict[str, Any]:
         Dict with tags_updated, albums_updated, directories_updated
     """
     from src.ucorefs.services.maintenance_service import MaintenanceService
-    from src.core.locator import ServiceLocator
+    from src.core.locator import get_active_locator
     
     try:
-        locator = ServiceLocator.instance()
+        locator = get_active_locator()
         maintenance = locator.get_system(MaintenanceService)
         
         result = await maintenance.rebuild_all_counts()
@@ -115,10 +115,10 @@ async def handle_verify_references() -> Dict[str, Any]:
         Dict with files_checked, broken_tag_refs, broken_album_refs, broken_dir_refs
     """
     from src.ucorefs.services.maintenance_service import MaintenanceService
-    from src.core.locator import ServiceLocator
+    from src.core.locator import get_active_locator
     
     try:
-        locator = ServiceLocator.instance()
+        locator = get_active_locator()
         maintenance = locator.get_system(MaintenanceService)
         
         result = await maintenance.verify_references()
@@ -147,10 +147,10 @@ async def handle_cleanup_orphans() -> Dict[str, Any]:
         Dict with files_cleaned, tags_removed, albums_removed
     """
     from src.ucorefs.services.maintenance_service import MaintenanceService
-    from src.core.locator import ServiceLocator
+    from src.core.locator import get_active_locator
     
     try:
-        locator = ServiceLocator.instance()
+        locator = get_active_locator()
         maintenance = locator.get_system(MaintenanceService)
         
         result = await maintenance.cleanup_orphaned_records()
@@ -189,3 +189,4 @@ def register_handlers(task_system) -> int:
     
     logger.info(f"UExplorer: Registered {len(handlers)} task handlers")
     return len(handlers)
+

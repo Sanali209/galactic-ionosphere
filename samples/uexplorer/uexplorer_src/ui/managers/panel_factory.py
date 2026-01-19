@@ -138,7 +138,7 @@ def create_all_panels(
         widget=panels["background"],
         title="Background Tasks",
         area="bottom",
-        closable=False
+        closable=True  # Can be closed to save performance (timer stops when hidden)
     )
     
     # Maintenance Panel

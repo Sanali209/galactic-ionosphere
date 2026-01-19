@@ -17,6 +17,14 @@ class ServiceLocator:
         # _instance = None 
         # def __new__(cls): ... REMOVED
 
+    def __init__(self):
+        """Initialize empty ServiceLocator. Call init() to fully configure."""
+        self._systems: Dict[Type[BaseSystem], BaseSystem] = {}
+        self._startup_order: list = []
+        self._initialized = False
+        self.config = None
+        self.bus = None
+
     def init(self, config_path: str = "config.json"):
         if getattr(self, '_initialized', False):
             return

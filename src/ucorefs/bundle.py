@@ -116,3 +116,22 @@ class UCoreFSClientBundle(SystemBundle):
 # Backward compatibility
 class UCoreFSBundle(UCoreFSEngineBundle):
     pass
+
+# Import new data bundle
+from src.ucorefs.bundles.data_bundle import UCoreFSDataBundle
+import warnings
+
+
+# Deprecated alias with warning
+class _DeprecatedClientBundle(UCoreFSDataBundle):
+    """Deprecated: Use UCoreFSDataBundle instead."""
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "UCoreFSClientBundle is deprecated. Use UCoreFSDataBundle instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        super().__init__(*args, **kwargs)
+
+
+UCoreFSClientBundle = _DeprecatedClientBundle

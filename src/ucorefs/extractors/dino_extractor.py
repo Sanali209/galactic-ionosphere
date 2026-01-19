@@ -32,6 +32,7 @@ class DINOExtractor(AIExtractor):
     phase = 2
     priority = 10  # After metadata/thumbnails
     batch_supported = True
+    needs_model = True  # Requires DINO model
     
     VECTOR_SIZE = 384
     IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff", ".gif"}

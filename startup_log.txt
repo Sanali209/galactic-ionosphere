@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "d:\github\USCore\samples\uexplorer\main.py", line 22, in <module>
-    print(f"\u2713 HF_TOKEN loaded from {_env_path}")
-  File "C:\Users\User\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 19, in encode
-    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-UnicodeEncodeError: 'charmap' codec can't encode character '\u2713' in position 0: character maps to <undefined>

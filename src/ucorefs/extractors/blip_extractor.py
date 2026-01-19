@@ -28,6 +28,7 @@ class BLIPExtractor(AIExtractor):
     phase = 3
     priority = 80
     batch_supported = False
+    needs_model = True  # Requires BLIP model
     
     SUPPORTED_TYPES = {"image"}
     

@@ -77,6 +77,9 @@ class UnifiedSearchQuery:
     # Field filters from FilterPanel
     filters: Dict[str, Any] = field(default_factory=dict)
     
+    # Detection filters (from search panel tree)
+    detection_filters: List[Dict[str, Any]] = field(default_factory=list)
+    
     # Pagination
     limit: int = 100
     offset: int = 0

@@ -6,6 +6,7 @@ Defines the initialization sequence for the background Engine thread.
 from typing import Any
 from loguru import logger
 import asyncio
+from src.core.tasks.system import TaskSystem  # Import for signal connections
 
 async def bootstrap_engine(thread) -> Any:
     """
@@ -34,31 +35,10 @@ async def bootstrap_engine(thread) -> Any:
     engine_locator = ServiceLocator()
     set_active_locator(engine_locator)
     
-    builder = ApplicationBuilder("UExplorerEngine", config_path)
-    
-    # IMPORTANT: Engine NEEDS DatabaseManager for TaskSystem to restore tasks
-    # Motor will use this thread's event loop (asyncio, not qasync)
-    # This is OK because Engine doesn't interact with UI
-    builder.with_default_systems(False)
-    
-    # Manually add systems Engine needs INCLUDING DatabaseManager
-    from src.core.scheduling import PeriodicTaskScheduler
-    from src.core.tasks.system import TaskSystem
-    from src.core.commands.bus import CommandBus
-    from src.core.journal.service import JournalService
-    from src.core.assets.manager import AssetManager
-    
-    # Add core systems (WITH DatabaseManager for task persistence)
-    builder.add_system(DatabaseManager)  # ← Engine needs this for TaskSystem
-    builder.add_system(CommandBus)
-    builder.add_system(JournalService)
-    builder.add_system(AssetManager)
-    builder.add_system(TaskSystem)
-    # Add the Engine Bundle (contains AI, Pipeline, MaintenanceService, etc.)
-    builder.add_bundle(UCoreFSEngineBundle())
-    
-    # Add PeriodicTaskScheduler AFTER bundle so MaintenanceService is available
-    builder.add_system(PeriodicTaskScheduler)
+    # Build Engine with new bundle architecture
+    # Use for_engine preset which includes default systems + logging
+    builder = (ApplicationBuilder.for_engine("UExplorerEngine", config_path)
+        .add_bundle(UCoreFSEngineBundle()))  # AI, Processing, Maintenance
     
     logger.info("=" * 60)
     logger.info("Starting Engine initialization (TaskSystem will restore pending tasks)...")

@@ -59,6 +59,7 @@ class GroundingDINOExtractor(AIExtractor):
     phase = 3  # Heavy AI processing
     priority = 70
     batch_supported = False
+    needs_model = True  # Requires GroundingDINO model
     
     SUPPORTED_TYPES = {"image"}
     
@@ -124,42 +125,67 @@ class GroundingDINOExtractor(AIExtractor):
             hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
             
             model_id = "IDEA-Research/grounding-dino-tiny"
-            logger.info(f"[GroundingDINO] Loading model on {self._device}...")
+            logger.info(f"[GroundingDINO] Loading model...")
             
             self._processor = AutoProcessor.from_pretrained(model_id, token=hf_token)
             
-            # Simple, reliable loading approach - avoid meta tensors entirely
-            # Load directly to CPU first (safest), then move to target device
-            self._model = AutoModelForZeroShotObjectDetection.from_pretrained(
+            
+            # Strategy: Try loading, if meta tensors appear, retry with _fast_init=False
+            temp_model = AutoModelForZeroShotObjectDetection.from_pretrained(
                 model_id, 
                 token=hf_token,
-                torch_dtype=torch.float32,  # Explicit dtype
-                low_cpu_mem_usage=False,    # Avoid accelerate's meta device
-                device_map=None,            # No automatic device mapping
+                torch_dtype=torch.float32,
+                low_cpu_mem_usage=False,
+                device_map=None,
             )
             
-            # Now move to target device (this is safe since model has real data)
-            if self._device != "cpu":
+            # Check if model has meta tensors
+            param = next(temp_model.parameters())
+            if param.device.type == "meta":
+                logger.warning("[GroundingDINO] Meta tensors detected, reloading with _fast_init=False")
+                
+                # Clean up and force garbage collection
+                del temp_model
+                import gc
+                gc.collect()
+                if use_cuda:
+                    torch.cuda.empty_cache()
+                
+                # Retry with _fast_init=False which skips meta device initialization
+                self._model = AutoModelForZeroShotObjectDetection.from_pretrained(
+                    model_id,
+                    token=hf_token,
+                    torch_dtype=torch.float32,
+                    low_cpu_mem_usage=False,
+                    device_map=None,
+                    _fast_init=False,  # Force real tensor initialization
+                )
+            else:
+                self._model = temp_model
+            
+            # Move to device
+            if self._device == "cuda":
                 try:
-                    self._model = self._model.to(self._device)
-                    logger.info(f"[GroundingDINO] Model moved to {self._device}")
+                    self._model = self._model.cuda()
+                    logger.info("[GroundingDINO] Model moved to CUDA")
                 except Exception as e:
-                    logger.warning(f"[GroundingDINO] Failed to move to {self._device}, using CPU: {e}")
+                    logger.warning(f"[GroundingDINO] CUDA failed: {e}")
                     self._device = "cpu"
             
-            self._model.eval()  # Set to evaluation mode
+            self._model.eval()
             self._available = True
-            logger.info(f"[GroundingDINO] ✓ Model loaded successfully on {self._device}")
             
-        except ImportError:
-            logger.warning("GroundingDINO not available - pip install transformers")
+            # Final verification
+            param = next(self._model.parameters())
+            logger.info(f"[GroundingDINO] ✓ Model ready on {param.device}")
+            
+        except ImportError as e:
+            logger.warning(f"GroundingDINO not available: {e}")
             self._available = False
         except Exception as e:
-            import os
             logger.error(f"[GroundingDINO] Failed to load model: {e}")
-            if "401" in str(e) or "403" in str(e) or "not found" in str(e).lower():
-                if not os.environ.get("HF_TOKEN"):
-                    logger.critical("Hugging Face token missing! Create a .env file with HF_TOKEN=your_token")
+            import traceback
+            logger.debug(f"[GroundingDINO] Traceback: {traceback.format_exc()}")
             self._available = False
         
         return self._available

@@ -280,51 +280,57 @@ class ProcessingPipeline(BaseSystem):
         """
         Handle Phase 2 batch processing task.
         
-        Operations run via ExtractorRegistry:
-        1. Generate thumbnails
-        2. Extract metadata (EXIF, XMP)
-        3. Compute basic embeddings
+        Split architecture:
+        1. CPU-only extractors (thumbnail, metadata) → Process pool
+        2. AI extractors (CLIP, DINO, WD-Tagger) → Thread pool (preloaded models)
         """
         file_ids = [ObjectId(fid) for fid in file_ids_str.split(",") if fid]
         
         logger.info(f"[PHASE2_START] Processing batch of {len(file_ids)} files")
         logger.debug(f"[PHASE2_START] File IDs: {[str(fid)[:8] + '...' for fid in file_ids]}")
         
-        # Try process pool first (bypass GIL for CPU-heavy work)
-        try:
-            from src.ucorefs.processing.process_handlers import process_phase2_batch_sync
-            
-            logger.info("[PHASE2] Using process pool for batch")
-            results = await self.task_system.run_in_process(
-                process_phase2_batch_sync,
-                file_ids_str,
-                self._extractor_configs
-            )
-            
-            # Queue Phase 3 for successfully processed files
-            for file_id in file_ids:
-                await self.enqueue_phase3(file_id)
-            
-            # Remove from pending
-            for file_id in file_ids:
-                self._phase2_pending.discard(str(file_id))
-            
-            # Publish event
-            await self._publish_progress("phase2.complete", results)
-            
-            return results
-            
-        except RuntimeError as e:
-            # Process pool not initialized - fall back to thread-based
-            logger.warning(f"[PHASE2] Process pool not available, using thread-based: {e}")
-        
-        # Fallback: existing thread-based implementation
         results = {
             "processed": 0,
             "errors": 0,
             "by_extractor": {}
         }
         
+        # STEP 1: CPU-only extractors in process pool
+        try:
+            from src.ucorefs.processing.process_handlers import process_phase2_batch_sync
+            
+            logger.info("[PHASE2] Step 1: CPU-only extractors in process pool")
+            cpu_results = await self.task_system.run_in_process(
+                process_phase2_batch_sync,
+                file_ids_str,
+                self._extractor_configs
+            )
+            results["by_extractor"].update(cpu_results.get("by_extractor", {}))
+            results["processed"] += cpu_results.get("processed", 0)
+            results["errors"] += cpu_results.get("errors", 0)
+            
+        except RuntimeError as e:
+            logger.warning(f"[PHASE2] Process pool not available: {e}")
+        
+        # STEP 2: AI extractors in thread pool (uses preloaded models)
+        logger.info("[PHASE2] Step 2: AI extractors in thread pool")
+        await self._run_ai_extractors_phase2(file_ids, results)
+        
+        # Queue Phase 3 for successfully processed files
+        for file_id in file_ids:
+            await self.enqueue_phase3(file_id)
+        
+        # Remove from pending
+        for file_id in file_ids:
+            self._phase2_pending.discard(str(file_id))
+        
+        # Publish event
+        await self._publish_progress("phase2.complete", results)
+        
+        return results
+    
+    async def _run_ai_extractors_phase2(self, file_ids: list, results: dict):
+        """Run AI extractors (needs_model=True) in thread pool."""
         # Load files
         files = []
         for file_id in file_ids:
@@ -332,152 +338,37 @@ class ProcessingPipeline(BaseSystem):
                 file = await FileRecord.get(file_id)
                 if file:
                     files.append(file)
-                    logger.debug(f"[PHASE2_LOAD] {file.name} | state={file.processing_state} | type={file.file_type}")
-                else:
-                    logger.error(f"[PHASE2_LOAD] ✗ File {file_id} not found in database!")
             except Exception as e:
-                logger.error(f"[PHASE2_LOAD] ✗ Failed to load {file_id}: {e}")
+                logger.error(f"[PHASE2_AI] Failed to load {file_id}: {e}")
                 results["errors"] += 1
         
-        logger.info(f"[PHASE2_LOAD] Successfully loaded {len(files)}/{len(file_ids)} files")
-        
         if not files:
-            logger.warning("[PHASE2_LOAD] No files loaded - aborting batch")
-            return results
+            return
         
-        # Get Phase 2 extractors (using injected registry)
-        extractors = self._extractor_registry.get_for_phase(2, locator=self.locator, config=self._extractor_configs)
-        total_extractors = len(extractors)
+        # Get AI extractors for Phase 2
+        all_extractors = self._extractor_registry.get_for_phase(2, locator=self.locator, config=self._extractor_configs)
+        ai_extractors = [e for e in all_extractors if getattr(e, 'needs_model', False)]
         
-        logger.info(f"[PHASE2_EXTRACTORS] Found {total_extractors} registered extractors")
-        for ext in extractors:
-            logger.debug(f"[PHASE2_EXTRACTORS]   - {ext.name} (priority={ext.priority})")
+        if not ai_extractors:
+            logger.debug("[PHASE2_AI] No AI extractors for Phase 2")
+            return
         
-        # Get chunk size from config
-        chunk_size = 5
-        if hasattr(self.config, 'data') and hasattr(self.config.data, 'processing'):
-            chunk_size = getattr(self.config.data.processing, 'batch_chunk_size', 5)
-            
-        # SAN-14 Phase 2: Track progress per extractor
-        for i, extractor in enumerate(extractors):
-            import asyncio
-            # Yield to UI thread before starting new extractor
-            await asyncio.sleep(0)
-            
+        logger.info(f"[PHASE2_AI] Running {len(ai_extractors)} AI extractors: {[e.name for e in ai_extractors]}")
+        
+        for extractor in ai_extractors:
             try:
-                # Filter to files this extractor can process
                 processable = [f for f in files if extractor.can_process(f)]
                 
-                logger.info(f"[PHASE2_EXTRACT_{i+1}/{total_extractors}] {extractor.name}: {len(processable)}/{len(files)} files processable")
-                
                 if processable:
-                    # Log file types for debugging
-                    file_types = {}
-                    for f in processable:
-                        file_types[f.file_type] = file_types.get(f.file_type, 0) + 1
-                    logger.debug(f"[PHASE2_EXTRACT_{i+1}] File types: {file_types}")
-                    
-                    # Process in chunks to prevent UI freeze
-                    extractor_results = {}
-                    total_chunks = (len(processable) + chunk_size - 1) // chunk_size
-                    
-                    for chunk_idx in range(total_chunks):
-                        start_idx = chunk_idx * chunk_size
-                        end_idx = min(start_idx + chunk_size, len(processable))
-                        chunk = processable[start_idx:end_idx]
-                        
-                        # Yield to UI thread before processing chunk
-                        await asyncio.sleep(0)
-                        
-                        try:
-                            chunk_results = await extractor.process(chunk)
-                            extractor_results.update(chunk_results)
-                            
-                            # Publish intermediate progress (optional improvement/extension point)
-                            # Could emit 'phase2.extractor.progress' here if UI supports it
-                            
-                        except Exception as e:
-                            logger.error(f"[PHASE2_EXTRACT_{i+1}] ✗ Chunk {chunk_idx+1}/{total_chunks} failed via {extractor.name}: {e}")
-                            # Mark chunk as failed
-                            for f in chunk:
-                                extractor_results[f._id] = False
-
+                    extractor_results = await extractor.process(processable)
                     success_count = sum(1 for v in extractor_results.values() if v)
-                    
-                    logger.info(f"[PHASE2_EXTRACT_{i+1}] ✓ {extractor.name} completed: {success_count}/{len(processable)} successful")
-                    
-                    if success_count < len(processable):
-                        failed_count = len(processable) - success_count
-                        logger.warning(f"[PHASE2_EXTRACT_{i+1}] ⚠ {failed_count} files failed for {extractor.name}")
-                    
                     results["by_extractor"][extractor.name] = success_count
                     results["processed"] += success_count
                     
-                    # SAN-14 Phase 2: Publish per-extractor progress
-                    progress_percent = int((i + 1) / total_extractors * 100)
-                    await self._publish_progress("phase2.extractor.complete", {
-                        "extractor": extractor.name,
-                        "processed": len(processable),
-                        "success": success_count,
-                        "progress": progress_percent,
-                        "batch_size": len(files)
-                    })
-                else:
-                    logger.debug(f"[PHASE2_EXTRACT_{i+1}] {extractor.name}: No files to process (can_process=False for all)")
-                    
+                    logger.info(f"[PHASE2_AI] {extractor.name}: {success_count}/{len(processable)} successful")
             except Exception as e:
-                logger.error(f"[PHASE2_EXTRACT_{i+1}] ✗ Extractor {extractor.name} failed with exception: {e}", exc_info=True)
+                logger.error(f"[PHASE2_AI] Extractor {extractor.name} failed: {e}")
                 results["errors"] += 1
-        
-        # Update state and queue for Phase 3 (ONLY if extractors succeeded)
-        from src.ucorefs.models.base import ProcessingState
-        
-        logger.info(f"[PHASE2_COMPLETE] Total: {results['processed']} files processed, {results['errors']} errors")
-        logger.info(f"[PHASE2_COMPLETE] By extractor: {results['by_extractor']}")
-        
-        for file in files:
-            # Re-fetch to get latest state from extractors
-            file = await FileRecord.get(file._id)
-            if not file:
-                logger.error(f"[PHASE2_TRANSITION] File {file._id} disappeared!")
-                continue
-            
-            # Check if ANY extractor processed this file successfully
-            success_count = sum(1 for count in results["by_extractor"].values() if count > 0)
-            
-            if success_count > 0:
-                # At least one extractor succeeded - advance state
-                if file.processing_state < ProcessingState.INDEXED:
-                    old_state = file.processing_state
-                    file.processing_state = ProcessingState.INDEXED
-                    await file.save()
-                    # Handle both enum and int for old_state
-                    old_state_name = old_state.name if hasattr(old_state, 'name') else ProcessingState(old_state).name
-                    logger.info(f"[PHASE2_TRANSITION] ✓ {file.name}: {old_state_name} → INDEXED (processed by {success_count} extractors)")
-                else:
-                    # Handle both enum and int for processing_state
-                    state_name = file.processing_state.name if hasattr(file.processing_state, 'name') else ProcessingState(file.processing_state).name
-                    logger.debug(f"[PHASE2_TRANSITION] {file.name}: Already at state={state_name}")
-                
-                # Queue Phase 3
-                logger.debug(f"[PHASE2_TRANSITION] Queuing {file.name} for Phase 3")
-                await self.enqueue_phase3(file._id)
-            else:
-                # NO extractors succeeded - keep current state
-                # Handle both enum and int for processing_state  
-                state_name = file.processing_state.name if hasattr(file.processing_state, 'name') else ProcessingState(file.processing_state).name
-                logger.warning(f"[PHASE2_TRANSITION] ⚠ {file.name} NOT processed by any extractor (state={state_name} unchanged)")
-                logger.warning(f"[PHASE2_TRANSITION]   Extractor results: {results['by_extractor']}")
-                logger.warning(f"[PHASE2_TRANSITION]   File type: {file.file_type}, Extension: {file.extension}")
-        
-        # Remove from pending
-        for file_id in file_ids:
-            self._phase2_pending.discard(str(file_id))
-        
-        # Publish event for UI updates
-        await self._publish_progress("phase2.complete", results)
-        
-        return results
     
     async def _handle_phase3_item(self, file_id_str: str) -> dict:
         """

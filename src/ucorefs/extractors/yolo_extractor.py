@@ -20,6 +20,7 @@ class YOLOExtractor(AIExtractor):
     phase = 3
     priority = 80 # High priority in Phase 3
     batch_supported = False
+    needs_model = True  # Requires YOLO model via DetectionService
     
     SUPPORTED_TYPES = {"image"}
     

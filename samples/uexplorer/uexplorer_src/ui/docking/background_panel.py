@@ -190,6 +190,17 @@ class BackgroundPanel(QWidget):
         except Exception as e:
             logger.debug(f"Background panel refresh failed: {e}")
     
+    def cleanup(self):
+        """Cleanup async tasks on panel close."""
+        if self._refresh_task and not self._refresh_task.done():
+            self._refresh_task.cancel()
+            logger.debug("Cancelled background panel refresh task")
+    
+    def closeEvent(self, event):
+        """Handle close event - cleanup async tasks."""
+        self.cleanup()
+        super().closeEvent(event)
+    
     def _update_active_table(self, tasks: List):
         """Update active tasks table."""
         self.active_table.setRowCount(len(tasks))
