@@ -143,6 +143,29 @@ export const albums = {
 };
 
 // ============================================================================
+// Relations API
+// ============================================================================
+
+export const relations = {
+  list: (relationType = null, limit = 100) => {
+    const params = new URLSearchParams({ limit });
+    if (relationType) params.append('relation_type', relationType);
+    return apiCall(`/api/relations/?${params}`);
+  },
+  create: (relationData) => apiCall('/api/relations/', {
+    method: 'POST',
+    body: JSON.stringify(relationData)
+  }),
+  delete: (relationId) => apiCall(`/api/relations/${relationId}`, {
+    method: 'DELETE'
+  }),
+  getForFile: (fileId) => apiCall(`/api/relations/file/${fileId}`),
+  markWrong: (relationId) => apiCall(`/api/relations/${relationId}/mark-wrong`, {
+    method: 'PUT'
+  })
+};
+
+// ============================================================================
 // Utility Functions
 // ============================================================================
 
@@ -176,6 +199,7 @@ export default {
   files,
   tags,
   albums,
+  relations,
   formatFileSize,
   formatDate,
   formatRating

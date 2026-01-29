@@ -480,6 +480,79 @@ async def update_file_rating(file_id: str, rating: int = Query(..., ge=0, le=5))
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
+@app.post("/api/files/batch/index")
+async def batch_index_files(paths: List[str]):
+    """Batch index multiple files"""
+    results = {"success": [], "failed": []}
+    
+    for path in paths:
+        if not is_safe_path(path):
+            results["failed"].append({"path": path, "error": "Invalid path"})
+            continue
+        
+        file_path = Path(path)
+        if not file_path.is_file():
+            results["failed"].append({"path": path, "error": "Not a file"})
+            continue
+        
+        try:
+            # Check if already indexed
+            existing = await FileRecord.find_one({"path": path})
+            if existing:
+                results["success"].append({"path": path, "file_id": str(existing.id), "status": "already_indexed"})
+                continue
+            
+            # Create file record
+            stat = file_path.stat()
+            file_record = FileRecord(
+                path=path,
+                name=file_path.name,
+                extension=file_path.suffix,
+                size=stat.st_size,
+                file_modified_at=datetime.fromtimestamp(stat.st_mtime)
+            )
+            await file_record.insert()
+            
+            results["success"].append({"path": path, "file_id": str(file_record.id), "status": "indexed"})
+        except Exception as e:
+            results["failed"].append({"path": path, "error": str(e)})
+    
+    logger.info(f"Batch indexed: {len(results['success'])} success, {len(results['failed'])} failed")
+    
+    return results
+
+
+@app.post("/api/files/batch/update")
+async def batch_update_files(file_ids: List[str], updates: Dict[str, Any]):
+    """Batch update multiple files"""
+    results = {"updated": 0, "failed": []}
+    
+    for file_id_str in file_ids:
+        try:
+            from bson import ObjectId
+            file_record = await FileRecord.get(ObjectId(file_id_str))
+            if not file_record:
+                results["failed"].append({"file_id": file_id_str, "error": "Not found"})
+                continue
+            
+            # Apply updates
+            if "rating" in updates:
+                file_record.rating = updates["rating"]
+            if "description" in updates:
+                file_record.description = updates["description"]
+            if "custom_properties" in updates:
+                file_record.custom_properties.update(updates["custom_properties"])
+            
+            await file_record.save()
+            results["updated"] += 1
+        except Exception as e:
+            results["failed"].append({"file_id": file_id_str, "error": str(e)})
+    
+    logger.info(f"Batch updated {results['updated']} files")
+    
+    return results
+
+
 # Import routers
 try:
     from api.tags import router as tags_router
@@ -494,6 +567,13 @@ try:
     logger.info("✓ Album API routes loaded")
 except Exception as e:
     logger.warning(f"Could not load album routes: {e}")
+
+try:
+    from api.relations import router as relations_router
+    app.include_router(relations_router)
+    logger.info("✓ Relations API routes loaded")
+except Exception as e:
+    logger.warning(f"Could not load relations routes: {e}")
 
 
 # ============================================================================
