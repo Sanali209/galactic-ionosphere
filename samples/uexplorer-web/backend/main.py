@@ -94,6 +94,8 @@ def is_safe_path(requested_path: str) -> bool:
     Check if the requested path is safe to access.
     In production, implement proper security checks.
     """
+    if not requested_path:
+        return False
     try:
         path = Path(requested_path).resolve()
         return path.exists()
