@@ -480,13 +480,20 @@ async def update_file_rating(file_id: str, rating: int = Query(..., ge=0, le=5))
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
-# Import tag router
+# Import routers
 try:
     from api.tags import router as tags_router
     app.include_router(tags_router)
     logger.info("✓ Tag API routes loaded")
 except Exception as e:
     logger.warning(f"Could not load tag routes: {e}")
+
+try:
+    from api.albums import router as albums_router
+    app.include_router(albums_router)
+    logger.info("✓ Album API routes loaded")
+except Exception as e:
+    logger.warning(f"Could not load album routes: {e}")
 
 
 # ============================================================================

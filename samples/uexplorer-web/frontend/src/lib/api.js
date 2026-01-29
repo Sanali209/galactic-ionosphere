@@ -113,6 +113,36 @@ export const tags = {
 };
 
 // ============================================================================
+// Album API
+// ============================================================================
+
+export const albums = {
+  list: () => apiCall('/api/albums/'),
+  get: (albumId) => apiCall(`/api/albums/${albumId}`),
+  create: (albumData) => apiCall('/api/albums/', {
+    method: 'POST',
+    body: JSON.stringify(albumData)
+  }),
+  update: (albumId, albumData) => apiCall(`/api/albums/${albumId}`, {
+    method: 'PUT',
+    body: JSON.stringify(albumData)
+  }),
+  delete: (albumId) => apiCall(`/api/albums/${albumId}`, {
+    method: 'DELETE'
+  }),
+  assign: (fileIds, albumId) => apiCall('/api/albums/assign', {
+    method: 'POST',
+    body: JSON.stringify({ file_ids: fileIds, album_id: albumId })
+  }),
+  unassign: (fileIds, albumId) => apiCall('/api/albums/unassign', {
+    method: 'POST',
+    body: JSON.stringify({ file_ids: fileIds, album_id: albumId })
+  }),
+  getFiles: (albumId, limit = 100, offset = 0) => apiCall(`/api/albums/${albumId}/files?limit=${limit}&offset=${offset}`),
+  getForFile: (fileId) => apiCall(`/api/albums/file/${fileId}`)
+};
+
+// ============================================================================
 // Utility Functions
 // ============================================================================
 
@@ -145,6 +175,7 @@ export default {
   database,
   files,
   tags,
+  albums,
   formatFileSize,
   formatDate,
   formatRating
