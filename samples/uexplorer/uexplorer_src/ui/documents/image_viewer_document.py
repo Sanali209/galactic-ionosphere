@@ -12,15 +12,17 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, 
     QGraphicsPixmapItem, QToolBar, QButtonGroup, QToolButton
 )
+from src.ui.mvvm.data_context import BindableWidget
 from PySide6.QtCore import Qt, Signal, QRectF, QPointF
 from PySide6.QtGui import QPixmap, QIcon, QPainter, QAction, QWheelEvent, QMouseEvent
 
 from loguru import logger
 from uexplorer_src.ui.widgets.detection_graphics_items import DetectionRectItem
 
-class DetectionGraphicsView(QGraphicsView):
+class DetectionGraphicsView(BindableWidget, QGraphicsView):
     """
     Custom GraphicsView for image pan/zoom and detection editing.
+    Reacts to ImageViewerViewModel.
     """
     
     # Modes
@@ -47,6 +49,10 @@ class DetectionGraphicsView(QGraphicsView):
         # Drawing state
         self._drawing_start: Optional[QPointF] = None
         self._current_draw_item: Optional[DetectionRectItem] = None
+        
+        # Context menu
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._on_context_menu)
     
     def set_mode(self, mode: int):
         self._mode = mode
@@ -108,16 +114,50 @@ class DetectionGraphicsView(QGraphicsView):
         else:
             super().mouseReleaseEvent(event)
 
+    def _on_context_menu(self, pos):
+        """Show context menu for detection items or empty area."""
+        item = self.itemAt(pos)
+        
+        from PySide6.QtWidgets import QMenu
+        menu = QMenu(self)
+        
+        if isinstance(item, DetectionRectItem):
+            det_id = item.det_id
+            
+            act_edit = QAction("✏️ Edit Detection...", self)
+            act_edit.triggered.connect(lambda: self.parent()._edit_detection(det_id))
+            menu.addAction(act_edit)
+            
+            act_delete = QAction("🗑️ Delete", self)
+            act_delete.triggered.connect(lambda: self.parent()._delete_detection(det_id))
+            menu.addAction(act_delete)
+            
+            menu.addSeparator()
+            
+            act_similar = QAction("🔍 Find Similar in Area", self)
+            act_similar.triggered.connect(lambda: self.parent()._find_similar_in_area(item.rect()))
+            menu.addAction(act_similar)
+            
+        else:
+            # Clicked on empty area or image
+            act_roi = QAction("🎯 Find Similar in New ROI", self)
+            act_roi.triggered.connect(self._enter_roi_mode)
+            menu.addAction(act_roi)
+            
+        menu.exec(self.viewport().mapToGlobal(pos))
 
-class ImageViewerDocument(QWidget):
+    def _enter_roi_mode(self):
+        """Switch to ROI drawing mode."""
+        from uexplorer_src.viewmodels.image_viewer_viewmodel import ImageViewerViewModel
+        vm = self.get_typed_data_context(ImageViewerViewModel)
+        if vm:
+            vm.viewer_mode = "roi"
+
+
+class ImageViewerDocument(BindableWidget):
     """
     Full-size image viewer document with detection editing support.
-    
-    Refactored to support:
-    - QGraphicsView based rendering
-    - Detection editing overlap
-    - Toolbar controls
-    - Persistence via DetectionService
+    Uses ImageViewerViewModel for state synchronization.
     """
     
     # Signals
@@ -127,17 +167,27 @@ class ImageViewerDocument(QWidget):
         super().__init__(parent)
         self._file_path = file_path
         self._title = title
-        self._locator = locator  # For accessing DetectionService
-        self._file_record = None # Loaded file record
+        self._locator = locator
+        self._file_record = None 
         
-        # Graphics components
+        # 1. Create ViewModel and set DataContext
+        from uexplorer_src.viewmodels.image_viewer_viewmodel import ImageViewerViewModel
+        self.viewmodel = ImageViewerViewModel(locator)
+        self.set_data_context(self.viewmodel)
+
+        # 2. Graphics components
         self._scene = QGraphicsScene()
-        self._view = DetectionGraphicsView()
+        self._view = DetectionGraphicsView(parent=self)
         self._view.setScene(self._scene)
         self._pixmap_item: Optional[QGraphicsPixmapItem] = None
         
         self._setup_ui()
         self._load_image()
+        
+        # 3. Connect reactive properties
+        self.viewmodel.viewer_modeChanged.connect(self._on_viewer_mode_changed)
+        self.viewmodel.request_reload.connect(self._load_image)
+        self.viewmodel.active_detection_idChanged.connect(self._on_active_detection_changed)
         
         # Connect signals
         self._view.rect_created.connect(self._on_rect_draw_finished)
@@ -145,10 +195,32 @@ class ImageViewerDocument(QWidget):
         # Load existing detections
         self._load_detections()
         
-        logger.debug(f"ImageViewerDocument (Graphics) opened: {title}")
+        logger.debug(f"ImageViewerDocument (Reactive) opened: {title}")
+
+    def _on_viewer_mode_changed(self, mode: str):
+        """Map ViewModel mode to GraphicsView behavior."""
+        if mode == "draw" or mode == "roi":
+            self._view.set_mode(DetectionGraphicsView.MODE_DRAW)
+        else:
+            self._view.set_mode(DetectionGraphicsView.MODE_VIEW)
+
+    def _on_active_detection_changed(self, det_id: str):
+        """Highlight detection when selected globally."""
+        if not det_id:
+            self._scene.clearSelection()
+            return
+            
+        for item in self._scene.items():
+            if isinstance(item, DetectionRectItem) and item.det_id == det_id:
+                self._scene.clearSelection()
+                item.setSelected(True)
+                # Ensure it's visible in the view
+                self._view.ensureVisible(item)
+                logger.debug(f"ImageViewerDocument: Highlighted detection {det_id}")
+                break
     
     def _setup_ui(self):
-        """Build viewer UI with Toolbar."""
+        """Build viewer UI and bind to ViewModel."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -168,7 +240,7 @@ class ImageViewerDocument(QWidget):
         
         self._toolbar.addSeparator()
         
-        # Mode group
+        # Mode group (Reactive)
         self._mode_group = QButtonGroup(self)
         self._mode_group.setExclusive(True)
         
@@ -176,14 +248,14 @@ class ImageViewerDocument(QWidget):
         btn_view.setText("✋ View")
         btn_view.setCheckable(True)
         btn_view.setChecked(True)
-        btn_view.clicked.connect(lambda: self._view.set_mode(DetectionGraphicsView.MODE_VIEW))
+        btn_view.clicked.connect(lambda: setattr(self.viewmodel, "viewer_mode", "browse"))
         self._toolbar.addWidget(btn_view)
         self._mode_group.addButton(btn_view)
         
         btn_draw = QToolButton()
         btn_draw.setText("✏️ Draw")
         btn_draw.setCheckable(True)
-        btn_draw.clicked.connect(lambda: self._view.set_mode(DetectionGraphicsView.MODE_DRAW))
+        btn_draw.clicked.connect(lambda: setattr(self.viewmodel, "viewer_mode", "draw"))
         self._toolbar.addWidget(btn_draw)
         self._mode_group.addButton(btn_draw)
         
@@ -261,17 +333,41 @@ class ImageViewerDocument(QWidget):
                  
             self._file_record = record
             
+            # Get image dimensions for coordinate conversion
+            if not self._pixmap_item:
+                logger.warning("No pixmap loaded, cannot convert bbox coordinates")
+                return
+            
+            img_width = self._pixmap_item.pixmap().width()
+            img_height = self._pixmap_item.pixmap().height()
+            logger.debug(f"Image dimensions: {img_width}×{img_height}")
+            
             # Fetch detections
             instances = await DetectionInstance.find({"file_id": record.id})
+            logger.debug(f"Found {len(instances)} detection instances")
             
-            # Add to scene
+            # Add to scene with coordinate conversion
             for inst in instances:
                 bbox = inst.bbox
+                
+                # Convert normalized (0-1) coordinates to pixel coordinates
+                x_px = bbox.get('x', 0) * img_width
+                y_px = bbox.get('y', 0) * img_height
+                w_px = bbox.get('w', 0) * img_width
+                h_px = bbox.get('h', 0) * img_height
+                
+                logger.debug(
+                    f"Detection '{inst.name}': "
+                    f"normalized=[{bbox.get('x'):.3f}, {bbox.get('y'):.3f}, {bbox.get('w'):.3f}×{bbox.get('h'):.3f}] → "
+                    f"pixels=[{x_px:.1f}, {y_px:.1f}, {w_px:.1f}×{h_px:.1f}]"
+                )
+                
                 self.add_detection(
-                    bbox.get('x'), bbox.get('y'), bbox.get('w'), bbox.get('h'),
-                    label=inst.name.split('_')[0] if '_' in inst.name else "Object", # Simplistic label extraction
+                    x_px, y_px, w_px, h_px,
+                    label=inst.name.split('_')[0] if '_' in inst.name else "Object",
                     score=inst.confidence,
-                    editable=True
+                    editable=True,
+                    det_id=str(inst.id)
                 )
                 
         except Exception as e:
@@ -296,6 +392,15 @@ class ImageViewerDocument(QWidget):
         """Handle new rect creation."""
         logger.info(f"New detection drawn: {rect}")
         
+        from uexplorer_src.viewmodels.image_viewer_viewmodel import ImageViewerViewModel
+        vm = self.get_typed_data_context(ImageViewerViewModel)
+        if vm and vm.viewer_mode == "roi":
+             # ROI search mode
+             self._find_similar_in_area(rect)
+             # Switch back to browse mode
+             vm.viewer_mode = "browse"
+             return
+
         # Create persistent item
         item = DetectionRectItem(rect.x(), rect.y(), rect.width(), rect.height(), label="New", score=1.0)
         item.set_editable(True)
@@ -318,9 +423,9 @@ class ImageViewerDocument(QWidget):
 
     # --- Detection Management ---
     
-    def add_detection(self, x: float, y: float, w: float, h: float, label: str, score: float = 0.0, editable: bool = False):
+    def add_detection(self, x: float, y: float, w: float, h: float, label: str, score: float = 0.0, editable: bool = False, det_id: str = ""):
         """Add a detection box to the view."""
-        item = DetectionRectItem(x, y, w, h, label=label, score=score)
+        item = DetectionRectItem(x, y, w, h, label=label, score=score, det_id=det_id)
         item.set_editable(editable)
         
         # Connect signals
@@ -382,6 +487,124 @@ class ImageViewerDocument(QWidget):
                 
         except Exception as e:
             logger.error(f"Save failed: {e}")
+
+    # --- Detection Handlers from Viewer ---
+
+    def _edit_detection(self, det_id):
+        """Open edit dialog for detection."""
+        from src.ucorefs.detection.models import DetectionInstance
+        from uexplorer_src.ui.dialogs.detection_edit_dialog import DetectionEditDialog
+        from src.ucorefs.detection.service import DetectionService
+        
+        async def _do_edit():
+            try:
+                instance = await DetectionInstance.get(det_id)
+                if not instance: return
+                await instance.resolve_class_name()
+                
+                data = {
+                    "name": instance.name,
+                    "class_name": instance.class_name,
+                    "group_name": instance.group_name,
+                    "confidence": instance.confidence
+                }
+                
+                dialog = DetectionEditDialog(self._locator, data, self)
+                if dialog.exec():
+                    result = dialog.get_result()
+                    service = self._locator.get_system(DetectionService)
+                    
+                    if result['class_name'] != instance.class_name:
+                         new_class = await service._get_or_create_class(result['class_name'])
+                         result['detection_class_id'] = new_class.id
+                         del result['class_name']
+                    
+                    if await service.update_instance(det_id, result):
+                        logger.info(f"Updated detection {det_id}")
+                        # Refresh locally
+                        self.clear_detections()
+                        await self._fetch_detections()
+            except Exception as e:
+                logger.error(f"Edit failed: {e}")
+
+        asyncio.ensure_future(_do_edit())
+
+    def _delete_detection(self, det_id):
+        """Delete detection."""
+        from src.ucorefs.detection.service import DetectionService
+        
+        async def _do_delete():
+            service = self._locator.get_system(DetectionService)
+            if await service.delete_instance(det_id):
+                logger.info(f"Deleted detection {det_id}")
+                # Remove from scene directly
+                for item in self._scene.items():
+                    if isinstance(item, DetectionRectItem) and item.det_id == det_id:
+                        self._scene.removeItem(item)
+                        break
+        
+        asyncio.ensure_future(_do_delete())
+
+    def _find_similar_in_area(self, rect: QRectF):
+        """Find images similar to the content of the given rect."""
+        asyncio.ensure_future(self._perform_roi_search(rect))
+
+    async def _perform_roi_search(self, rect: QRectF):
+        """Execute ROI crop and similarity search."""
+        try:
+            if not self._pixmap_item: return
+            
+            # 1. Get Crop
+            pixmap = self._pixmap_item.pixmap()
+            
+            # Clamp rect to pixmap bounds
+            pix_rect = pixmap.rect()
+            target_rect = rect.toRect().intersected(pix_rect)
+            
+            if target_rect.width() < 5 or target_rect.height() < 5:
+                logger.warning("ROI too small for search")
+                return
+                
+            crop = pixmap.copy(target_rect)
+            
+            # 2. Get Embedding via CLIPExtractor
+            from src.ucorefs.extractors.clip_extractor import CLIPExtractor
+            extractor = CLIPExtractor(self._locator)
+            
+            # Convert QPixmap to PIL
+            from io import BytesIO
+            from PIL import Image
+            buffer = BytesIO()
+            crop.save(buffer, "PNG")
+            buffer.seek(0)
+            pil_img = Image.open(buffer).convert("RGB")
+            
+            logger.info("Generating embedding for ROI crop...")
+            embedding = await extractor.encode_image(pil_img)
+            if not embedding:
+                logger.warning("Failed to generate embedding for ROI")
+                return
+            
+            # 3. Trigger Search via SearchPipeline
+            from uexplorer_src.viewmodels.search_query import SearchQuery
+            query = SearchQuery(
+                mode="image",
+                vector_query=embedding,
+                limit=100
+            )
+            
+            # Find SearchPipeline to execute
+            main_window = self.window()
+            if hasattr(main_window, 'search_pipeline'):
+                 logger.info("Triggering ROI search on MainWindow pipeline")
+                 await main_window.search_pipeline.execute(query)
+            else:
+                 logger.error("MainWindow.search_pipeline not found")
+            
+        except Exception as e:
+            logger.error(f"ROI search failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
 
     # --- Properties for docking/session ---
     

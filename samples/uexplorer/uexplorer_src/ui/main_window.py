@@ -147,7 +147,10 @@ class MainWindow(QMainWindow):
             logger.info("NavigationService connected")
         except Exception as e:
             logger.error(f"Failed to setup NavigationService: {e}")
-            
+        
+        # ✅ Selection tracking handled reactively via ContextSyncManager
+        logger.info("✓ SelectionManager initialized")
+        
         logger.info("UI managers initialized (FilterManager, SelectionManager, DocumentManager)")
     
     
@@ -276,13 +279,22 @@ class MainWindow(QMainWindow):
         if not record_ids:
             self._clear_metadata()
             self.status_label.setText("Ready")
+            # Clear selection in manager
+            if hasattr(self, 'selection_manager'):
+                self.selection_manager.clear_selection("browser")
             return
-            
+        
         self.status_label.setText(f"{len(record_ids)} item(s) selected")
         
-        # Update metadata panel (async fetch)
-        import asyncio
-        asyncio.ensure_future(self._update_metadata(record_ids[0]))
+        # Route through SelectionManager to emit active_changed signal
+        # This triggers PropertiesPanel.set_file() via _on_active_file_changed()
+        # which handles BOTH Properties mode (metadata) and Detections mode
+        if hasattr(self, 'selection_manager'):
+            from bson import ObjectId
+            file_ids = [ObjectId(id_) if isinstance(id_, str) else id_ for id_ in record_ids]
+            self.selection_manager.set_selection(file_ids, "browser")
+            logger.info(f"[SelectionManager] Selection updated: {len(file_ids)} file(s)")
+
 
     def _clear_metadata(self):
         '''Clear metadata panel if available.'''
@@ -649,7 +661,7 @@ class MainWindow(QMainWindow):
         logger.info("Setting up DockingService (PySide6-QtAds)...")
         
         # Create docking service
-        self.docking_service = DockingService(self)
+        self.docking_service = DockingService(self, self.locator)
         
         # Connect document activation to DocumentManager
         self.docking_service.document_activated.connect(self._on_document_tab_activated)
@@ -803,7 +815,6 @@ class MainWindow(QMainWindow):
             on_directory_selected=self._on_directory_selected,
             on_album_selected=self._on_album_selected,
             on_relation_selected=self._on_relation_category_selected,
-            on_active_changed=self._on_active_file_changed,
             on_search_requested=self._on_search_requested,
             selection_manager=getattr(self, 'selection_manager', None),
         )
@@ -834,10 +845,6 @@ class MainWindow(QMainWindow):
         
         logger.info("✓ UnifiedQueryBuilder connected to all panels")
     
-    def _on_active_file_changed(self, file_id):
-        '''Update properties panel when active file changes.'''
-        if file_id and hasattr(self, 'properties_panel'):
-            self.properties_panel.set_file(str(file_id))
     
     def _on_search_requested(self, mode: str, query: str, fields: list):
         '''

@@ -92,6 +92,18 @@ class DockingService(QObject):
             logger.debug(f"Focus changed to dock: {dock_id}")
             self.focus_changed.emit(dock_id)
             
+            # --- Integration with ContextSyncManager ---
+            # Automatically publish focus changes to the context routing channel
+            if self.locator:
+                try:
+                    from src.ui.mvvm.sync_manager import ContextSyncManager
+                    sync_mgr = self.locator.get_system(ContextSyncManager)
+                    if sync_mgr:
+                        # Broadcast the active context ID to all interested ViewModels
+                        sync_mgr.publish("active_document", dock_id, source_vm=self)
+                except Exception as e:
+                    logger.warning(f"Failed to publish active_document sync: {e}")
+
             # If it's a document, also emit document_activated for compatibility
             if dock_id in self._documents:
                 self.document_activated.emit(dock_id)
@@ -144,16 +156,16 @@ class DockingService(QObject):
         else:
             logger.warning(f"Unknown config preset: {preset}")
     
-    def __init__(self, parent_widget: QWidget):
+    def __init__(self, parent_widget: QWidget, locator=None):
         """
         Initialize the docking service.
         
         Args:
             parent_widget: The parent QMainWindow or QWidget for the dock manager
+            locator: Optional ServiceLocator for accessing other systems.
         """
         super().__init__()
-        
-        # Configure QtAds BEFORE creating dock manager (critical!)
+        self.locator = locator
         self._configure_manager()
         
         # Now create the dock manager

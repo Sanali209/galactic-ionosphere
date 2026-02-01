@@ -211,3 +211,29 @@ class CLIPExtractor(AIExtractor):
         except Exception as e:
             logger.error(f"CLIP text encoding failed: {e}")
             return []
+
+    async def encode_image(self, image_data) -> list:
+        """Encode image (PIL or path) to CLIP embedding vector."""
+        if not self._ensure_model_sync():
+            return []
+            
+        try:
+            import torch
+            from PIL import Image
+            
+            if isinstance(image_data, str):
+                image = Image.open(image_data).convert("RGB")
+            else:
+                image = image_data.convert("RGB")
+                
+            image_input = CLIPExtractor._shared_preprocess(image).unsqueeze(0).to(CLIPExtractor._shared_device)
+            
+            with torch.no_grad():
+                image_features = CLIPExtractor._shared_model.encode_image(image_input)
+                image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+                embedding = image_features.cpu().numpy().flatten().tolist()
+                
+            return embedding
+        except Exception as e:
+            logger.error(f"CLIP image encoding failed: {e}")
+            return []

@@ -4,7 +4,7 @@ UCoreFS - Detection Service
 Manages object detection on files with configurable backends.
 Integrates with ProcessingPipeline phase 3.
 """
-from typing import List, Optional, Dict, Any, Type
+from typing import List, Optional, Dict, Any, Type, Union
 from abc import ABC, abstractmethod
 from bson import ObjectId
 from loguru import logger
@@ -168,11 +168,18 @@ class DetectionService(BaseSystem):
         # Convert to DetectionInstance records
         instances = []
         for det in raw_detections:
+            # Validate bbox is properly normalized
+            bbox_data = det.get("bbox", {})
+            if not bbox_data or not all(k in bbox_data for k in ['x', 'y', 'w', 'h']):
+                logger.warning(f"Invalid bbox data for {det.get('label', 'unknown')}: {bbox_data}")
+                bbox_data = {"x": 0, "y": 0, "w": 0, "h": 0}
+            
             instance = DetectionInstance(
                 name=f"{det['label']}_{len(instances)}",
                 file_id=file_id,
-                bbox=det.get("bbox", {}),
+                bbox=bbox_data,
                 confidence=det.get("confidence", 0.0),
+                group_name=det.get("group_name", "unknown"),  # ✅ NEW: Preserve group_name from backend
             )
             
             # Get or create DetectionClass for this label
@@ -235,12 +242,14 @@ class DetectionService(BaseSystem):
                 label = det.get("label", "Unknown")
                 bbox = det.get("bbox", {})
                 confidence = det.get("confidence", 1.0) # User added = 100% confidence?
+                group_name = det.get("group_name", label)  # ✅ NEW: Use group_name if provided, default to label
                 
                 instance = DetectionInstance(
                     name=f"{label}_{i}",
                     file_id=file_id,
                     bbox=bbox,
-                    confidence=confidence
+                    confidence=confidence,
+                    group_name=group_name,  # ✅ NEW: Set group_name
                 )
                 
                 # Resolve class
@@ -261,3 +270,83 @@ class DetectionService(BaseSystem):
         except Exception as e:
             logger.error(f"Failed to update detections for {file_id}: {e}")
             return False
+    async def delete_instance(self, instance_id: Union[str, ObjectId]) -> bool:
+        """
+        Delete a single detection instance.
+        
+        Args:
+            instance_id: ObjectId or string ID
+            
+        Returns:
+            True if successful
+        """
+        try:
+            if isinstance(instance_id, str):
+                instance_id = ObjectId(instance_id)
+            
+            instance = await DetectionInstance.get(instance_id)
+            if not instance:
+                logger.warning(f"Detection instance not found for deletion: {instance_id}")
+                return False
+                
+            await instance.delete()
+            logger.info(f"Deleted detection instance: {instance_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete detection instance {instance_id}: {e}")
+            return False
+
+    async def update_instance(self, instance_id: Union[str, ObjectId], updates: Dict[str, Any]) -> bool:
+        """
+        Update fields of a single detection instance.
+        
+        Args:
+            instance_id: ObjectId or string ID
+            updates: Dictionary of fields to update
+            
+        Returns:
+            True if successful
+        """
+        try:
+            if isinstance(instance_id, str):
+                instance_id = ObjectId(instance_id)
+            
+            instance = await DetectionInstance.get(instance_id)
+            if not instance:
+                logger.warning(f"Detection instance not found for update: {instance_id}")
+                return False
+                
+            for key, value in updates.items():
+                if hasattr(instance, key):
+                    setattr(instance, key, value)
+                else:
+                    logger.warning(f"DetectionInstance has no field '{key}', skipping update")
+            
+            await instance.save()
+            logger.info(f"Updated detection instance: {instance_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update detection instance {instance_id}: {e}")
+            return False
+
+    async def get_class_suggestions(self, partial_name: str = "") -> List[str]:
+        """
+        Get suggestions for detection class names.
+        
+        Args:
+            partial_name: Optional prefix to filter by
+            
+        Returns:
+            List of class names
+        """
+        try:
+            query = {}
+            if partial_name:
+                query = {"class_name": {"$regex": f"^{partial_name}", "$options": "i"}}
+            
+            from src.ucorefs.detection.models import DetectionClass
+            classes = await DetectionClass.find(query)
+            return sorted([c.class_name for c in classes])
+        except Exception as e:
+            logger.error(f"Failed to get class suggestions: {e}")
+            return []

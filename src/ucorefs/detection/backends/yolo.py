@@ -143,6 +143,7 @@ class YOLOBackend(DetectionBackend):
                         "label": label,
                         "bbox": bbox,
                         "confidence": float(box.conf[0]),
+                        "group_name": label,  # ✅ NEW: Use detected class label as group identifier
                     })
             
             logger.debug(f"YOLO detected {len(detections)} objects in {image_path}")

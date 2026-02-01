@@ -184,9 +184,14 @@ def register_handlers(task_system) -> int:
         ("uexplorer.cleanup", handle_cleanup_orphans),
     ]
     
+    logger.info(f"UExplorer register_handlers: TaskSystem id={id(task_system)}")
+    logger.info(f"UExplorer register_handlers: Before registration, handlers={list(task_system._handlers.keys())}")
+    
     for name, handler in handlers:
         task_system.register_handler(name, handler)
+        logger.debug(f"Registered handler: {name}")
     
+    logger.info(f"UExplorer register_handlers: After registration, handlers={list(task_system._handlers.keys())}")
     logger.info(f"UExplorer: Registered {len(handlers)} task handlers")
     return len(handlers)
 

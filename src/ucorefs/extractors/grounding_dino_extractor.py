@@ -500,6 +500,7 @@ class GroundingDINOExtractor(AIExtractor):
                 detection_class_id=detection_class.id if detection_class else None,
                 bbox=norm_bbox,
                 confidence=det.get("confidence", 0.0),
+                group_name=raw_label,  # ✅ NEW: Preserves original search phrase
                 is_virtual=True,
                 driver_type="detection"
             )

@@ -1,26 +1,32 @@
 [DESIGN_DOC]
 Context:
-- Problem: UI services submit tasks to a local `TaskSystem` instance which has no active workers. The Engine `TaskSystem` (with workers) never sees these tasks.
-- Root Cause: `ApplicationBuilder` instantiates `TaskSystem` by default in the UI. `UCoreFSClientBundle` exclusion is bypassed by defaults.
-- Constraints: Maintain `TaskSystem.submit` interface. Avoid complex architectural refactors of `DiscoveryService`.
+- Problem: Disjointed selection systems (SelectionManager vs Image Viewer) and lack of unified data context synchronization for detections and ROI.
+- Constraints: Avoid creating redundant selection managers. Leverage existing MVVM (BindableProperty). Maintain performance with large collection sets.
 
 Architecture:
 - Components:
-  - `TaskSystem` (UI): Acts as Client. Detects `EngineProxy`. Routes `submit()` calls to Engine.
-  - `EngineProxy`: Bridge to Engine Loop.
-  - `TaskSystem` (Engine): Acts as Server. Processes queue.
+  - `ContextSyncManager`: Central bus for property synchronization.
+  - `BindableProperty`: Extended with `sync_channel` metadata.
+  - `BindableList/Dict`: Reactive wrappers for Python collections.
+  - `PropertiesViewModel` & `ImageViewerViewModel`: Shared state via sync channels.
 - Data flow:
-  - UI Service -> `TaskSystem.submit()` -> (Check Proxy) -> `EngineProxy.submit()` -> Engine Loop -> `TaskSystem.submit()` -> DB + Queue.
+  - VM Property Change -> BindableProperty.__set__ -> ContextSyncManager.publish -> Other VMs linked to channel.
+  - Mutation (List) -> collectionChanged Signal -> ContextSyncManager broadcast -> Subscriber update.
 
 Key Decisions:
-- [D1] Lazy Proxy Detection in TaskSystem – `TaskSystem.submit` checks for `EngineProxy` in locator to determine if it should route remotely.
-       Rationale: Simple, avoids configuration changes, handles the "One App, Two Threads" architecture seamlessly.
+- [D1] Global Reactive Property Sync – Use a central registry of properties tagged with channels to propagate state changes without explicit wiring.
+- [D2] Reactive Collection Wrappers – Wrap lists/dicts in proxy objects that emit signals to support synchronization of complex data structures.
+- [D3] Diagnostics Interface – Implement `ContextMonitorPanel` to expose internal state of the sync manager for real-time debugging.
+- [D4] Debounced Updates – Introduce ViewModel-level debouncing for performance optimization when handling high-frequency selection changes.
 
 Interfaces:
-- `TaskSystem.submit`: Unchanged signature. Behavior bifurcates based on environment (Client vs Engine).
+- `ContextSyncManager.publish(channel, value, source_vm)`
+- `BindableProperty(sync_channel=..., mapper=...)`
+- `PropertiesViewModel.loading_requested`: Signal for debounced loading.
 
 Assumptions & TODOs:
-- Assumptions: `EngineProxy` is only registered in the Main Thread. `EngineThread` does not have `EngineProxy`.
-- TODOs (with priority):
-  - [High] Modify `src/core/tasks/system.py` to implement routing logic in `submit`.
+- Completed: Phase 1-6 of Reactive Sync refactor.
+  - [High] Implement `sync_channel` in `bindable.py`.
+  - [High] Implement `ContextSyncManager` service.
+  - [Med] Implement `BindableList` and `BindableDict`.
 [/DESIGN_DOC]

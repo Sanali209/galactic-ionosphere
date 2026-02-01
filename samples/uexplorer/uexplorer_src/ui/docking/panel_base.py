@@ -12,12 +12,15 @@ if TYPE_CHECKING:
     from src.core.service_locator import ServiceLocator
 
 
-class PanelBase(QWidget):
+from src.ui.mvvm.data_context import BindableWidget
+
+
+class PanelBase(BindableWidget):
     """
     Base class for UExplorer panels.
     
-    Now inherits from QWidget (not QDockWidget) to work with DockingService.
-    DockingService wraps these panels in CDockWidget automatically.
+    Now inherits from BindableWidget (not QDockWidget) to support
+    WPF-style DataContext inheritance.
     """
     
     # Signals

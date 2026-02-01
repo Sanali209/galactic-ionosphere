@@ -55,6 +55,11 @@ class TagTreeModel(QAbstractItemModel):
         
     def refresh_roots(self):
         """Fetch root tags."""
+        # Guard: Don't fetch if already fetching
+        if self.root.is_fetching:
+            logger.debug("refresh_roots() called but already fetching, skipping")
+            return
+        
         self.beginResetModel()
         self.root = TreeNode(None, None)
         self.endResetModel()

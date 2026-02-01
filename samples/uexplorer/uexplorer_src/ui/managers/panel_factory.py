@@ -64,6 +64,7 @@ def create_all_panels(
     from uexplorer_src.ui.docking.similar_items_panel import SimilarItemsPanel
     from uexplorer_src.ui.docking.annotation_panel import AnnotationPanel
     from uexplorer_src.ui.docking.maintenance_panel import MaintenancePanel
+    from uexplorer_src.ui.docking.context_monitor_panel import ContextMonitorPanel
     
     # === LEFT PANELS ===
     
@@ -172,6 +173,16 @@ def create_all_panels(
         closable=False
     )
     
+    # Context Monitor (Diagnostics)
+    panels["sync_monitor"] = ContextMonitorPanel(locator, window)
+    docking_service.add_panel(
+        panel_id="sync_monitor",
+        widget=panels["sync_monitor"],
+        title="Sync Monitor",
+        area="bottom",
+        closable=True
+    )
+    
     logger.info("✓ Created all tool panels")
     return panels
 
@@ -200,7 +211,6 @@ def connect_panel_signals(
     on_directory_selected: Callable = None,
     on_album_selected: Callable = None,
     on_relation_selected: Callable = None,
-    on_active_changed: Callable = None,
     on_search_requested: Callable = None,
     selection_manager = None,
 ):
@@ -213,7 +223,6 @@ def connect_panel_signals(
         on_directory_selected: Handler for directory selection
         on_album_selected: Handler for album selection
         on_relation_selected: Handler for relation category selection
-        on_active_changed: Handler for active file change
         on_search_requested: Handler for search requests
         selection_manager: SelectionManager instance
     """
@@ -234,10 +243,6 @@ def connect_panel_signals(
     # Relations panel -> filter
     if on_relation_selected and "relations" in panels and hasattr(panels["relations"], 'tree'):
         panels["relations"].tree.category_selected.connect(on_relation_selected)
-    
-    # Properties panel <- selection manager
-    if on_active_changed and selection_manager and "properties" in panels:
-        selection_manager.active_changed.connect(on_active_changed)
     
     # Similar items panel -> selection manager
     if selection_manager and "similar" in panels:

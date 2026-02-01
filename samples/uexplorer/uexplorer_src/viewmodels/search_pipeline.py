@@ -340,39 +340,59 @@ class SearchPipeline(QObject):
         """
         Image similarity search.
         
-        Gets embedding from image and finds similar via FAISS.
+        Uses SearchService (FAISS) for similarity.
+        Can use either file_id or pre-computed vector_query.
         """
-        from src.ucorefs.vectors.service import VectorService
+        from src.ucorefs.search.service import SearchService, SearchQuery as SvcSearchQuery
         from src.ucorefs.models import FileRecord
         
-        vector_service = self._locator.get_system(VectorService)
-        if not vector_service:
-            logger.warning("VectorService not available")
-            return []
-        
         try:
-            # Find similar to image
-            results = await vector_service.find_similar(
-                file_id=str(query.file_id),
+            search_service = self._locator.get_system(SearchService)
+            
+            # Build service query
+            svc_query = SvcSearchQuery(
+                vector_search=True,
+                vector_provider="clip",
+                vector_query=query.vector_query,
+                filters=query.filters,
                 limit=query.limit
             )
+            
+            if query.vector_query:
+                 logger.info(f"Executing ROI search with pre-computed vector (dim={len(query.vector_query)})")
+            elif query.file_id:
+                 logger.info(f"Executing similarity search for file_id={query.file_id}")
+                 # We need to get the embedding first if using SearchService directly with vector_query
+                 # OR we can assume SearchService handles file_id similarity elsewhere?
+                 # SearchService has search_similar(file_id)
+                 if not query.vector_query:
+                      from src.ucorefs.vectors.models import EmbeddingRecord
+                      emb = await EmbeddingRecord.find_one({"file_id": query.file_id, "provider": "clip"})
+                      if emb:
+                           svc_query.vector_query = emb.vector
+            
+            if not svc_query.vector_query:
+                logger.warning("No vector available for image search")
+                return []
+                
+            results = await search_service.search(svc_query)
             
             if not results:
                 return []
             
-            # Convert to FileRecords - PRESERVE SIMILARITY ORDER
-            file_ids = [ObjectId(r["file_id"]) for r in results if "file_id" in r]
+            file_ids = [r.file_id for r in results]
             files = await FileRecord.find({"_id": {"$in": file_ids}})
             
-            # MongoDB $in doesn't preserve order, so reorder to match similarity ranking
+            # Reorder
             file_dict = {f._id: f for f in files}
             ordered_files = [file_dict[fid] for fid in file_ids if fid in file_dict]
             
-            logger.info(f"Image search found {len(ordered_files)} similar (ordered)")
             return ordered_files
             
         except Exception as e:
             logger.error(f"Image search failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return []
     
     async def _image_search_similar(self, query: SearchQuery) -> List["FileRecord"]:

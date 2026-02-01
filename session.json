@@ -1,10 +1,10 @@
 {
   "docking": {
-    "layout_bytes": "0000044678daad545d6f8230147ddfaf68787780e0d40431c6c5c72d8bba3d2ea5bd638da5356d751fd98f5f8b0611956dc99ee09e737aee472f24e3f782a32d28cda41879e175e02110445226f291b75ccc3a036f9c260f6642b75810a0b792ac2c37ffd0060af4581df4d05283aa626b3395c260262ce2e834a96234e3129b324160f1f99a33632c7caf185889290d3ace6023ccc8eb5ed47cfd4273f009ffc9c769260a305ae0ac6c0d4d374a81a33460455e2dffc4680e06dde1022a144db9d4405dd37e9af8cee2c828aa19199ceba60d650a8891b628ddf03a92619e6d8a5645697eb69a39fb049dc6c30045618c127f17dbe77e24171bcf947cb3d7ff9cbdf43312f57bcdda4ff8b6f43721ea0dfa67d3ef904130fca9b8b856dc5ac93528e3e6d6bc1956308e55dbb06a875b541926ab5cd9fda0075578a252c0cb6dd20dd151fb61d08b501477ff327e2c84dc2d6ab3c31ad392d30d34389bd0afbe5afb7ee12f905e7d0317f1673b",
+    "layout_bytes": "0000046a78daad54cb6ec23010bcf72bacdc290e092f2904212a8ead2aa03d22c7dea616898d6c431feac7d70e554852083df494ecee787666b371347dcf337400a5b91413cfbfc51e024125e3229d78ebd5a233f2a671f46866ec4004057627e9d6d6961fda408e9eca831e5a6b50656c69e65218c285cdb8721c95315a649298a201b6f9e52ee3c6d8f483e26021a620e83882bd3013af7711f3f507cc89c7ff271e87992920684592c21a9aef950257d240147db5f567ce5230e89ee45066d13c931a9833dd8da3aea3a8110515224352dda4615c0135d28ad20dae1a8c64c93e6f4514e467d52cf927e8381c6314f8218abac7d83e7f4652d3dbabe8e579ba8110d301c383a6ee44c937bb1a9be46598d060d86f9356e369911884211ae2e0acc4636684c7d70c8415033b2577a08c9b6df3ebf19c6744b5a9ae1c6e4125846e536577889d50fe2f9482acd838dd00d5ecfbb8df4341185c7358dd4d22843c2e73d361a5d2d2d30d149f6dd82dff6cfb7ee1a6886fbe01227a7156",
     "documents": {
       "browser_bf7bc375": {
         "title": "Files",
-        "is_active": true,
+        "is_active": false,
         "is_floating": false,
         "is_closed": false,
         "custom_state": {
@@ -17,6 +17,26 @@
             "sort_ascending": true,
             "group_by": "folder",
             "current_directory": "6968aa3e05e7119bf75f8792",
+            "search_text": "",
+            "search_mode": "text"
+          }
+        }
+      },
+      "img_e40c6d06": {
+        "title": "bw_sketch_113.webp",
+        "is_active": true,
+        "is_floating": false,
+        "is_closed": false,
+        "custom_state": {
+          "title": "bw_sketch_113.webp",
+          "viewmodel_state": {
+            "doc_id": "img_e40c6d06",
+            "title": "Untitled",
+            "view_mode": "tree",
+            "sort_field": "name",
+            "sort_ascending": true,
+            "group_by": null,
+            "current_directory": null,
             "search_text": "",
             "search_mode": "text"
           }
@@ -93,9 +113,16 @@
         "is_floating": false,
         "is_auto_hide": false,
         "custom_state": {}
+      },
+      "sync_monitor": {
+        "title": "Sync Monitor",
+        "is_visible": false,
+        "is_floating": false,
+        "is_auto_hide": false,
+        "custom_state": {}
       }
     },
     "perspectives": [],
-    "active_document": "browser_bf7bc375"
+    "active_document": "img_e40c6d06"
   }
 }

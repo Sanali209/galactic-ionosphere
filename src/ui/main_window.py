@@ -20,7 +20,7 @@ class MainWindow(QMainWindow):
         
         # Initialize GUI framework components
         self.action_registry = ActionRegistry(self)
-        self.docking_service = DockingService(self)
+        self.docking_service = DockingService(self, self.viewmodel.locator)
         self.menu_builder = MenuBuilder(self, self.action_registry)
         
         # Setup UI

@@ -34,6 +34,7 @@ class SearchQuery:
     directory: Optional[ObjectId] = None
     limit: int = 100
     detection_filters: List[Dict[str, Any]] = field(default_factory=list)
+    vector_query: Optional[List[float]] = None  # Pre-computed embedding
     
     def is_empty(self) -> bool:
         """Check if query has no search criteria."""
@@ -54,4 +55,4 @@ class SearchQuery:
     
     def is_image_search(self) -> bool:
         """Check if this is an image similarity search."""
-        return self.mode == "image" and self.file_id is not None
+        return (self.mode == "image" and self.file_id is not None) or (self.mode == "image" and self.vector_query is not None)

@@ -53,8 +53,9 @@ class DetectionRectItem(QGraphicsObject):
     geometry_changed = Signal()
     modified = Signal()  # End of interaction
     
-    def __init__(self, x, y, w, h, label: str = "", score: float = 0.0, color: str = "#00ff00", parent=None):
+    def __init__(self, x, y, w, h, label: str = "", score: float = 0.0, color: str = "#00ff00", det_id: str = "", parent=None):
         super().__init__(parent)
+        self.det_id = det_id
         self._rect = QRectF(x, y, w, h)
         self._label = label
         self._score = score

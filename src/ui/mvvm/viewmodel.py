@@ -29,6 +29,37 @@ class BaseViewModel(BindableBase):
         super().__init__()
         self.locator = locator
     
+    def initialize_reactivity(self) -> None:
+        """
+        Initialize MVVM features for this ViewModel.
+        
+        Currently responsible for:
+        1. Scanning for BindableProperties with 'sync_channel'
+        2. Registering them with the global ContextSyncManager
+        """
+        if not self.locator:
+            return
+            
+        try:
+            # Lazy import to avoid circular dependencies
+            from src.ui.mvvm.sync_manager import ContextSyncManager
+            sync_mgr = self.locator.get_system(ContextSyncManager)
+            
+            if not sync_mgr:
+                return
+                
+            # Scan class attributes for BindableProperty descriptors that joined a channel
+            for attr_name in dir(self.__class__):
+                # We need to access the descriptor on the class, not the value on the instance
+                attr = getattr(self.__class__, attr_name)
+                
+                if isinstance(attr, BindableProperty) and attr.sync_channel:
+                    sync_mgr.register(attr.sync_channel, self, attr_name)
+                    
+        except (ImportError, AttributeError):
+            # Gracefully handle if SyncManager is not registered or unavailable
+            pass
+
     def on_property_changed(self, property_name: str, value: Any) -> None:
         """
         Emit a property changed notification.

@@ -11,88 +11,103 @@ from PySide6.QtCore import QObject, Signal
 from loguru import logger
 
 
+from src.ui.mvvm.viewmodel import BaseViewModel
+from src.ui.mvvm.bindable import BindableProperty, BindableBase, BindableList
+
+
 @dataclass
 class SelectionState:
-    """Current selection state."""
-    # Primary selection (files)
+    """Snapshot of selection state for serialization or legacy sync."""
     selected_file_ids: Set[ObjectId] = field(default_factory=set)
-    
-    # Active/focused file (for preview)
     active_file_id: Optional[ObjectId] = None
-    
-    # Selection source (which view made the selection)
-    source_view: str = ""  # "left_pane", "right_pane", "tree", etc.
-    
+    source_view: str = ""
+
     def count(self) -> int:
-        """Get count of selected items."""
         return len(self.selected_file_ids)
-    
-    def is_empty(self) -> bool:
-        """Check if selection is empty."""
-        return len(self.selected_file_ids) == 0
-    
-    def is_single(self) -> bool:
-        """Check if exactly one item is selected."""
-        return len(self.selected_file_ids) == 1
-    
-    def is_multiple(self) -> bool:
-        """Check if multiple items are selected."""
-        return len(self.selected_file_ids) > 1
 
 
-class SelectionManager(QObject):
+class SelectionManager(BaseViewModel):
     """
-    Centralized selection manager.
+    Centralized selection manager using Reactive MVVM patterns.
     
     Tracks file selections across all views and contexts.
-    Propagates selection changes to all listening widgets.
-    
-    Usage:
-        sel_mgr = SelectionManager()
-        sel_mgr.selection_changed.connect(self.on_selection_changed)
-        
-        # Set selection
-        sel_mgr.set_selection([file_id1, file_id2], source="left_pane")
-        
-        # Get selection
-        selected = sel_mgr.get_selected_ids()
+    Uses 'sync channels' to stay in sync with other components.
     """
     
-    # Signals
-    selection_changed = Signal()  # Any selection change
-    active_changed = Signal(object)  # Active file ID changed (or None)
-    count_changed = Signal(int)  # Selection count changed
+    # Reactive properties (Single Source of Truth)
+    active_file_id = BindableProperty(sync_channel="active_file")
+    selected_file_ids = BindableProperty(sync_channel="selection")
+    
+    # Internal context (not synced)
+    selection_count = BindableProperty(default=0)
+    
+    # Specific changed signals for reactive properties (required by PySide6 for connection)
+    active_file_idChanged = Signal(object)
+    selected_file_idsChanged = Signal(object)
+    
+    # Legacy Signals (for backward compatibility with old widgets)
+    selection_changed = Signal()
+    active_changed = Signal(object)
+    count_changed = Signal(int)
     
     def __init__(self, parent=None):
-        super().__init__(parent)
-        self._state = SelectionState()
-        logger.info("SelectionManager initialized")
-    
+        """
+        Initialize the Selection Manager.
+        
+        Args:
+            parent: Usually MainWindow, used to extract ServiceLocator.
+        """
+        # Extract locator if parent is MainWindow
+        locator = getattr(parent, 'locator', None)
+        super().__init__(locator)
+        
+        # Initialize tracked state
+        self.selected_file_ids = BindableList()
+        # self.active_file_id is handled by BindableProperty
+        self.source_view = ""
+        
+        # Internal reactive connections:
+        # When active_file_id changes (even locally), notify legacy listeners
+        self.active_file_idChanged.connect(lambda val: self.active_changed.emit(val))
+        
+        # When collection changes, update count and legacy signals
+        self.selected_file_ids.collectionChanged.connect(self._on_collection_changed)
+        
+        # Register for synchronization via ContextSyncManager
+        self.initialize_reactivity()
+        
+        logger.info("SelectionManager (Reactive) initialized")
+
+    def _on_collection_changed(self, items):
+        """Update count and emit legacy signals when selection list changes."""
+        self.selection_count = len(items)
+        self.count_changed.emit(self.selection_count)
+        self.selection_changed.emit()
+
     @property
     def state(self) -> SelectionState:
-        """Get current selection state (read-only)."""
-        return self._state
-    
+        """Legacy compatibility: returns a snapshot of the state."""
+        return SelectionState(
+            selected_file_ids=set(self.selected_file_ids),
+            active_file_id=self.active_file_id,
+            source_view=self.source_view
+        )
+
     def count(self) -> int:
-        """Get count of selected items."""
-        return self._state.count()
+        return self.selection_count
     
     def is_empty(self) -> bool:
-        """Check if selection is empty."""
-        return self._state.is_empty()
+        return self.selection_count == 0
     
     def get_selected_ids(self) -> List[ObjectId]:
-        """Get list of selected file IDs."""
-        return list(self._state.selected_file_ids)
+        return list(self.selected_file_ids)
     
     def get_active_id(self) -> Optional[ObjectId]:
-        """Get active/focused file ID."""
-        return self._state.active_file_id
+        return self.active_file_id
     
     def get_source(self) -> str:
-        """Get source view of last selection."""
-        return self._state.source_view
-    
+        return self.source_view
+
     # ==================== Set Selection ====================
     
     def set_selection(
@@ -100,27 +115,19 @@ class SelectionManager(QObject):
         file_ids: List[ObjectId],
         source: str = ""
     ) -> None:
-        """
-        Set selection (replaces current selection).
+        """Set selection (replaces current selection)."""
+        self.source_view = source
         
-        Args:
-            file_ids: List of file ObjectIds to select
-            source: Identifier of the view making the selection
-        """
-        old_count = self._state.count()
-        old_active = self._state.active_file_id
-        
-        self._state.selected_file_ids = set(file_ids)
-        self._state.source_view = source
-        
-        # Update active to first selected item if changed
+        # Update reactive list
+        self.selected_file_ids.clear()
         if file_ids:
-            self._state.active_file_id = file_ids[0]
+            self.selected_file_ids.extend(file_ids)
+            self.active_file_id = file_ids[0]
         else:
-            self._state.active_file_id = None
-        
-        # Emit signals
-        self._emit_changed(old_count, old_active)
+            self.active_file_id = None
+            
+        # Notify legacy listeners
+        self.active_changed.emit(self.active_file_id)
     
     def select_single(
         self,
@@ -136,18 +143,17 @@ class SelectionManager(QObject):
         source: str = ""
     ) -> None:
         """Add files to current selection."""
-        old_count = self._state.count()
-        old_active = self._state.active_file_id
+        self.source_view = source
         
+        added = False
         for fid in file_ids:
-            self._state.selected_file_ids.add(fid)
-        self._state.source_view = source
+            if fid not in self.selected_file_ids:
+                self.selected_file_ids.append(fid)
+                added = True
         
         # Set active to last added
         if file_ids:
-            self._state.active_file_id = file_ids[-1]
-        
-        self._emit_changed(old_count, old_active)
+            self.active_file_id = file_ids[-1]
     
     def remove_from_selection(
         self,
@@ -155,21 +161,20 @@ class SelectionManager(QObject):
         source: str = ""
     ) -> None:
         """Remove files from current selection."""
-        old_count = self._state.count()
-        old_active = self._state.active_file_id
+        self.source_view = source
         
+        removed = False
         for fid in file_ids:
-            self._state.selected_file_ids.discard(fid)
-        self._state.source_view = source
+            if fid in self.selected_file_ids:
+                self.selected_file_ids.remove(fid)
+                removed = True
         
         # Clear active if removed
-        if old_active in file_ids:
-            if self._state.selected_file_ids:
-                self._state.active_file_id = next(iter(self._state.selected_file_ids))
+        if self.active_file_id in file_ids:
+            if self.selected_file_ids:
+                self.active_file_id = self.selected_file_ids[0]
             else:
-                self._state.active_file_id = None
-        
-        self._emit_changed(old_count, old_active)
+                self.active_file_id = None
     
     def toggle_selection(
         self,
@@ -182,7 +187,7 @@ class SelectionManager(QObject):
         Returns:
             True if file is now selected, False if deselected
         """
-        if file_id in self._state.selected_file_ids:
+        if file_id in self.selected_file_ids:
             self.remove_from_selection([file_id], source)
             return False
         else:
@@ -209,12 +214,8 @@ class SelectionManager(QObject):
         source: str = ""
     ) -> None:
         """Set active/focused file without changing selection."""
-        old_active = self._state.active_file_id
-        self._state.active_file_id = file_id
-        self._state.source_view = source
-        
-        if old_active != file_id:
-            self.active_changed.emit(file_id)
+        self.active_file_id = file_id
+        self.source_view = source
     
     # ==================== Range Selection ====================
     
@@ -248,22 +249,6 @@ class SelectionManager(QObject):
             # anchor or target not found
             self.select_single(target_id, source)
     
-    # ==================== Internal ====================
-    
-    def _emit_changed(
-        self,
-        old_count: int,
-        old_active: Optional[ObjectId]
-    ) -> None:
-        """Emit appropriate signals."""
-        new_count = self._state.count()
-        
-        self.selection_changed.emit()
-        
-        if new_count != old_count:
-            self.count_changed.emit(new_count)
-        
-        if self._state.active_file_id != old_active:
-            self.active_changed.emit(self._state.active_file_id)
-        
-        logger.debug(f"Selection: count={new_count}, source={self._state.source_view}")
+    def _on_mode_changed(self, mode):
+        """Reserved for future use."""
+        pass

@@ -4,6 +4,7 @@ UExplorer Engine Integration Bundle.
 Integrates the background processing engine with UExplorer main application.
 Handles engine startup, model preloading, and task system initialization.
 """
+import asyncio
 from typing import TYPE_CHECKING
 from src.core.bootstrap import SystemBundle
 
@@ -93,16 +94,42 @@ async def start_engine(locator: "ServiceLocator") -> None:
     else:
         logger.warning("Some AI models failed to preload (check logs)")
     
-    # 4. Start task processing workers
+    # 4. Register UI task handlers in engine thread (BEFORE starting workers!)
+    logger.info("Registering UI task handlers in engine...")
+    
+    # Submit registration to engine thread to get engine's TaskSystem
+    async def _register_handlers():
+        from src.core.locator import get_active_locator
+        engine_locator = get_active_locator()
+        from src.core.tasks.system import TaskSystem
+        task_system = engine_locator.get_system(TaskSystem)
+        
+        from uexplorer_src.tasks.handlers import register_handlers
+        count = register_handlers(task_system)
+        return count
+    
+    future = engine_proxy.submit(_register_handlers())
+    handler_count = await asyncio.wrap_future(future)
+    logger.info(f"✓ {handler_count} handlers registered in engine")
+    
+    # 5. Start task processing workers (AFTER handlers are registered!)
     logger.info("Starting task processing workers...")
     worker_count = await engine_proxy.start_processing()
     logger.info(f"✓ {worker_count} workers started")
     
-    # 5. Register UI task handlers
-    logger.info("Registering UI task handlers...")
-    task_system = locator.get_system(TaskSystem)
-    handler_count = register_handlers(task_system)
-    logger.info(f"✓ {handler_count} handlers registered")
+    # Debug: Verify handlers were registered
+    async def _check_handlers():
+        from src.core.locator import get_active_locator
+        engine_locator = get_active_locator()
+        from src.core.tasks.system import TaskSystem
+        task_system = engine_locator.get_system(TaskSystem)
+        logger.info(f"DEBUG: Engine TaskSystem id={id(task_system)}")
+        logger.info(f"DEBUG: Registered handlers: {list(task_system._handlers.keys())}")
+        return list(task_system._handlers.keys())
+    
+    future2 = engine_proxy.submit(_check_handlers())
+    handlers = await asyncio.wrap_future(future2)
+    logger.info(f"DEBUG: Confirmed handlers in engine: {handlers}")
     
     logger.info("=" * 60)
     logger.info("✓ Engine Initialization Complete")

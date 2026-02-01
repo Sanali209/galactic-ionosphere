@@ -89,13 +89,14 @@ class EngineProxy(QObject):
 
     # ... (shutdown, start_engine unchanged) ...
 
-    def submit_task(self, handler_name: str, *args, priority: int = 1, **kwargs) -> str:
+    async def submit_task(self, handler_name: str, task_name: str = None, *args, priority: int = 1, **kwargs) -> str:
         """
         Submit a background task via the Engine.
         Blocking call (waits for task_id generation).
         
         Args:
             handler_name: Name of registered handler
+            task_name: Human-readable task name (defaults to handler_name)
             args: Arguments for handler
             priority: 0=High, 1=Normal, 2=Low
             kwargs: Keyword arguments
@@ -105,6 +106,13 @@ class EngineProxy(QObject):
         """
         if not self.thread or not self.thread.isRunning():
             raise RuntimeError("Engine not running")
+        
+        # Default task_name to handler_name if not provided
+        if task_name is None:
+            task_name = handler_name
+        
+        # Default priority if not provided
+        task_priority = priority if priority is not None else 1
         
         # Define helper task
         async def _submit_job():
@@ -118,8 +126,36 @@ class EngineProxy(QObject):
                     sl = get_active_locator()
                 
                 from src.core.tasks.system import TaskSystem
+                from src.core.tasks.models import TaskRecord
                 ts = sl.get_system(TaskSystem)
-                return await ts.submit(handler_name, *args, priority=priority, **kwargs)
+                
+                # Debug: Log TaskSystem info
+                logger.info(f"EngineProxy._submit_job: TaskSystem id={id(ts)}")
+                logger.info(f"EngineProxy._submit_job: Registered handlers: {list(ts._handlers.keys())}")
+                logger.info(f"EngineProxy._submit_job: Looking for handler: {handler_name}")
+                
+                # Check handler exists in THIS (engine) TaskSystem
+                if handler_name not in ts._handlers:
+                    raise ValueError(f"Unknown handler: {handler_name}")
+                
+                # Serialize args
+                str_args = [str(a) for a in args]
+                
+                record = TaskRecord(
+                    name=task_name,
+                    handler_name=handler_name,
+                    task_args=str_args,
+                    status="pending",
+                    priority=task_priority  # Use captured value
+                )
+                await record.save()
+                
+                # Queue with priority
+                await ts._queue.put((task_priority, record.id))
+                
+                logger.info(f"Task submitted via EngineProxy: {task_name} ({record.id})")
+                return record.id
+                
             except Exception as e:
                 logger.error(f"EngineProxy submit_task failed: {e}")
                 raise

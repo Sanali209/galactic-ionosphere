@@ -12,6 +12,7 @@ from PySide6.QtGui import QIcon, QPixmap
 from loguru import logger
 from bson import ObjectId
 
+from src.ui.mvvm.data_context import BindableWidget
 from src.ucorefs.models.file_record import FileRecord
 from src.ucorefs.services.fs_service import FSService
 from src.ucorefs.thumbnails.service import ThumbnailService
@@ -61,13 +62,13 @@ class StarRating(QWidget):
             self.ratingChanged.emit(rating)
 
 
-class MetadataPanel(QWidget):
+class MetadataPanel(BindableWidget):
     """
     Panel for displaying and editing file metadata.
     """
     
-    def __init__(self, locator: "ServiceLocator") -> None:
-        super().__init__()
+    def __init__(self, locator: "ServiceLocator", parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
         self.locator: "ServiceLocator" = locator
         self.fs_service: FSService = locator.get_system(FSService)
         self.thumbnail_service: ThumbnailService = locator.get_system(ThumbnailService)
@@ -75,6 +76,63 @@ class MetadataPanel(QWidget):
         self.current_file: Optional[FileRecord] = None
         
         self.init_ui()
+    
+    def set_data_context(self, vm, propagate=True):
+        """Bind UI elements when ViewModel is connected."""
+        super().set_data_context(vm, propagate)
+        
+        from uexplorer_src.viewmodels.properties_viewmodel import PropertiesViewModel
+        if isinstance(vm, PropertiesViewModel):
+            # Connect reactive properties
+            vm.file_nameChanged.connect(self.name_label.setText)
+            vm.file_size_strChanged.connect(self.size_label.setText)
+            vm.ratingChanged.connect(lambda r: self.rating_widget.set_rating(r, emit=False))
+            vm.descriptionChanged.connect(lambda d: self.desc_edit.setText(d))
+            vm.active_file_idChanged.connect(self._on_active_file_id_changed)
+            vm.loading_requested.connect(self._on_loading_requested)
+            
+            # Details section
+            vm.dimensions_strChanged.connect(self.dim_label.setText)
+            vm.created_at_strChanged.connect(self.created_label.setText)
+            vm.modified_at_strChanged.connect(self.modified_label.setText)
+            vm.processing_status_textChanged.connect(self.processing_label.setText)
+            vm.processing_status_colorChanged.connect(
+                lambda c: self.processing_label.setStyleSheet(f"color: {c}; font-weight: bold;")
+            )
+            vm.embeddings_summaryChanged.connect(self.embeddings_label.setText)
+            vm.detections_summaryChanged.connect(self.detections_label.setText)
+            
+            logger.info("MetadataPanel connected to PropertiesViewModel")
+
+    def _on_active_file_id_changed(self, file_id):
+        """Handle file change to update UI enabled state."""
+        if not file_id:
+            self.clear()
+            self.setEnabled(False)
+        else:
+            self.setEnabled(True)
+
+    def _on_loading_requested(self, file_id):
+        """Handle debounced loading request for heavy assets."""
+        if file_id:
+            import asyncio
+            asyncio.ensure_future(self._load_thumb_by_id(file_id))
+
+    async def _load_thumb_by_id(self, file_id):
+        try:
+            from bson import ObjectId
+            obj_id = ObjectId(file_id) if isinstance(file_id, str) else file_id
+            data = await self.thumbnail_service.get_or_create(obj_id, size=256)
+            if data:
+                pixmap = QPixmap()
+                pixmap.loadFromData(data)
+                scaled = pixmap.scaled(self.thumb_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                self.thumb_label.setPixmap(scaled)
+            else:
+                self.thumb_label.setText("No Preview")
+        except Exception as e:
+            logger.debug(f"MetadataPanel: Thumbnail load failed: {e}")
+            self.thumb_label.setText("Error")
         
     def init_ui(self):
         main_layout = QVBoxLayout(self)
@@ -244,53 +302,8 @@ class MetadataPanel(QWidget):
         
         self.layout.addWidget(self.details_group)
 
-    def set_file(self, record: FileRecord):
-        """Display file metadata."""
-        if not record:
-            self.clear()
-            return
-            
-        self.current_file = record
-        self.setEnabled(True)
-        
-        # Update Header
-        self.name_label.setText(record.name)
-        self.size_label.setText(f"{record.size_bytes / 1024:.1f} KB")
-        self.type_label.setText(record.extension.upper())
-        
-        # Load Thumbnail
-        asyncio.ensure_future(self._load_thumb(record))
-        
-        # Update Rating
-        self.rating_widget.set_rating(getattr(record, 'rating', 0), emit=False)
-        
-        # Update Tags
-        self.tag_selector.set_tags(getattr(record, 'tag_ids', []))
-        
-        # Update Description
-        self.desc_edit.blockSignals(True)
-        self.desc_edit.setText(getattr(record, 'description', ""))
-        self.desc_edit.blockSignals(False)
-        
-        # Update Details
-        mod_time = getattr(record, 'modified_at', None)
-        self.modified_label.setText(mod_time.strftime("%Y-%m-%d %H:%M") if mod_time else "-")
-        
-        # Update AI Caption display (NEW)
-        ai_caption = getattr(record, 'ai_caption', '')
-        if ai_caption:
-            self.ai_caption_label.setText(ai_caption)
-            self.ai_caption_label.setStyleSheet("color: #5aca5a; font-style: italic; padding: 5px;")
-        else:
-            self.ai_caption_label.setText("(No AI description yet)")
-            self.ai_caption_label.setStyleSheet("color: #888888; font-style: italic; padding: 5px;")
-        
-        # Update ProcessingState - demonstrates UCoreFS pipeline status
-        self._update_processing_state(record)
-        
-        # Update embeddings and detections status
-        self._update_embeddings_status(record)
-        asyncio.ensure_future(self._update_detections_count(record))
+        # Update details
+        # ...
         
     def clear(self):
         """Reset panel."""

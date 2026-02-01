@@ -75,9 +75,11 @@ class PySideBundle(SystemBundle):
         # Register UI services that don't need parent widget
         from src.ui.state import SessionState
         from src.ui.navigation.service import NavigationService
+        from src.ui.mvvm.sync_manager import ContextSyncManager
         
         builder.add_system(SessionState)        # UI session persistence
         builder.add_system(NavigationService)   # Smart Selection Routing
+        builder.add_system(ContextSyncManager)   # Reactive Synchronization
         # Note: DocumentManager is registered per-application
         # It's not in this bundle because it might be Engine-only
         # Add it explicitly if needed:

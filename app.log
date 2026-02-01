@@ -1,0 +1,734 @@
+2026-01-26 02:03:59.399 | INFO     | __main__:main:61 - ============================================================
+2026-01-26 02:03:59.399 | INFO     | __main__:main:62 - \U0001f680 UExplorer Starting
+2026-01-26 02:03:59.400 | INFO     | __main__:main:63 - ============================================================
+2026-01-26 02:03:59.471 | DEBUG    | src.ucorefs.extractors.registry:register:58 - Registered extractor: thumbnail (phase 2)
+2026-01-26 02:03:59.471 | DEBUG    | src.ucorefs.extractors.registry:register:58 - Registered extractor: metadata (phase 2)
+2026-01-26 02:03:59.472 | DEBUG    | src.ucorefs.extractors.registry:register:58 - Registered extractor: clip (phase 2)
+2026-01-26 02:03:59.472 | DEBUG    | src.ucorefs.extractors.registry:register:58 - Registered extractor: dino (phase 2)
+2026-01-26 02:03:59.472 | DEBUG    | src.ucorefs.extractors.registry:register:58 - Registered extractor: wd_tagger (phase 2)
+2026-01-26 02:03:59.472 | DEBUG    | src.ucorefs.extractors.registry:register:58 - Registered extractor: blip (phase 3)
+2026-01-26 02:03:59.472 | DEBUG    | src.ucorefs.extractors.registry:register:58 - Registered extractor: grounding_dino (phase 3)
+2026-01-26 02:03:59.472 | DEBUG    | src.ucorefs.extractors.registry:register:58 - Registered extractor: yolo (phase 3)
+2026-01-26 02:03:59.473 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered image for .jpg
+2026-01-26 02:03:59.473 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered image for .jpeg
+2026-01-26 02:03:59.473 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered image for .png
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered image for .webp
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered image for .gif
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered image for .bmp
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered image for .tiff
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered image for .tif
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered image for .heic
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered image for .heif
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered text for .txt
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered text for .md
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered text for .json
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered text for .xml
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered text for .csv
+2026-01-26 02:03:59.474 | DEBUG    | src.ucorefs.types.registry:register:43 - Registered text for .log
+2026-01-26 02:03:59.546 | DEBUG    | src.core.bootstrap:build:220 - Loaded environment variables from .env
+02:03:59 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+02:03:59 | INFO     | src.core.bootstrap:build:228 - Starting UExplorer
+02:03:59 | INFO     | src.core.locator:init:48 - ServiceLocator initialized.
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: DatabaseManager (id=2057424822464)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: DatabaseManager (id=2057442191440)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: CommandBus (id=2057389643184)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: CommandBus (id=2057442840080)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: JournalService (id=2057427558608)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: JournalService (id=2057442849040)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: AssetManager (id=2057427570320)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: AssetManager (id=2057442839632)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: TaskSystem (id=2057427564464)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: TaskSystem (id=2057442195472)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: PeriodicTaskScheduler (id=2057428818160)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: PeriodicTaskScheduler (id=2057442850576)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: FSService (id=2057428786928)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: FSService (id=2057442194256)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: TagManager (id=2057428784000)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: TagManager (id=2057442850448)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: AlbumManager (id=2057428788880)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: AlbumManager (id=2057442720336)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: RelationService (id=2057428790832)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: RelationService (id=2057442720400)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: SearchService (id=2057428779120)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: SearchService (id=2057442720272)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: VectorService (id=2057428787904)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: VectorService (id=2057442852688)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: FAISSIndexService (id=2057428776192)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: FAISSIndexService (id=2057442361552)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: ThumbnailService (id=2057428804496)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: ThumbnailService (id=2057442885712)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: DiscoveryService (id=2057428782048)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: DiscoveryService (id=2057442361872)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: SessionState (id=2057428807424)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: SessionState (id=2057442887312)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: NavigationService (id=2057428707872)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: NavigationService (id=2057442197456)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: ContextSyncManager (id=2057428783024)
+02:03:59 | INFO     | src.ui.mvvm.sync_manager:__init__:35 - ContextSyncManager initialized
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: ContextSyncManager (id=2057442362064)
+02:03:59 | DEBUG    | src.core.locator:register_system:58 - Registering system: EngineProxy (id=2057428822064)
+02:03:59 | DEBUG    | src.core.locator:register_system:60 - Created instance: EngineProxy (id=2057442705984)
+02:03:59 | WARNING  | src.core.locator:register_system:55 - Register: System SessionState (id=2057428807424) ALREADY registered. Returning existing id=2057442887312
+02:03:59 | WARNING  | src.core.locator:register_system:55 - Register: System NavigationService (id=2057428707872) ALREADY registered. Returning existing id=2057442197456
+02:03:59 | WARNING  | src.core.locator:register_system:55 - Register: System ContextSyncManager (id=2057428783024) ALREADY registered. Returning existing id=2057442362064
+02:03:59 | INFO     | src.core.locator:start_all:100 - Starting all systems...
+02:03:59 | INFO     | src.core.locator:start_all:109 - System ConfigManager started.
+02:03:59 | INFO     | src.core.events.bus:initialize:33 - EventBus initialized
+02:03:59 | INFO     | src.core.locator:start_all:109 - System EventBus started.
+02:03:59 | INFO     | src.core.database.manager:initialize:67 - Connected to MongoDB at mongodb://localhost:27017, DB: foundation_app
+02:03:59 | INFO     | src.core.locator:start_all:109 - System DatabaseManager started.
+02:03:59 | INFO     | src.core.commands.bus:initialize:41 - CommandBus initialized.
+02:03:59 | INFO     | src.core.locator:start_all:109 - System CommandBus started.
+02:03:59 | DEBUG    | src.core.service_decorator:wrapped_initialize:30 - Initializing Service: JournalService
+02:03:59 | INFO     | src.core.service_decorator:wrapped_initialize:51 - Service Initialized: JournalService
+02:03:59 | INFO     | src.core.locator:start_all:109 - System JournalService started.
+02:03:59 | INFO     | src.core.assets.manager:initialize:17 - AssetManager initialized.
+02:03:59 | INFO     | src.core.locator:start_all:109 - System AssetManager started.
+02:03:59 | INFO     | src.core.tasks.system:initialize:62 - TaskSystem initializing...
+02:03:59 | INFO     | src.core.tasks.system:initialize:73 - \U0001f4ca RECOVERY: Found 8 tasks with status 'running'
+02:03:59 | INFO     | src.core.tasks.system:initialize:88 - \u2705 RECOVERY: Reset 8 tasks from 'running' to 'pending'
+02:03:59 | CRITICAL | src.core.tasks.system:initialize:101 - \u26a0\ufe0f POISON: Found 16 tasks that crashed 3+ times - quarantining
+02:03:59 | INFO     | src.core.tasks.system:initialize:144 - \U0001f9f9 CLEANUP: Removed 276 completed tasks older than 24h
+02:03:59 | INFO     | src.core.tasks.system:initialize:155 - \U0001f4ca DATABASE: 267 pending tasks exist in DB
+02:03:59 | INFO     | src.core.tasks.system:initialize:170 - \U0001f4e5 RESTORED: 267 pending tasks to execution queue (queue size: 267)
+02:03:59 | INFO     | src.core.tasks.process_executor:__init__:49 - ProcessExecutor initialized with 4 workers
+02:03:59 | INFO     | src.core.tasks.system:initialize:180 - Process pool initialized with 4 workers
+02:03:59 | INFO     | src.core.tasks.system:initialize:193 - AI thread pool initialized with 4 workers
+02:03:59 | INFO     | src.core.locator:start_all:109 - System TaskSystem started.
+02:03:59 | INFO     | src.core.scheduling.periodic_scheduler:initialize:51 - PeriodicTaskScheduler initializing...
+02:03:59 | WARNING  | src.core.scheduling.periodic_scheduler:initialize:62 - MaintenanceService not available - periodic tasks disabled
+02:03:59 | INFO     | src.core.locator:start_all:109 - System PeriodicTaskScheduler started.
+02:03:59 | INFO     | src.ucorefs.albums.manager:initialize:29 - AlbumManager initializing
+02:03:59 | INFO     | src.ucorefs.albums.manager:initialize:31 - AlbumManager ready
+02:03:59 | INFO     | src.core.locator:start_all:109 - System AlbumManager started.
+02:03:59 | INFO     | src.ucorefs.relations.service:initialize:25 - RelationService initializing
+02:03:59 | INFO     | src.ucorefs.relations.service:initialize:31 - RelationService ready
+02:03:59 | INFO     | src.core.locator:start_all:109 - System RelationService started.
+02:03:59 | INFO     | src.ucorefs.search.service:initialize:69 - SearchService initializing
+02:03:59 | INFO     | src.ucorefs.search.service:initialize:88 - SearchService ready
+02:03:59 | INFO     | src.core.locator:start_all:109 - System SearchService started.
+02:03:59 | DEBUG    | src.core.service_decorator:wrapped_initialize:30 - Initializing Service: VectorService
+02:03:59 | INFO     | src.core.service_decorator:wrapped_initialize:51 - Service Initialized: VectorService
+02:03:59 | INFO     | src.core.locator:start_all:109 - System VectorService started.
+02:03:59 | INFO     | src.ucorefs.vectors.faiss_service:initialize:23 - FAISSIndexService initializing
+02:03:59 | INFO     | src.ucorefs.vectors.faiss_service:initialize:35 - FAISS library available
+02:03:59 | INFO     | src.ucorefs.vectors.faiss_service:initialize:40 - FAISSIndexService ready
+02:03:59 | INFO     | src.core.locator:start_all:109 - System FAISSIndexService started.
+02:03:59 | INFO     | src.ucorefs.thumbnails.service:initialize:33 - ThumbnailService initializing
+02:03:59 | INFO     | src.ucorefs.thumbnails.service:initialize:49 - ThumbnailService ready (sizes: [128, 256, 512], cache: thumbnails)
+02:03:59 | INFO     | src.core.locator:start_all:109 - System ThumbnailService started.
+02:03:59 | INFO     | src.ucorefs.discovery.service:initialize:34 - DiscoveryService initializing
+02:03:59 | INFO     | src.ucorefs.discovery.service:initialize:46 - ProcessingPipeline not available - Phase 2 auto-queue disabled
+02:03:59 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: scan_library_root
+02:03:59 | INFO     | src.ucorefs.discovery.service:initialize:58 - DiscoveryService ready
+02:03:59 | INFO     | src.core.locator:start_all:109 - System DiscoveryService started.
+02:03:59 | INFO     | src.ui.state.session_state:_load_from_disk:85 - Loaded session state: 1 keys
+02:03:59 | INFO     | src.ui.state.session_state:initialize:49 - SessionState initialized (file: session.json)
+02:03:59 | INFO     | src.core.locator:start_all:109 - System SessionState started.
+02:03:59 | INFO     | src.ui.navigation.service:initialize:48 - NavigationService initialized
+02:03:59 | INFO     | src.core.locator:start_all:109 - System NavigationService started.
+02:03:59 | INFO     | src.core.locator:start_all:109 - System ContextSyncManager started.
+02:03:59 | INFO     | src.core.engine.proxy:initialize:67 - EngineProxy initialized
+02:03:59 | INFO     | src.core.locator:start_all:109 - System EngineProxy started.
+02:03:59 | INFO     | src.ucorefs.tags.manager:initialize:21 - TagManager initializing
+02:03:59 | INFO     | src.ucorefs.tags.manager:initialize:23 - TagManager ready
+02:03:59 | INFO     | src.core.locator:start_all:109 - System TagManager started.
+02:03:59 | INFO     | src.ucorefs.services.fs_service:initialize:36 - FSService initializing
+02:03:59 | INFO     | src.ucorefs.services.fs_service:initialize:39 - FSService ready
+02:03:59 | INFO     | src.core.locator:start_all:109 - System FSService started.
+02:03:59 | DEBUG    | src.core.bootstrap:async_main:339 - Running post_build hook...
+02:03:59 | INFO     | uexplorer_src.engine_bundle:start_engine:66 - ============================================================
+02:03:59 | INFO     | uexplorer_src.engine_bundle:start_engine:67 - Starting Background Engine
+02:03:59 | INFO     | uexplorer_src.engine_bundle:start_engine:68 - ============================================================
+02:03:59 | INFO     | uexplorer_src.engine_bundle:start_engine:71 - Configuring engine...
+02:03:59 | INFO     | src.core.engine.proxy:initialize:67 - EngineProxy initialized
+02:03:59 | INFO     | src.core.engine.proxy:start_engine:288 - Engine thread start requested
+02:03:59 | INFO     | uexplorer_src.engine_bundle:start_engine:78 - Waiting for engine ready...
+02:03:59 | INFO     | src.core.engine.thread:run:60 - Engine thread 'UExplorerEngine' starting...
+02:03:59 | DEBUG    | src.core.engine.thread:run:71 - Running engine bootstrap...
+02:03:59 | INFO     | src.ucorefs.engine_bootstrap:bootstrap_engine:27 - Bootstrapping Engine with UCoreFSEngineBundle...
+02:04:00 | INFO     | src.ucorefs.engine_bootstrap:bootstrap_engine:43 - ============================================================
+02:04:00 | INFO     | src.ucorefs.engine_bootstrap:bootstrap_engine:44 - Starting Engine initialization (TaskSystem will restore pending tasks)...
+02:04:00 | INFO     | src.ucorefs.engine_bootstrap:bootstrap_engine:45 - ============================================================
+02:04:00 | DEBUG    | src.core.bootstrap:build:220 - Loaded environment variables from .env
+02:04:00 | INFO     | src.core.logging:setup_logging:22 - Logging initialized.
+02:04:00 | INFO     | src.core.bootstrap:build:228 - Starting UExplorerEngine
+02:04:00 | INFO     | src.core.locator:init:48 - ServiceLocator initialized.
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: DatabaseManager (id=2057424822464)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: DatabaseManager (id=2059331757328)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: CommandBus (id=2057389643184)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: CommandBus (id=2059331757456)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: JournalService (id=2057427558608)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: JournalService (id=2059331166544)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: AssetManager (id=2057427570320)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: AssetManager (id=2059331166416)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: TaskSystem (id=2057427564464)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: TaskSystem (id=2059331752272)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: PeriodicTaskScheduler (id=2057428818160)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: PeriodicTaskScheduler (id=2057850015568)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: FSService (id=2057428786928)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: FSService (id=2059331759888)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: MaintenanceService (id=2057428860128)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: MaintenanceService (id=2059331170128)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: ProcessingPipeline (id=2057835791808)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: ProcessingPipeline (id=2059331189584)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: DiscoveryService (id=2057428782048)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: DiscoveryService (id=2057831936208)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: ThumbnailService (id=2057428804496)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: ThumbnailService (id=2059331760976)
+02:04:00 | WARNING  | src.core.locator:register_system:55 - Register: System TaskSystem (id=2057427564464) ALREADY registered. Returning existing id=2059331752272
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: FAISSIndexService (id=2057428776192)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: FAISSIndexService (id=2057831641616)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: VectorService (id=2057428787904)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: VectorService (id=2057442311952)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: SearchService (id=2057428779120)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: SearchService (id=2057849487312)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: SimilarityService (id=2057835838656)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: SimilarityService (id=2059331762768)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: LLMService (id=2057835829872)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: LLMService (id=2059331762320)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: LLMWorkerService (id=2057835837680)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: LLMWorkerService (id=2059330911120)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: RelationService (id=2057428790832)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: RelationService (id=2059331763728)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: TagManager (id=2057428784000)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: TagManager (id=2057831643984)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: AlbumManager (id=2057428788880)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: AlbumManager (id=2059331188944)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: RulesEngine (id=2057835854272)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: RulesEngine (id=2059331764112)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: DetectionService (id=2057835847440)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: DetectionService (id=2059331762896)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: WDTaggerService (id=2057428766432)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: WDTaggerService (id=2057831662224)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: AnnotationService (id=2057835858176)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: AnnotationService (id=2059331814864)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: CLIPExtractor (id=2057428768384)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: CLIPExtractor (id=2059331815376)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: BLIPExtractor (id=2057428801568)
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: BLIPExtractor (id=2057442718160)
+02:04:00 | DEBUG    | src.core.locator:register_system:58 - Registering system: GroundingDINOExtractor (id=2057428771312)
+02:04:00 | INFO     | src.ucorefs.extractors.grounding_dino_extractor:__init__:103 - [GroundingDINO] Initialized with 12 class mappings: ['person', 'face', 'face', 'cat', 'dog', 'bird', 'vehicle', 'vehicle', 'vehicle', 'architecture', 'text', 'logo']
+02:04:00 | DEBUG    | src.core.locator:register_system:60 - Created instance: GroundingDINOExtractor (id=2059331749904)
+02:04:00 | INFO     | src.core.locator:start_all:100 - Starting all systems...
+02:04:00 | INFO     | src.core.locator:start_all:109 - System ConfigManager started.
+02:04:00 | INFO     | src.core.events.bus:initialize:33 - EventBus initialized
+02:04:00 | INFO     | src.core.locator:start_all:109 - System EventBus started.
+02:04:00 | INFO     | src.core.database.manager:initialize:67 - Connected to MongoDB at mongodb://localhost:27017, DB: foundation_app
+02:04:00 | INFO     | src.core.locator:start_all:109 - System DatabaseManager started.
+02:04:00 | INFO     | src.core.commands.bus:initialize:41 - CommandBus initialized.
+02:04:00 | INFO     | src.core.locator:start_all:109 - System CommandBus started.
+02:04:00 | DEBUG    | src.core.service_decorator:wrapped_initialize:30 - Initializing Service: JournalService
+02:04:00 | INFO     | src.core.service_decorator:wrapped_initialize:51 - Service Initialized: JournalService
+02:04:00 | INFO     | src.core.locator:start_all:109 - System JournalService started.
+02:04:00 | INFO     | src.core.assets.manager:initialize:17 - AssetManager initialized.
+02:04:00 | INFO     | src.core.locator:start_all:109 - System AssetManager started.
+02:04:00 | INFO     | src.core.tasks.system:initialize:62 - TaskSystem initializing...
+02:04:00 | CRITICAL | src.core.tasks.system:initialize:101 - \u26a0\ufe0f POISON: Found 16 tasks that crashed 3+ times - quarantining
+02:04:00 | INFO     | src.core.tasks.system:initialize:155 - \U0001f4ca DATABASE: 267 pending tasks exist in DB
+02:04:00 | INFO     | src.core.tasks.system:initialize:170 - \U0001f4e5 RESTORED: 267 pending tasks to execution queue (queue size: 267)
+02:04:00 | INFO     | src.core.tasks.process_executor:__init__:49 - ProcessExecutor initialized with 4 workers
+02:04:00 | INFO     | src.core.tasks.system:initialize:180 - Process pool initialized with 4 workers
+02:04:00 | INFO     | src.core.tasks.system:initialize:193 - AI thread pool initialized with 4 workers
+02:04:00 | INFO     | src.core.locator:start_all:109 - System TaskSystem started.
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:initialize:51 - PeriodicTaskScheduler initializing...
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:_get_schedule_config:151 - Using default maintenance schedule
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:initialize:82 - Scheduled periodic task: background_verification
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:initialize:82 - Scheduled periodic task: database_optimization
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:initialize:82 - Scheduled periodic task: cache_cleanup
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:initialize:82 - Scheduled periodic task: orphaned_cleanup
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:initialize:82 - Scheduled periodic task: log_rotation
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:initialize:82 - Scheduled periodic task: database_cleanup
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:initialize:86 - PeriodicTaskScheduler ready (6 tasks)
+02:04:00 | INFO     | src.core.locator:start_all:109 - System PeriodicTaskScheduler started.
+02:04:00 | INFO     | src.ucorefs.services.maintenance_service:initialize:30 - MaintenanceService initializing
+02:04:00 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: maintenance_background_verification
+02:04:00 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: maintenance_database_optimization
+02:04:00 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: maintenance_cache_cleanup
+02:04:00 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: maintenance_log_rotation
+02:04:00 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: maintenance_orphaned_cleanup
+02:04:00 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: maintenance_database_cleanup
+02:04:00 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: maintenance_reprocess_incomplete_embeddings
+02:04:00 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: maintenance_fix_file_types
+02:04:00 | INFO     | src.ucorefs.services.maintenance_service:initialize:53 - MaintenanceService: Registered 8 task handlers
+02:04:00 | INFO     | src.ucorefs.services.maintenance_service:initialize:56 - MaintenanceService ready
+02:04:00 | INFO     | src.core.locator:start_all:109 - System MaintenanceService started.
+02:04:00 | INFO     | src.ucorefs.processing.pipeline:initialize:38 - ProcessingPipeline initializing
+02:04:00 | DEBUG    | src.ucorefs.processing.pipeline:initialize:47 - ExtractorRegistry injected into ProcessingPipeline
+02:04:00 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: process_phase2_batch
+02:04:00 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: process_phase3_item
+02:04:00 | INFO     | src.ucorefs.processing.pipeline:_build_extractor_configs:95 - [Pipeline] Building extractor configs...
+02:04:00 | INFO     | src.ucorefs.processing.pipeline:_build_extractor_configs:118 - [Pipeline] YOLO config: {'enabled': True, 'model': 'yolov8n.pt', 'confidence': 0.25, 'classes': None, 'use_gpu': True}
+02:04:00 | INFO     | src.ucorefs.processing.pipeline:_build_extractor_configs:124 - [Pipeline] GroundingDINO config: {'enabled': True, 'box_threshold': 0.35, 'text_threshold': 0.25, 'class_mapping': {'person': 'person', 'face': 'face', 'cat': 'cat', 'dog': 'dog', 'car': 'vehicle', 'truck': 'vehicle', 'motorcycle': 'vehicle', 'building': 'architecture', 'text': 'text', 'logo': 'logo'}}
+02:04:00 | INFO     | src.ucorefs.processing.pipeline:_build_extractor_configs:130 - [Pipeline] WDTagger config: {'enabled': True, 'model_repo': 'SmilingWolf/wd-vit-tagger-v3', 'general_threshold': 0.35, 'character_threshold': 0.6}
+02:04:00 | INFO     | src.ucorefs.processing.pipeline:_build_extractor_configs:136 - [Pipeline] Built 5 extractor configs: ['db_uri', 'db_name', 'yolo', 'grounding_dino', 'wd_tagger']
+02:04:00 | INFO     | src.ucorefs.processing.pipeline:initialize:75 - ProcessingPipeline ready
+02:04:00 | INFO     | src.core.locator:start_all:109 - System ProcessingPipeline started.
+02:04:00 | INFO     | src.ucorefs.discovery.service:initialize:34 - DiscoveryService initializing
+02:04:00 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: scan_library_root
+02:04:00 | INFO     | src.ucorefs.discovery.service:initialize:58 - DiscoveryService ready
+02:04:00 | INFO     | src.core.locator:start_all:109 - System DiscoveryService started.
+02:04:00 | INFO     | src.ucorefs.thumbnails.service:initialize:33 - ThumbnailService initializing
+02:04:00 | INFO     | src.ucorefs.thumbnails.service:initialize:49 - ThumbnailService ready (sizes: [128, 256, 512], cache: thumbnails)
+02:04:00 | INFO     | src.core.locator:start_all:109 - System ThumbnailService started.
+02:04:00 | INFO     | src.ucorefs.vectors.faiss_service:initialize:23 - FAISSIndexService initializing
+02:04:00 | INFO     | src.ucorefs.vectors.faiss_service:initialize:35 - FAISS library available
+02:04:00 | INFO     | src.ucorefs.vectors.faiss_service:initialize:40 - FAISSIndexService ready
+02:04:00 | INFO     | src.core.locator:start_all:109 - System FAISSIndexService started.
+02:04:00 | DEBUG    | src.core.service_decorator:wrapped_initialize:30 - Initializing Service: VectorService
+02:04:00 | INFO     | src.core.service_decorator:wrapped_initialize:51 - Service Initialized: VectorService
+02:04:00 | INFO     | src.core.locator:start_all:109 - System VectorService started.
+02:04:00 | INFO     | src.ucorefs.search.service:initialize:69 - SearchService initializing
+02:04:00 | INFO     | src.ucorefs.search.service:initialize:88 - SearchService ready
+02:04:00 | INFO     | src.core.locator:start_all:109 - System SearchService started.
+02:04:00 | INFO     | src.ucorefs.ai.similarity_service:initialize:26 - SimilarityService initializing
+02:04:00 | INFO     | src.ucorefs.ai.similarity_service:initialize:37 - SimilarityService ready (threshold: 0.7)
+02:04:00 | INFO     | src.core.locator:start_all:109 - System SimilarityService started.
+02:04:00 | INFO     | src.ucorefs.ai.llm_service:initialize:27 - LLMService initializing
+02:04:00 | INFO     | src.ucorefs.ai.llm_service:initialize:41 - LLMService ready (provider: openai, enabled: False)
+02:04:00 | INFO     | src.core.locator:start_all:109 - System LLMService started.
+02:04:00 | INFO     | src.core.llm.worker_service:initialize:62 - LLMWorkerService initializing...
+02:04:00 | WARNING  | src.core.llm.worker_service:initialize:67 - \u26a0\ufe0f LLM Worker FORCE ENABLED (bypassing config until parsing fixed)
+02:04:00 | INFO     | src.core.llm.worker_service:initialize:72 - \U0001f50d CONFIG DEBUG - Config object type: <class 'src.core.config.ConfigManager'>
+02:04:00 | INFO     | src.core.llm.worker_service:initialize:73 - \U0001f50d CONFIG DEBUG - Has data attr: True
+02:04:00 | INFO     | src.core.llm.worker_service:initialize:76 - \U0001f50d CONFIG DEBUG - Config.data type: <class 'src.core.config.AppConfig'>
+02:04:00 | INFO     | src.core.llm.worker_service:initialize:81 - \U0001f50d CONFIG DEBUG - Full config keys: ['general', 'ai', 'mongo', 'ui', 'library_path', 'processing', 'metadata', 'thumbnail', 'search', 'similarity', 'llm', 'llm_workers']
+02:04:00 | INFO     | src.core.llm.worker_service:initialize:83 - \U0001f50d CONFIG DEBUG - llm_workers section: {'enabled': False, 'num_workers': 2, 'queue_max_size': 100, 'idle_unload_seconds': 300, 'models': {'clip': {'enabled': True}, 'blip': {'enabled': True}, 'wdtagger': {'enabled': True}, 'yolo': {'enabled': False}, 'grounding_dino': {'enabled': False}}}
+02:04:00 | INFO     | src.core.llm.worker_service:initialize:85 - \U0001f50d CONFIG DEBUG - Has llm_workers attr: True
+02:04:00 | INFO     | src.core.llm.worker_service:initialize:89 - \U0001f50d CONFIG DEBUG - llm_workers object: enabled=False num_workers=2 queue_max_size=100 idle_unload_seconds=300 models={'clip': LLMWorkerModelSettings(enabled=True), 'blip': LLMWorkerModelSettings(enabled=True), 'wdtagger': LLMWorkerModelSettings(enabled=True), 'yolo': LLMWorkerModelSettings(enabled=False), 'grounding_dino': LLMWorkerModelSettings(enabled=False)}
+02:04:00 | INFO     | src.core.llm.worker_service:initialize:90 - \U0001f50d CONFIG DEBUG - llm_workers type: <class 'src.core.config.LLMWorkerSettings'>
+02:04:00 | INFO     | src.core.llm.worker_service:initialize:92 - \U0001f50d CONFIG DEBUG - llm_workers.enabled = False (type: <class 'bool'>)
+02:04:00 | DEBUG    | src.core.llm.worker_service:initialize:98 - llm_workers.enabled = False
+02:04:00 | WARNING  | src.core.llm.worker_service:initialize:106 - LLMWorkerService DISABLED - extractors will use legacy ThreadPoolExecutor
+02:04:00 | INFO     | src.core.locator:start_all:109 - System LLMWorkerService started.
+02:04:00 | INFO     | src.ucorefs.relations.service:initialize:25 - RelationService initializing
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:_run_periodic_task:180 - Task background_verification: Initial delay 5s
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:_run_periodic_task:180 - Task database_optimization: Initial delay 300s
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:_run_periodic_task:180 - Task cache_cleanup: Initial delay 5s
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:_run_periodic_task:180 - Task orphaned_cleanup: Initial delay 5s
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:_run_periodic_task:180 - Task log_rotation: Initial delay 5s
+02:04:00 | INFO     | src.core.scheduling.periodic_scheduler:_run_periodic_task:180 - Task database_cleanup: Initial delay 5s
+02:04:00 | INFO     | src.ucorefs.relations.service:initialize:31 - RelationService ready
+02:04:00 | INFO     | src.core.locator:start_all:109 - System RelationService started.
+02:04:00 | INFO     | src.ucorefs.albums.manager:initialize:29 - AlbumManager initializing
+02:04:00 | INFO     | src.ucorefs.albums.manager:initialize:31 - AlbumManager ready
+02:04:00 | INFO     | src.core.locator:start_all:109 - System AlbumManager started.
+02:04:00 | INFO     | src.ucorefs.rules.engine:initialize:30 - RulesEngine initializing
+02:04:00 | INFO     | src.ucorefs.rules.engine:initialize:32 - RulesEngine ready
+02:04:00 | INFO     | src.core.locator:start_all:109 - System RulesEngine started.
+02:04:00 | INFO     | src.ucorefs.detection.service:initialize:73 - DetectionService initializing...
+HF_TOKEN loaded from d:\github\USCore\samples\uexplorer\.env
+02:04:02 | INFO     | src.ucorefs.detection.backends.yolo:_load_model:52 - YOLO backend loaded: yolov8n.pt on cuda
+02:04:02 | INFO     | src.ucorefs.detection.service:register_backend:106 - Registered detection backend: yolo
+02:04:02 | INFO     | src.ucorefs.detection.service:initialize:90 - DetectionService initialized with backends: ['yolo']
+02:04:02 | INFO     | src.core.locator:start_all:109 - System DetectionService started.
+02:04:02 | INFO     | src.ucorefs.services.wd_tagger_service:initialize:96 - WDTaggerService initializing...
+02:04:05 | INFO     | src.core.scheduling.periodic_scheduler:_run_periodic_task:187 - Starting periodic task: background_verification (interval: 300s)
+02:04:05 | INFO     | src.core.scheduling.periodic_scheduler:_run_periodic_task:187 - Starting periodic task: cache_cleanup (interval: 21600s)
+02:04:05 | INFO     | src.core.scheduling.periodic_scheduler:_run_periodic_task:187 - Starting periodic task: database_cleanup (interval: 604800s)
+02:04:05 | INFO     | src.core.scheduling.periodic_scheduler:_run_periodic_task:187 - Starting periodic task: log_rotation (interval: 86400s)
+02:04:05 | INFO     | src.core.scheduling.periodic_scheduler:_run_periodic_task:187 - Starting periodic task: orphaned_cleanup (interval: 43200s)
+02:04:05 | INFO     | src.core.tasks.system:submit:512 - Task submitted: Scheduled: background_verification (6976af755e9c7ab86eaeeb15) [priority=2] on TaskSystem 2059331752272
+02:04:05 | DEBUG    | src.core.scheduling.periodic_scheduler:_execute_task:228 - Submitted background_verification to TaskSystem
+02:04:05 | INFO     | src.core.tasks.system:submit:512 - Task submitted: Scheduled: log_rotation (6976af755e9c7ab86eaeeb18) [priority=2] on TaskSystem 2059331752272
+02:04:05 | DEBUG    | src.core.scheduling.periodic_scheduler:_execute_task:228 - Submitted log_rotation to TaskSystem
+02:04:05 | INFO     | src.core.tasks.system:submit:512 - Task submitted: Scheduled: database_cleanup (6976af755e9c7ab86eaeeb17) [priority=2] on TaskSystem 2059331752272
+02:04:05 | DEBUG    | src.core.scheduling.periodic_scheduler:_execute_task:228 - Submitted database_cleanup to TaskSystem
+02:04:05 | INFO     | src.core.tasks.system:submit:512 - Task submitted: Scheduled: cache_cleanup (6976af755e9c7ab86eaeeb16) [priority=2] on TaskSystem 2059331752272
+02:04:05 | DEBUG    | src.core.scheduling.periodic_scheduler:_execute_task:228 - Submitted cache_cleanup to TaskSystem
+02:04:05 | INFO     | src.core.tasks.system:submit:512 - Task submitted: Scheduled: orphaned_cleanup (6976af755e9c7ab86eaeeb19) [priority=2] on TaskSystem 2059331752272
+02:04:05 | DEBUG    | src.core.scheduling.periodic_scheduler:_execute_task:228 - Submitted orphaned_cleanup to TaskSystem
+02:04:05 | INFO     | src.ucorefs.services.wd_tagger_service:_load_model_sync:145 - Loading WD-Tagger model: SmilingWolf/wd-vit-tagger-v3
+02:04:09 | INFO     | src.ucorefs.services.wd_tagger_service:initialize:103 - WDTaggerService ready
+02:04:09 | INFO     | src.ucorefs.services.wd_tagger_service:initialize:116 - WDTaggerService ready: True
+02:04:09 | INFO     | src.core.locator:start_all:109 - System WDTaggerService started.
+02:04:09 | INFO     | src.ucorefs.annotation.service:initialize:48 - AnnotationService initializing
+02:04:09 | INFO     | src.ucorefs.annotation.service:initialize:50 - AnnotationService ready
+02:04:09 | INFO     | src.core.locator:start_all:109 - System AnnotationService started.
+02:04:09 | INFO     | src.core.locator:start_all:109 - System CLIPExtractor started.
+02:04:09 | INFO     | src.core.locator:start_all:109 - System BLIPExtractor started.
+02:04:09 | INFO     | src.core.locator:start_all:109 - System GroundingDINOExtractor started.
+02:04:09 | INFO     | src.ucorefs.tags.manager:initialize:21 - TagManager initializing
+02:04:09 | INFO     | src.ucorefs.tags.manager:initialize:23 - TagManager ready
+02:04:09 | INFO     | src.core.locator:start_all:109 - System TagManager started.
+02:04:09 | INFO     | src.ucorefs.services.fs_service:initialize:36 - FSService initializing
+02:04:09 | INFO     | src.ucorefs.services.fs_service:initialize:39 - FSService ready
+02:04:09 | INFO     | src.core.locator:start_all:109 - System FSService started.
+02:04:09 | INFO     | src.ucorefs.engine_bootstrap:bootstrap_engine:50 - ============================================================
+02:04:09 | INFO     | src.ucorefs.engine_bootstrap:bootstrap_engine:51 - Engine systems initialized - check above for task recovery logs
+02:04:09 | INFO     | src.ucorefs.engine_bootstrap:bootstrap_engine:52 - ============================================================
+02:04:09 | INFO     | src.ucorefs.engine_bootstrap:bootstrap_engine:61 - Engine Bootstrap: Systems initialized (workers pending explicit start)
+02:04:09 | INFO     | src.ucorefs.engine_bootstrap:bootstrap_engine:72 - \u2713 Connected TaskSystem signals to EngineThread
+02:04:09 | INFO     | src.ucorefs.engine_bootstrap:bootstrap_engine:76 - Engine Bootstrap Complete.
+02:04:09 | INFO     | src.core.engine.thread:run:79 - Engine loop running
+02:04:09 | INFO     | src.core.engine.proxy:_on_started:322 - Engine is running
+02:04:09 | INFO     | uexplorer_src.engine_bundle:start_engine:85 - \u2713 Engine is ready
+02:04:09 | INFO     | uexplorer_src.engine_bundle:start_engine:88 - Preloading AI models...
+02:04:09 | INFO     | uexplorer_src.startup:run_preload:108 - Waiting for Engine to be ready...
+02:04:09 | INFO     | uexplorer_src.startup:run_preload:115 - \u2705 Engine is ready - starting model preloading
+02:04:09 | INFO     | uexplorer_src.startup:run_preload:128 - Preloading CLIP Model...
+02:04:09 | INFO     | src.ucorefs.extractors.clip_extractor:_ensure_model_sync:135 - Loading CLIP model on cpu...
+02:04:12 | INFO     | src.ucorefs.extractors.clip_extractor:_ensure_model_sync:143 - CLIP model loaded on cpu (legacy fallback)
+02:04:12 | INFO     | uexplorer_src.startup:run_preload:136 - \u2713 CLIP Model preloaded
+02:04:12 | INFO     | uexplorer_src.startup:run_preload:128 - Preloading BLIP Model...
+02:04:16 | INFO     | src.ucorefs.extractors.blip_extractor:_ensure_model_sync:97 - Loading BLIP model on cpu...
+Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
+`torch_dtype` is deprecated! Use `dtype` instead!
+02:04:21 | INFO     | src.ucorefs.extractors.blip_extractor:_ensure_model_sync:109 - BLIP model loaded on cpu
+02:04:21 | INFO     | uexplorer_src.startup:run_preload:136 - \u2713 BLIP Model preloaded
+02:04:21 | INFO     | uexplorer_src.startup:run_preload:128 - Preloading WD-Tagger Model...
+02:04:21 | INFO     | uexplorer_src.startup:run_preload:136 - \u2713 WD-Tagger Model preloaded
+02:04:21 | INFO     | uexplorer_src.startup:run_preload:128 - Preloading YOLO Detector...
+02:04:21 | INFO     | uexplorer_src.startup:run_preload:136 - \u2713 YOLO Detector preloaded
+02:04:21 | INFO     | uexplorer_src.startup:run_preload:128 - Preloading GroundingDINO...
+02:04:21 | INFO     | src.ucorefs.extractors.grounding_dino_extractor:_ensure_model_sync:128 - [GroundingDINO] Loading model...
+`torch_dtype` is deprecated! Use `dtype` instead!
+02:04:25 | INFO     | src.ucorefs.extractors.grounding_dino_extractor:_ensure_model_sync:180 - [GroundingDINO] \u2713 Model ready on cpu
+02:04:25 | INFO     | uexplorer_src.startup:run_preload:136 - \u2713 GroundingDINO preloaded
+02:04:25 | INFO     | uexplorer_src.engine_bundle:start_engine:93 - \u2713 AI models preloaded
+02:04:25 | INFO     | uexplorer_src.engine_bundle:start_engine:98 - Registering UI task handlers in engine...
+02:04:25 | INFO     | uexplorer_src.tasks.handlers:register_handlers:187 - UExplorer register_handlers: TaskSystem id=2057442195472
+02:04:25 | INFO     | uexplorer_src.tasks.handlers:register_handlers:188 - UExplorer register_handlers: Before registration, handlers=['scan_library_root']
+02:04:25 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: uexplorer.reprocess
+02:04:25 | DEBUG    | uexplorer_src.tasks.handlers:register_handlers:192 - Registered handler: uexplorer.reprocess
+02:04:25 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: uexplorer.reindex
+02:04:25 | DEBUG    | uexplorer_src.tasks.handlers:register_handlers:192 - Registered handler: uexplorer.reindex
+02:04:25 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: uexplorer.rebuild_counts
+02:04:25 | DEBUG    | uexplorer_src.tasks.handlers:register_handlers:192 - Registered handler: uexplorer.rebuild_counts
+02:04:25 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: uexplorer.verify_refs
+02:04:25 | DEBUG    | uexplorer_src.tasks.handlers:register_handlers:192 - Registered handler: uexplorer.verify_refs
+02:04:25 | DEBUG    | src.core.tasks.system:register_handler:328 - Registered task handler: uexplorer.cleanup
+02:04:25 | DEBUG    | uexplorer_src.tasks.handlers:register_handlers:192 - Registered handler: uexplorer.cleanup
+02:04:25 | INFO     | uexplorer_src.tasks.handlers:register_handlers:194 - UExplorer register_handlers: After registration, handlers=['scan_library_root', 'uexplorer.reprocess', 'uexplorer.reindex', 'uexplorer.rebuild_counts', 'uexplorer.verify_refs', 'uexplorer.cleanup']
+02:04:25 | INFO     | uexplorer_src.tasks.handlers:register_handlers:195 - UExplorer: Registered 5 task handlers
+02:04:25 | INFO     | uexplorer_src.engine_bundle:start_engine:113 - \u2713 5 handlers registered in engine
+02:04:25 | INFO     | uexplorer_src.engine_bundle:start_engine:116 - Starting task processing workers...
+02:04:25 | INFO     | src.core.tasks.system:start_workers:216 - TaskSystem started 8 background workers on TaskSystem 2059331752272
+02:04:25 | INFO     | src.core.tasks.system:start_workers:228 - BackgroundTaskRunner started
+02:04:25 | INFO     | src.core.tasks.system:start_workers:233 - Runtime cleanup scheduler started
+02:04:25 | INFO     | src.core.tasks.system:start_workers:238 - \U0001f4cb Registered 11 task handlers: ['maintenance_background_verification', 'maintenance_database_optimization', 'maintenance_cache_cleanup', 'maintenance_log_rotation', 'maintenance_orphaned_cleanup', 'maintenance_database_cleanup', 'maintenance_reprocess_incomplete_embeddings', 'maintenance_fix_file_types', 'process_phase2_batch', 'process_phase3_item', 'scan_library_root']
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:523 - TaskSystem worker 0 started
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:540 - Worker 0 popped task 696fd125ebef512082b90237 (p=0)
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:523 - TaskSystem worker 1 started
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:540 - Worker 1 popped task 696fd125ebef512082b90238 (p=0)
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:523 - TaskSystem worker 2 started
+02:04:25 | INFO     | src.core.tasks.runner:run:122 - BackgroundTaskRunner: Starting background thread
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:540 - Worker 2 popped task 696fd125ebef512082b90239 (p=0)
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:523 - TaskSystem worker 3 started
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:540 - Worker 3 popped task 696fd125ebef512082b9023a (p=0)
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:523 - TaskSystem worker 4 started
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:540 - Worker 4 popped task 696fd125ebef512082b9023b (p=0)
+02:04:25 | DEBUG    | src.core.tasks.runner:_worker_loop:143 - BackgroundTaskRunner: Worker loop started
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:523 - TaskSystem worker 5 started
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:540 - Worker 5 popped task 696fd13cebef512082b90351 (p=0)
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:523 - TaskSystem worker 6 started
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:540 - Worker 6 popped task 696fd13cebef512082b90352 (p=0)
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:523 - TaskSystem worker 7 started
+02:04:25 | DEBUG    | src.core.tasks.system:_worker:540 - Worker 7 popped task 696fd13cebef512082b90353 (p=0)
+02:04:25 | INFO     | uexplorer_src.engine_bundle:start_engine:118 - \u2713 8 workers started
+02:04:25 | INFO     | uexplorer_src.engine_bundle:_check_handlers:126 - DEBUG: Engine TaskSystem id=2057442195472
+02:04:25 | INFO     | uexplorer_src.engine_bundle:_check_handlers:127 - DEBUG: Registered handlers: ['scan_library_root', 'uexplorer.reprocess', 'uexplorer.reindex', 'uexplorer.rebuild_counts', 'uexplorer.verify_refs', 'uexplorer.cleanup']
+02:04:25 | INFO     | uexplorer_src.engine_bundle:start_engine:132 - DEBUG: Confirmed handlers in engine: ['scan_library_root', 'uexplorer.reprocess', 'uexplorer.reindex', 'uexplorer.rebuild_counts', 'uexplorer.verify_refs', 'uexplorer.cleanup']
+02:04:25 | INFO     | src.ucorefs.extractors.yolo_extractor:__init__:35 - [YOLOExtractor] Initialized with all YOLO classes (80 total)
+02:04:25 | INFO     | uexplorer_src.engine_bundle:start_engine:134 - ============================================================
+02:04:25 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [blip] Using legacy extraction for 1 files
+02:04:25 | INFO     | uexplorer_src.engine_bundle:start_engine:135 - \u2713 Engine Initialization Complete
+02:04:25 | INFO     | uexplorer_src.engine_bundle:start_engine:136 - ============================================================
+02:04:25 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [blip] Using legacy extraction for 1 files
+02:04:25 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [blip] Using legacy extraction for 1 files
+02:04:25 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [blip] Using legacy extraction for 1 files
+02:04:25 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [blip] Using legacy extraction for 1 files
+02:04:25 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [blip] Using legacy extraction for 1 files
+02:04:25 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [blip] Using legacy extraction for 1 files
+02:04:25 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [blip] Using legacy extraction for 1 files
+02:04:25 | INFO     | uexplorer_src.ui.managers.filter_manager:__init__:122 - FilterManager initialized
+02:04:25 | DEBUG    | src.ui.mvvm.sync_manager:register:68 - Registered SelectionManager.active_file_id to channel: 'active_file'
+02:04:25 | DEBUG    | src.ui.mvvm.sync_manager:register:68 - Registered SelectionManager.selected_file_ids to channel: 'selection'
+02:04:25 | INFO     | uexplorer_src.ui.managers.selection_manager:__init__:79 - SelectionManager (Reactive) initialized
+02:04:25 | DEBUG    | src.ui.mvvm.sync_manager:register:68 - Registered DocumentManager.active_id to channel: 'active_document'
+02:04:25 | INFO     | uexplorer_src.viewmodels.document_manager:__init__:54 - DocumentManager (Reactive) initialized
+02:04:25 | DEBUG    | src.ui.navigation.service:register_handler:62 - Registered navigation handler: <uexplorer_src.viewmodels.document_manager.DocumentManager(0x1df85c0a5a0) at 0x000001DF8B81ADC0>
+02:04:25 | INFO     | uexplorer_src.ui.main_window:_init_managers:147 - NavigationService connected
+02:04:25 | INFO     | uexplorer_src.ui.main_window:_init_managers:152 - \u2713 SelectionManager initialized
+02:04:25 | INFO     | uexplorer_src.ui.main_window:_init_managers:154 - UI managers initialized (FilterManager, SelectionManager, DocumentManager)
+02:04:25 | INFO     | src.ui.menus.action_registry:__init__:17 - ActionRegistry initialized
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file.new_browser
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: file.exit
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: edit.settings
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.panel.tags
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.panel.albums
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.panel.relations
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.panel.properties
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.panel.filters
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.panel.search
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.panel.background
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.panel.directories
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.panel.similar
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.panel.annotation
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.panel.maintenance
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.dashboard
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.split_horizontal
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.split_vertical
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.close_split
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.reset_layout
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: view.thumbnails
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: tools.scan
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: tools.reprocess
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: tools.reindex_all
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: tools.library
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: tools.rules
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: tools.command_palette
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: maintenance.rebuild_counts
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: maintenance.verify_references
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: maintenance.cleanup_orphaned
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: help.shortcuts
+02:04:25 | DEBUG    | src.ui.menus.action_registry:register_action:56 - Action registered: help.about
+02:04:25 | INFO     | uexplorer_src.ui.main_window:setup_action_registry:239 - ActionRegistry initialized with UExplorer actions
+02:04:25 | INFO     | uexplorer_src.ui.managers.menu_manager:build_menus:45 - MenuManager: Menu bar constructed
+02:04:25 | INFO     | uexplorer_src.ui.main_window:create_menu_bar:248 - Menu bar created via MenuManager
+02:04:25 | INFO     | uexplorer_src.ui.managers.toolbar_manager:build_toolbar:72 - ToolbarManager: Toolbar constructed
+02:04:25 | INFO     | uexplorer_src.ui.main_window:create_toolbar:259 - Toolbar created via ToolbarManager
+02:04:25 | INFO     | uexplorer_src.ui.main_window:create_central_widget:270 - Central widget managed by DockingService (QtAds)
+02:04:25 | INFO     | uexplorer_src.ui.main_window:setup_docking_service:661 - Setting up DockingService (PySide6-QtAds)...
+02:04:25 | DEBUG    | src.ui.docking.service:safe_set_flag:220 - Config flag set: DockAreaHasCloseButton = True
+02:04:25 | DEBUG    | src.ui.docking.service:safe_set_flag:220 - Config flag set: DockAreaHasUndockButton = True
+02:04:25 | DEBUG    | src.ui.docking.service:safe_set_flag:220 - Config flag set: DockAreaHasTabsMenuButton = True
+02:04:25 | DEBUG    | src.ui.docking.service:safe_set_flag:220 - Config flag set: MiddleMouseButtonClosesTab = True
+02:04:25 | DEBUG    | src.ui.docking.service:safe_set_flag:220 - Config flag set: FocusHighlighting = True
+02:04:25 | INFO     | src.ui.docking.service:__init__:195 - DockingService initialized (documents + panels)
+02:04:25 | INFO     | src.core.locator:register_instance:75 - Instance registered: DockingService
+02:04:25 | DEBUG    | uexplorer_src.ui.models.tag_tree_model:fetchMore:148 - Fetching children for Root
+02:04:25 | INFO     | src.ui.docking.service:add_panel:456 - Panel added: tags - Tags (area=left, auto_hide=False)
+02:04:25 | INFO     | src.ui.docking.service:add_panel:456 - Panel added: albums - Albums (area=left, auto_hide=False)
+02:04:25 | INFO     | src.ui.docking.service:add_panel:456 - Panel added: directories - Directories (area=left, auto_hide=False)
+02:04:25 | INFO     | uexplorer_src.ui.docking.unified_search_panel:_setup_ui:212 - [UnifiedSearchPanel] Detection tree signal connected to <bound method UnifiedSearchPanel._on_detection_tree_changed of <uexplorer_src.ui.docking.unified_search_panel.UnifiedSearchPanel(0x1df89661c80) at 0x000001DFE6AB8F80>>
+02:04:25 | INFO     | uexplorer_src.ui.docking.unified_search_panel:_setup_ui:215 - [UnifiedSearchPanel] Testing signal connection...
+02:04:25 | INFO     | uexplorer_src.ui.docking.unified_search_panel:_on_detection_tree_changed:268 - [DetectionFilter] Received 0 filters: []
+02:04:25 | INFO     | uexplorer_src.ui.docking.unified_search_panel:_on_detection_tree_changed:278 - [DetectionFilter] Updated query builder with detection filters
+02:04:25 | INFO     | uexplorer_src.ui.docking.unified_search_panel:__init__:53 - UnifiedSearchPanel initialized
+02:04:25 | INFO     | src.ui.docking.service:add_panel:456 - Panel added: search - Search (area=left, auto_hide=False)
+02:04:26 | DEBUG    | src.ui.mvvm.sync_manager:register:68 - Registered PropertiesViewModel.active_detection_id to channel: 'active_detection'
+02:04:26 | DEBUG    | src.ui.mvvm.sync_manager:register:68 - Registered PropertiesViewModel.active_file_id to channel: 'active_file'
+02:04:26 | DEBUG    | src.ui.mvvm.sync_manager:register:68 - Registered PropertiesViewModel.selected_file_ids to channel: 'selection'
+02:04:26 | INFO     | uexplorer_src.viewmodels.properties_viewmodel:__init__:88 - PropertiesViewModel initialized and registered for sync
+02:04:26 | INFO     | src.ui.docking.service:add_panel:456 - Panel added: properties - Properties (area=right, auto_hide=False)
+02:04:26 | INFO     | src.ui.docking.service:add_panel:456 - Panel added: relations - Related Files (area=bottom, auto_hide=False)
+02:04:26 | INFO     | uexplorer_src.ui.docking.background_panel:__init__:51 - BackgroundPanel initialized
+02:04:26 | INFO     | src.ui.docking.service:add_panel:456 - Panel added: background - Background Tasks (area=bottom, auto_hide=False)
+02:04:26 | INFO     | src.core.scheduling.periodic_scheduler:_get_schedule_config:151 - Using default maintenance schedule
+02:04:26 | INFO     | uexplorer_src.ui.managers.panel_factory:_setup_maintenance_panel:203 - MaintenancePanel connected to scheduler (uses EngineProxy for maintenance)
+02:04:26 | INFO     | src.ui.docking.service:add_panel:456 - Panel added: maintenance - Maintenance (area=bottom, auto_hide=False)
+02:04:26 | DEBUG    | uexplorer_src.ui.docking.similar_items_panel:__init__:53 - SimilarityService not directly available (Engine System)
+02:04:26 | INFO     | src.ui.docking.service:add_panel:456 - Panel added: similar - Similar Files (area=bottom, auto_hide=False)
+02:04:26 | DEBUG    | uexplorer_src.ui.docking.annotation_panel:__init__:56 - AnnotationService not directly available (Engine System)
+02:04:26 | INFO     | src.ui.docking.service:add_panel:456 - Panel added: annotation - Annotation (area=bottom, auto_hide=False)
+02:04:26 | INFO     | src.ui.docking.service:add_panel:456 - Panel added: sync_monitor - Sync Monitor (area=bottom, auto_hide=False)
+02:04:26 | INFO     | uexplorer_src.ui.managers.panel_factory:create_all_panels:186 - \u2713 Created all tool panels
+02:04:26 | INFO     | uexplorer_src.ui.managers.panel_factory:connect_panel_signals:254 - Connected UnifiedSearchPanel.search_requested
+02:04:26 | INFO     | uexplorer_src.ui.managers.panel_factory:connect_panel_signals:256 - \u2713 Connected panel signals
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.unified_query_builder:__init__:205 - UnifiedQueryBuilder initialized
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.unified_query_builder:connect_search_panel:212 - Connected to SearchPanel
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.unified_query_builder:connect_tag_panel:219 - Connected to TagPanel
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.unified_query_builder:connect_album_panel:226 - Connected to AlbumPanel
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.unified_query_builder:connect_directory_panel:233 - Connected to DirectoryPanel
+02:04:26 | INFO     | uexplorer_src.ui.main_window:_setup_unified_query_builder:846 - \u2713 UnifiedQueryBuilder connected to all panels
+02:04:26 | INFO     | uexplorer_src.ui.main_window:setup_docking_service:676 - \u2713 DockingService initialized successfully!
+02:04:26 | INFO     | uexplorer_src.ui.main_window:setup_task_progress:376 - TaskSystem signals connected to MainWindow
+02:04:26 | INFO     | uexplorer_src.ui.main_window:setup_task_progress:386 - Engine available - handling heavy background tasks
+02:04:26 | INFO     | uexplorer_src.ui.managers.session_manager:setup_integration:48 - SessionState connected to DockingService
+02:04:26 | INFO     | uexplorer_src.ui.managers.session_manager:restore:103 - Restoring session: 3 documents
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.browse_view_model:__init__:79 - BrowseViewModel created: browser_bf7bc375
+02:04:26 | DEBUG    | src.ui.mvvm.sync_manager:publish:110 - Sync broadcast on 'active_document' from DocumentManager
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.document_manager:set_active:157 - Active document: browser_bf7bc375
+02:04:26 | INFO     | uexplorer_src.viewmodels.document_manager:create_document:126 - Document created: browser_bf7bc375
+02:04:26 | DEBUG    | uexplorer_src.ui.documents.file_browser_document:_init_services:121 - EngineProxy available for background processing
+02:04:26 | DEBUG    | uexplorer_src.ui.documents.file_browser_document:__init__:101 - FileBrowserDocument created: Files (ID: 0bec8828-3bb0-4139-bcc3-075ae81e1779)
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.browse_view_model:restore_state:355 - [browser_bf7bc375] State restored
+02:04:26 | INFO     | src.ui.docking.service:add_document:326 - Document added: browser_bf7bc375 - Files
+02:04:26 | DEBUG    | uexplorer_src.ui.managers.session_manager:restore_browser_document:206 - Restored document: browser_bf7bc375 - Files
+02:04:26 | DEBUG    | uexplorer_src.ui.managers.session_manager:restore:109 - Skipping closed document: img_7a88746b
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.browse_view_model:__init__:79 - BrowseViewModel created: img_e40c6d06
+02:04:26 | INFO     | uexplorer_src.viewmodels.document_manager:create_document:126 - Document created: img_e40c6d06
+02:04:26 | DEBUG    | uexplorer_src.ui.documents.file_browser_document:_init_services:121 - EngineProxy available for background processing
+02:04:26 | DEBUG    | uexplorer_src.ui.documents.file_browser_document:__init__:101 - FileBrowserDocument created: bw_sketch_113.webp (ID: b05ad834-be55-412d-9c81-018c40758d25)
+02:04:26 | DEBUG    | src.ui.mvvm.sync_manager:publish:110 - Sync broadcast on 'active_document' from DocumentManager
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.document_manager:set_active:157 - Active document: img_e40c6d06
+02:04:26 | INFO     | uexplorer_src.ui.main_window:_on_document_tab_activated:682 - Active document switched to: img_e40c6d06
+02:04:26 | DEBUG    | src.ui.docking.service:_on_doc_view_toggled:528 - Document activated via tab: img_e40c6d06
+02:04:26 | INFO     | src.ui.docking.service:add_document:326 - Document added: img_e40c6d06 - bw_sketch_113.webp
+02:04:26 | DEBUG    | uexplorer_src.ui.managers.session_manager:restore_browser_document:206 - Restored document: img_e40c6d06 - bw_sketch_113.webp
+02:04:26 | DEBUG    | src.ui.mvvm.sync_manager:publish:110 - Sync broadcast on 'active_document' from DocumentManager
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.document_manager:set_active:157 - Active document: browser_bf7bc375
+02:04:26 | INFO     | uexplorer_src.ui.main_window:_on_document_tab_activated:682 - Active document switched to: browser_bf7bc375
+02:04:26 | DEBUG    | src.ui.docking.service:_on_doc_view_toggled:528 - Document activated via tab: browser_bf7bc375
+02:04:26 | DEBUG    | src.ui.mvvm.sync_manager:publish:110 - Sync broadcast on 'active_document' from DocumentManager
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.document_manager:set_active:157 - Active document: img_e40c6d06
+02:04:26 | INFO     | uexplorer_src.ui.main_window:_on_document_tab_activated:682 - Active document switched to: img_e40c6d06
+02:04:26 | DEBUG    | src.ui.docking.service:_on_doc_view_toggled:528 - Document activated via tab: img_e40c6d06
+02:04:26 | INFO     | uexplorer_src.ui.managers.session_manager:_restore_layout:138 - Restored docking layout from session
+02:04:26 | INFO     | uexplorer_src.ui.managers.session_manager:restore:122 - Session restored: 2 documents
+02:04:26 | INFO     | uexplorer_src.ui.main_window:__init__:101 - UExplorer main window initialized
+02:04:26 | DEBUG    | src.core.bootstrap:async_main:352 - Running post_window hook...
+02:04:26 | INFO     | src.core.bootstrap:async_main:355 - UExplorer started successfully
+02:04:26 | DEBUG    | src.ui.docking.service:_on_focused_dock_widget_changed:92 - Focus changed to dock: search
+02:04:26 | DEBUG    | uexplorer_src.viewmodels.document_manager:set_active:151 - DocumentManager: Ignoring activation of non-managed doc: search
+02:04:26 | DEBUG    | src.ui.mvvm.sync_manager:publish:110 - Sync broadcast on 'active_document' from DockingService
+02:04:26 | INFO     | uexplorer_src.ui.main_window:load_initial_roots:162 - MainWindow: Triggering initial root load...
+02:04:26 | INFO     | uexplorer_src.ui.main_window:load_initial_roots:197 -   - Triggering background library scan...
+02:04:26 | INFO     | uexplorer_src.ui.main_window:load_initial_roots:202 - \u2713 Initial root load triggered
+02:04:26 | INFO     | src.core.tasks.system:submit:512 - Task submitted: Scan library root (6976af8a5e9c7ab86eaeeb1a) [priority=1] on TaskSystem 2059331752272
+02:04:26 | INFO     | src.ucorefs.discovery.service:scan_root:87 - Submitted scan task: 6976af8a5e9c7ab86eaeeb1a
+02:04:26 | DEBUG    | uexplorer_src.ui.docking.directory_panel:_load_roots:228 - Loaded 1 library roots
+02:04:30 | INFO     | src.ucorefs.extractors.blip_extractor:store:158 - Stored BLIP caption for bw_sketch_58.webp: 'a man with a hat and a cigarette...'
+02:04:30 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [yolo] Using legacy extraction for 1 files
+02:04:30 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:108 - [YOLOExtractor] Processing file: D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_58.webp
+02:04:30 | INFO     | src.ucorefs.extractors.blip_extractor:store:158 - Stored BLIP caption for bw_sketch_59.webp: 'a drawing of a woman in a dress...'
+02:04:30 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [yolo] Using legacy extraction for 1 files
+02:04:30 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:108 - [YOLOExtractor] Processing file: D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_59.webp
+02:04:30 | ERROR    | src.ucorefs.detection.backends.yolo:_detect_sync:153 - YOLO detection failed: 'Conv' object has no attribute 'bn'
+02:04:30 | INFO     | src.ucorefs.detection.service:detect:195 - Detected 0 objects in file 696f9d85d52c194780a56749
+02:04:30 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:116 - [YOLOExtractor] Found 0 objects in bw_sketch_58.webp
+02:04:30 | DEBUG    | src.ucorefs.extractors.yolo_extractor:store:130 - [YOLOExtractor] No detections to store for 696f9d85d52c194780a56749
+02:04:30 | INFO     | src.ucorefs.extractors.grounding_dino_extractor:extract:229 - [GroundingDINO] Starting batch extraction for 1 files
+>>> WDTaggerService.initialize() CALLED
+>>> WDTaggerService: Starting model load...
+>>> WDTaggerService: Model loaded successfully
+Ultralytics 8.3.235  Python-3.11.9 torch-2.9.1+cpu CPU (Intel Core i7-10750H 2.60GHz)
+02:04:30 | INFO     | src.ucorefs.extractors.blip_extractor:store:158 - Stored BLIP caption for bw_sketch_57.webp: 'a black and white image of a demon with wings...'
+02:04:30 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [yolo] Using legacy extraction for 1 files
+02:04:30 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:108 - [YOLOExtractor] Processing file: D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_57.webp
+Ultralytics 8.3.235  Python-3.11.9 torch-2.9.1+cpu CPU (Intel Core i7-10750H 2.60GHz)
+02:04:30 | INFO     | src.ucorefs.extractors.blip_extractor:store:158 - Stored BLIP caption for bw_sketch_6.webp: 'a man in a suit is looking at a building...'
+02:04:30 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [yolo] Using legacy extraction for 1 files
+02:04:30 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:108 - [YOLOExtractor] Processing file: D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_6.webp
+Ultralytics 8.3.235  Python-3.11.9 torch-2.9.1+cpu CPU (Intel Core i7-10750H 2.60GHz)
+YOLOv8n summary (fused): 72 layers, 3,151,904 parameters, 0 gradients, 8.7 GFLOPs
+YOLOv8n summary (fused): 72 layers, 3,151,904 parameters, 0 gradients, 8.7 GFLOPs
+YOLOv8n summary (fused): 72 layers, 3,151,904 parameters, 0 gradients, 8.7 GFLOPs
+02:04:31 | DEBUG    | src.ucorefs.detection.backends.yolo:_detect_sync:149 - YOLO detected 1 objects in D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_57.webp
+02:04:31 | INFO     | src.ucorefs.detection.service:detect:195 - Detected 1 objects in file 696f9d85d52c194780a56748
+02:04:31 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:116 - [YOLOExtractor] Found 1 objects in bw_sketch_57.webp
+02:04:31 | INFO     | src.ucorefs.extractors.yolo_extractor:store:133 - [YOLOExtractor] Storing 1 detections for 696f9d85d52c194780a56748
+02:04:31 | INFO     | src.ucorefs.extractors.grounding_dino_extractor:extract:229 - [GroundingDINO] Starting batch extraction for 1 files
+02:04:32 | DEBUG    | src.ucorefs.detection.backends.yolo:_detect_sync:149 - YOLO detected 1 objects in D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_59.webp
+02:04:32 | INFO     | src.ucorefs.detection.service:detect:195 - Detected 1 objects in file 696f9d85d52c194780a5674a
+02:04:32 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:116 - [YOLOExtractor] Found 1 objects in bw_sketch_59.webp
+02:04:32 | INFO     | src.ucorefs.extractors.yolo_extractor:store:133 - [YOLOExtractor] Storing 1 detections for 696f9d85d52c194780a5674a
+02:04:32 | INFO     | src.ucorefs.extractors.grounding_dino_extractor:extract:229 - [GroundingDINO] Starting batch extraction for 1 files
+02:04:32 | DEBUG    | src.ucorefs.detection.backends.yolo:_detect_sync:149 - YOLO detected 1 objects in D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_6.webp
+02:04:32 | INFO     | src.ucorefs.detection.service:detect:195 - Detected 1 objects in file 696f9d85d52c194780a5674b
+02:04:32 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:116 - [YOLOExtractor] Found 1 objects in bw_sketch_6.webp
+02:04:32 | INFO     | src.ucorefs.extractors.yolo_extractor:store:133 - [YOLOExtractor] Storing 1 detections for 696f9d85d52c194780a5674b
+02:04:32 | INFO     | src.ucorefs.extractors.grounding_dino_extractor:extract:229 - [GroundingDINO] Starting batch extraction for 1 files
+02:04:35 | INFO     | src.ucorefs.extractors.blip_extractor:store:158 - Stored BLIP caption for bw_sketch_68.webp: 'a drawing of a street in the city...'
+02:04:35 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [yolo] Using legacy extraction for 1 files
+02:04:35 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:108 - [YOLOExtractor] Processing file: D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_68.webp
+02:04:35 | DEBUG    | src.ucorefs.detection.backends.yolo:_detect_sync:149 - YOLO detected 1 objects in D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_68.webp
+02:04:35 | INFO     | src.ucorefs.detection.service:detect:195 - Detected 1 objects in file 696f9d85d52c194780a5674e
+02:04:35 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:116 - [YOLOExtractor] Found 1 objects in bw_sketch_68.webp
+02:04:35 | INFO     | src.ucorefs.extractors.yolo_extractor:store:133 - [YOLOExtractor] Storing 1 detections for 696f9d85d52c194780a5674e
+02:04:35 | INFO     | src.ucorefs.extractors.grounding_dino_extractor:extract:229 - [GroundingDINO] Starting batch extraction for 1 files
+02:04:35 | INFO     | src.ucorefs.extractors.blip_extractor:store:158 - Stored BLIP caption for bw_sketch_65.webp: 'a woman with flowers and butterflies in her hair...'
+02:04:35 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [yolo] Using legacy extraction for 1 files
+02:04:35 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:108 - [YOLOExtractor] Processing file: D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_65.webp
+02:04:35 | INFO     | src.ucorefs.extractors.blip_extractor:store:158 - Stored BLIP caption for bw_sketch_56.webp: 'a black and white illustration of two people stand...'
+02:04:35 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [yolo] Using legacy extraction for 1 files
+02:04:35 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:108 - [YOLOExtractor] Processing file: D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_56.webp
+02:04:35 | DEBUG    | src.ucorefs.detection.backends.yolo:_detect_sync:149 - YOLO detected 0 objects in D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_65.webp
+02:04:35 | INFO     | src.ucorefs.detection.service:detect:195 - Detected 0 objects in file 696f9d85d52c194780a5674d
+02:04:35 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:116 - [YOLOExtractor] Found 0 objects in bw_sketch_65.webp
+02:04:35 | DEBUG    | src.ucorefs.extractors.yolo_extractor:store:130 - [YOLOExtractor] No detections to store for 696f9d85d52c194780a5674d
+02:04:35 | INFO     | src.ucorefs.extractors.grounding_dino_extractor:extract:229 - [GroundingDINO] Starting batch extraction for 1 files
+02:04:35 | DEBUG    | src.ucorefs.detection.backends.yolo:_detect_sync:149 - YOLO detected 2 objects in D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_56.webp
+02:04:35 | INFO     | src.ucorefs.detection.service:detect:195 - Detected 2 objects in file 696f9d85d52c194780a56747
+02:04:35 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:116 - [YOLOExtractor] Found 2 objects in bw_sketch_56.webp
+02:04:35 | INFO     | src.ucorefs.extractors.yolo_extractor:store:133 - [YOLOExtractor] Storing 2 detections for 696f9d85d52c194780a56747
+02:04:35 | INFO     | src.ucorefs.extractors.grounding_dino_extractor:extract:229 - [GroundingDINO] Starting batch extraction for 1 files
+02:04:36 | INFO     | src.ucorefs.extractors.blip_extractor:store:158 - Stored BLIP caption for bw_sketch_63.webp: 'a drawing of a moose head with a large ant ant ant...'
+02:04:36 | DEBUG    | src.ucorefs.extractors.ai_extractor:extract:109 - [yolo] Using legacy extraction for 1 files
+02:04:36 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:108 - [YOLOExtractor] Processing file: D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_63.webp
+02:04:36 | DEBUG    | src.ucorefs.detection.backends.yolo:_detect_sync:149 - YOLO detected 2 objects in D:/image_db/safe repo/ddsearch/bw_sketch/bw_sketch_63.webp
+02:04:36 | INFO     | src.ucorefs.detection.service:detect:195 - Detected 2 objects in file 696f9d85d52c194780a5674c
+02:04:36 | INFO     | src.ucorefs.extractors.yolo_extractor:_extract_legacy:116 - [YOLOExtractor] Found 2 objects in bw_sketch_63.webp
+02:04:36 | INFO     | src.ucorefs.extractors.yolo_extractor:store:133 - [YOLOExtractor] Storing 2 detections for 696f9d85d52c194780a5674c
+02:04:36 | INFO     | src.ucorefs.extractors.grounding_dino_extractor:extract:229 - [GroundingDINO] Starting batch extraction for 1 files
+02:04:43 | INFO     | uexplorer_src.ui.main_window:closeEvent:206 - ==================================================
+02:04:43 | INFO     | uexplorer_src.ui.main_window:closeEvent:207 - \U0001f6aa WINDOW CLOSE - Saving session
+02:04:43 | INFO     | uexplorer_src.ui.main_window:closeEvent:208 - ==================================================
+02:04:43 | DEBUG    | src.ui.docking.service:get_document_states:640 - Collected state for document browser_bf7bc375
+02:04:43 | DEBUG    | src.ui.docking.service:get_document_states:640 - Collected state for document img_e40c6d06
+02:04:43 | DEBUG    | src.ui.state.session_state:_collect_state:113 - Collected docking state: 5 keys
+02:04:43 | DEBUG    | src.ui.state.session_state:_collect_state:124 - DocumentManager not available: 'System DocumentManager not registered.'
+02:04:43 | INFO     | src.ui.state.session_state:save:102 - Session saved to session.json
+02:04:43 | INFO     | uexplorer_src.ui.managers.session_manager:save:66 - Session saved via SessionState
+02:04:43 | INFO     | uexplorer_src.ui.main_window:closeEvent:216 - Window closed
+02:04:43 | INFO     | src.core.locator:stop_all:159 - Stopping all systems...
+02:04:43 | INFO     | src.ui.docking.service:shutdown:736 - DockingService shutting down
+02:04:43 | INFO     | src.core.locator:stop_all:165 - System DockingService stopped.
+02:04:43 | INFO     | src.ucorefs.services.fs_service:shutdown:43 - FSService shutting down
+02:04:43 | INFO     | src.core.locator:stop_all:165 - System FSService stopped.
+02:04:43 | INFO     | src.ucorefs.tags.manager:shutdown:27 - TagManager shutting down
+02:04:43 | INFO     | src.core.locator:stop_all:165 - System TagManager stopped.
+02:04:43 | INFO     | src.core.engine.proxy:shutdown:220 - Requesting engine shutdown...
+02:04:43 | INFO     | src.core.engine.proxy:shutdown:224 - Waiting for engine thread to stop (max 30s)...
+02:04:43 | INFO     | src.core.engine.thread:run:90 - Engine thread shutting down...
+02:04:43 | INFO     | src.core.engine.thread:run:99 - Stopping Engine TaskSystem first...
+02:04:43 | INFO     | src.core.tasks.runner:stop:203 - BackgroundTaskRunner: Shutdown requested
+02:04:43 | INFO     | src.core.tasks.runner:run:139 - BackgroundTaskRunner: Thread stopped
+02:04:43 | INFO     | src.core.tasks.system:shutdown:260 - BackgroundTaskRunner stopped
+02:04:43 | INFO     | src.core.tasks.process_executor:shutdown:90 - ProcessExecutor shutting down (wait=True)...
+02:04:43 | INFO     | src.core.tasks.process_executor:shutdown:92 - ProcessExecutor shutdown complete
+02:04:43 | INFO     | src.core.tasks.system:shutdown:269 - AI thread pool shutdown
+D:\github\USCore\.venv\Lib\site-packages\transformers\models\grounding_dino\processing_grounding_dino.py:93: FutureWarning: The key `labels` is will return integer ids in `GroundingDinoProcessor.post_process_grounded_object_detection` output since v4.51.0. Use `text_labels` instead to retrieve string object names.
+  warnings.warn(self.message, FutureWarning)
+02:05:06 | DEBUG    | src.ucorefs.extractors.grounding_dino_extractor:store:446 - Stored 3 detections for 696f9d85d52c194780a5674b
+02:05:06 | INFO     | src.ucorefs.processing.pipeline:_handle_phase3_item:428 - [PHASE3_TRANSITION] \u2713 bw_sketch_6.webp: ANALYZED \u2192 COMPLETE
+02:05:06 | DEBUG    | src.ucorefs.processing.pipeline:_handle_phase3_item:429 - [PHASE3_TRANSITION]   Phase 3 extractors: ['blip', 'yolo', 'grounding_dino']
+02:05:06 | DEBUG    | src.ucorefs.processing.pipeline:_handle_phase3_item:430 - [PHASE3_TRANSITION]   Detections: 0
+02:05:07 | DEBUG    | src.ucorefs.extractors.grounding_dino_extractor:store:446 - Stored 3 detections for 696f9d85d52c194780a5674a
+02:05:07 | INFO     | src.ucorefs.processing.pipeline:_handle_phase3_item:428 - [PHASE3_TRANSITION] \u2713 bw_sketch_59.webp: ANALYZED \u2192 COMPLETE
+02:05:07 | DEBUG    | src.ucorefs.processing.pipeline:_handle_phase3_item:429 - [PHASE3_TRANSITION]   Phase 3 extractors: ['blip', 'yolo', 'grounding_dino']
+02:05:07 | DEBUG    | src.ucorefs.processing.pipeline:_handle_phase3_item:430 - [PHASE3_TRANSITION]   Detections: 0
+02:05:13 | DEBUG    | src.ucorefs.extractors.grounding_dino_extractor:store:446 - Stored 3 detections for 696f9d85d52c194780a56749
+02:05:13 | INFO     | src.ucorefs.processing.pipeline:_handle_phase3_item:428 - [PHASE3_TRANSITION] \u2713 bw_sketch_58.webp: ANALYZED \u2192 COMPLETE
+02:05:13 | DEBUG    | src.ucorefs.processing.pipeline:_handle_phase3_item:429 - [PHASE3_TRANSITION]   Phase 3 extractors: ['blip', 'yolo', 'grounding_dino']
+02:05:13 | DEBUG    | src.ucorefs.processing.pipeline:_handle_phase3_item:430 - [PHASE3_TRANSITION]   Detections: 0
+02:05:13 | ERROR    | src.core.engine.proxy:shutdown:228 - Engine thread did not stop gracefully after 30s, terminating forcefully
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System EngineProxy stopped.
+02:05:13 | INFO     | src.ui.mvvm.sync_manager:shutdown:166 - ContextSyncManager shut down
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System ContextSyncManager stopped.
+02:05:13 | INFO     | src.ui.navigation.service:shutdown:54 - NavigationService shutdown
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System NavigationService stopped.
+02:05:13 | DEBUG    | src.ui.docking.service:get_document_states:640 - Collected state for document browser_bf7bc375
+02:05:13 | DEBUG    | src.ui.docking.service:get_document_states:640 - Collected state for document img_e40c6d06
+02:05:13 | DEBUG    | src.ui.state.session_state:_collect_state:113 - Collected docking state: 5 keys
+02:05:13 | DEBUG    | src.ui.state.session_state:_collect_state:124 - DocumentManager not available: 'System DocumentManager not registered.'
+02:05:13 | INFO     | src.ui.state.session_state:save:102 - Session saved to session.json
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System SessionState stopped.
+02:05:13 | INFO     | src.ucorefs.discovery.service:shutdown:62 - DiscoveryService shutting down
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System DiscoveryService stopped.
+02:05:13 | INFO     | src.ucorefs.thumbnails.service:shutdown:53 - ThumbnailService shutting down
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System ThumbnailService stopped.
+02:05:13 | INFO     | src.ucorefs.vectors.faiss_service:shutdown:44 - FAISSIndexService shutting down
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System FAISSIndexService stopped.
+02:05:13 | DEBUG    | src.core.service_decorator:wrapped_shutdown:58 - Shutting down Service: VectorService
+02:05:13 | INFO     | src.core.service_decorator:wrapped_shutdown:62 - Service Shutdown: VectorService
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System VectorService stopped.
+02:05:13 | INFO     | src.ucorefs.search.service:shutdown:92 - SearchService shutting down
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System SearchService stopped.
+02:05:13 | INFO     | src.ucorefs.relations.service:shutdown:35 - RelationService shutting down
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System RelationService stopped.
+02:05:13 | INFO     | src.ucorefs.albums.manager:shutdown:35 - AlbumManager shutting down
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System AlbumManager stopped.
+02:05:13 | INFO     | src.core.scheduling.periodic_scheduler:shutdown:90 - PeriodicTaskScheduler shutting down...
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System PeriodicTaskScheduler stopped.
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System TaskSystem stopped.
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System AssetManager stopped.
+02:05:13 | DEBUG    | src.core.service_decorator:wrapped_shutdown:58 - Shutting down Service: JournalService
+02:05:13 | INFO     | src.core.service_decorator:wrapped_shutdown:62 - Service Shutdown: JournalService
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System JournalService stopped.
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System CommandBus stopped.
+02:05:13 | INFO     | src.core.database.manager:shutdown:79 - MongoDB connection closed.
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System DatabaseManager stopped.
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System EventBus stopped.
+02:05:13 | INFO     | src.core.locator:stop_all:165 - System ConfigManager stopped.

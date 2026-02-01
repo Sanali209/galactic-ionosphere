@@ -16,28 +16,42 @@ if TYPE_CHECKING:
     from src.core.service_locator import ServiceLocator
 
 
-class DocumentManager(QObject, NavigationHandler):
+from src.ui.mvvm.viewmodel import BaseViewModel
+from src.ui.mvvm.bindable import BindableProperty, BindableBase
+
+
+class DocumentManager(BaseViewModel, NavigationHandler):
     """
     Manages multiple BrowseViewModels and tracks active document.
+    Uses reactive synchronization to stay in sync with UI focus.
     
     Signals:
-        active_changed: Active document changed
+        active_changed: Active document changed (Legacy)
         document_added: New document created
         document_removed: Document closed
     """
     
-    active_changed = Signal(str)  # doc_id
+    # Synchronized with DockingService focus changes
+    active_id = BindableProperty(sync_channel="active_document")
+    
+    active_changed = Signal(str)  # doc_id (Legacy compatibility)
     document_added = Signal(str, object)  # doc_id, BrowseViewModel
     document_removed = Signal(str)  # doc_id
     # Navigation signals
     request_new_document = Signal(object)  # data (path/id)
     
     def __init__(self, parent: Optional[QObject] = None) -> None:
-        QObject.__init__(self, parent)
-        self._documents: Dict[str, BrowseViewModel] = {}
-        self._active_id: Optional[str] = None
+        # Extract locator if parent is MainWindow
+        locator = getattr(parent, 'locator', None)
+        super().__init__(locator)
         
-        logger.info("DocumentManager initialized")
+        self._documents: Dict[str, BrowseViewModel] = {}
+        self.active_id = None
+        
+        # Register for synchronization via ContextSyncManager
+        self.initialize_reactivity()
+        
+        logger.info("DocumentManager (Reactive) initialized")
     
     @property
     def priority(self) -> int:
@@ -81,15 +95,13 @@ class DocumentManager(QObject, NavigationHandler):
         
     # Standard methods...
     @property
-    def active_id(self) -> Optional[str]:
-        """Get active document ID."""
-        return self._active_id
-    
-    @property
     def active_viewmodel(self) -> Optional[BrowseViewModel]:
         """Get active document's ViewModel."""
-        if self._active_id and self._active_id in self._documents:
-            return self._documents[self._active_id]
+        if self.active_id and self.active_id in self._documents:
+            return self._documents[self.active_id]
+        # Fallback to FIRST document if none active (safety for results routing)
+        if self._documents:
+            return next(iter(self._documents.values()))
         return None
     
     @property
@@ -120,12 +132,12 @@ class DocumentManager(QObject, NavigationHandler):
             return
         
         # Switch active if removing active
-        if self._active_id == doc_id:
+        if self.active_id == doc_id:
             remaining = [k for k in self._documents if k != doc_id]
             if remaining:
                 self.set_active(remaining[0])
             else:
-                self._active_id = None
+                self.active_id = None
         
         del self._documents[doc_id]
         self.document_removed.emit(doc_id)
@@ -135,14 +147,12 @@ class DocumentManager(QObject, NavigationHandler):
         """Set active document."""
         if doc_id not in self._documents:
             # It might be a document we don't manage (e.g. image viewer), allow unsetting?
-            # Or just ignore if not found?
-            # logger.warning(f"Document not found: {doc_id}")
             if doc_id:
                 logger.debug(f"DocumentManager: Ignoring activation of non-managed doc: {doc_id}")
             return
         
-        if self._active_id != doc_id:
-            self._active_id = doc_id
+        if self.active_id != doc_id:
+            self.active_id = doc_id
             self.active_changed.emit(doc_id)
             logger.debug(f"Active document: {doc_id}")
     

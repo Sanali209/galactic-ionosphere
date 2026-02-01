@@ -249,22 +249,29 @@ async def cleanup_orphaned_records(
         if reply != QMessageBox.Yes:
             return
     
-    task_system = _get_task_system(locator)
-    if not task_system:
-        ui.set_status("TaskSystem not available")
-        return
-    
+    # Use EngineProxy to submit task to engine thread
     try:
+        from src.core.engine.proxy import EngineProxy
+        
+        engine_proxy = locator.get_system(EngineProxy)
+        if not engine_proxy:
+            ui.set_status("Engine not available")
+            logger.warning("EngineProxy not available for cleanup")
+            return
+        
         ui.set_progress(True, 0, 0)  # Indeterminate
         ui.set_status("Cleaning up orphaned records...")
         
-        task_id = task_system.submit_background(
-            "uexplorer.cleanup",
-            priority=task_system.PRIORITY_NORMAL
+        # Use maintenance_orphaned_cleanup (registered by MaintenanceService)
+        # instead of uexplorer.cleanup (registration timing issue)
+        task_id = await engine_proxy.submit_task(
+            "maintenance_orphaned_cleanup",  # This handler EXISTS
+            "Database Cleanup - Orphaned Files",
+            priority=1
         )
         
         ui.set_status(f"Cleanup started (task: {task_id[:8]}...)")
-        logger.info(f"Cleanup submitted, task {task_id[:8]}")
+        logger.info(f"Cleanup submitted to engine, task {task_id[:8]}")
         
     except Exception as e:
         logger.error(f"Failed to start cleanup: {e}")

@@ -16,7 +16,7 @@ if _env_path.exists():
         load_dotenv(_env_path)
         import os
         if os.environ.get("HF_TOKEN"):
-            print(f"✓ HF_TOKEN loaded from {_env_path}")
+            print(f"HF_TOKEN loaded from {_env_path}")
     except ImportError:
         pass
 

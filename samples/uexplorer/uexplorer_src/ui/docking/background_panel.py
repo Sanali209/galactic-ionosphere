@@ -43,6 +43,7 @@ class BackgroundPanel(QWidget):
         self.locator: "ServiceLocator" = locator
         self._task_system: Optional["TaskSystem"] = None
         self._pipeline: Optional["ProcessingPipeline"] = None
+        self._refresh_task = None  # Track async task for cleanup
         
         self._setup_ui()
         self._setup_timer()
